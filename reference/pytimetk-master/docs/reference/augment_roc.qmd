@@ -1,0 +1,72 @@
+# augment_roc { #pytimetk.augment_roc }
+
+```python
+augment_roc(
+    data,
+    date_column,
+    close_column,
+    periods=1,
+    start_index=0,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Add rate-of-change (ROC) columns to a pandas or polars DataFrame.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                   | Description                                                                                                                                                                                                           | Default    |
+|---------------|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | DataFrame or GroupBy(pandas or polars) | Input financial data. Grouped inputs are expanded per group before computing ROC features.                                                                                                                            | _required_ |
+| date_column   | str                                    | Name of the column containing date information. Used to preserve the original ordering.                                                                                                                               | _required_ |
+| close_column  | str                                    | Name of the column containing closing prices on which the ROC is computed.                                                                                                                                            | _required_ |
+| periods       | int, tuple, or list                    | Lookback windows used for the denominator term. An integer adds a single ROC column, a tuple ``(start, end)`` expands to the inclusive range ``start..end``, and a list provides explicit periods. Defaults to ``1``. | `1`        |
+| start_index   | int                                    | Offset applied to the numerator. When ``0`` (default) the current value is used; otherwise the numerator uses ``close.shift(start_index)``.                                                                           | `0`        |
+| reduce_memory | bool                                   | Attempt to reduce memory usage when operating on pandas data. If used with polars inputs a warning is emitted and no conversion is performed.                                                                         | `False`    |
+| engine        | (auto, pandas, polars)                 | Execution engine. ``"auto"`` (default) infers the backend from the input data type while also accepting explicit overrides.                                                                                           | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                        |
+|--------|-----------|----------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with ROC columns appended. The return type matches the input backend (pandas or polars). |
+
+## Notes {.doc-section .doc-section-notes}
+
+Rate of change is defined as ::
+
+    ROC = (Value_t - Value_{t-period}) / Value_{t-period}
+
+When ``start_index`` is non-zero the numerator is taken from
+``Value_{t-start_index}`` instead of the current value. The implementation
+safeguards against division by zero by returning ``NaN`` whenever the
+denominator is zero.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import polars as pl
+import pytimetk as tk
+
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Pandas DataFrame input (engine inferred)
+roc_df = df.groupby("symbol").augment_roc(
+    date_column="date",
+    close_column="close",
+    periods=[22, 63],
+    start_index=5,
+)
+
+# Polars DataFrame input using the tk accessor
+roc_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_roc(
+        date_column="date",
+        close_column="close",
+        periods=(5, 10),
+    )
+)
+```

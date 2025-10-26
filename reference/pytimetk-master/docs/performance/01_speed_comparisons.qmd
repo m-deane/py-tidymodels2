@@ -1,0 +1,541 @@
+---
+title: "Speed Comparisons"
+jupyter: python3
+toc: true
+toc-depth: 3
+number-sections: true
+number-depth: 2
+code-fold: show
+code-tools: 
+    source: false
+    toggle: true
+---
+
+::: {.callout-note collapse="false"}
+## How this guide benefits you
+
+This guide covers speed and performance comparisons using the `polars` backend. 
+:::
+
+
+Beginning in version 0.2.0 of `pytimetk`, we introduced new `polars` engines to many of our functions. This is aimed at leveraging the speed benefits of polars without requiring you (the user) to learn a new data manipulation framework. 
+
+
+# Pytimetk Speed Result Summary
+
+It's typical to see 2X to 15X speedups just by using the `polars` engine. Speedups of 500X to 3500X are possible by using efficient functions (e.g. staying away from lambdas).
+
+| Features/Properties | **polars**  | **pandas** |
+|---------------------|------------|----------------------|
+| `summarize_by_time()` | 🚀 13X Faster | 🐢 Standard |
+| `augment_rolling()` | 🚀 10X to 3500X Faster | 🐢 Standard  |
+| `augment_expanding()` | 🚀 3X to 500X Faster | 🐢 Standard |
+| `augment_lags()` | 🚀 2X to 20X Faster | 🐢 Standard |
+
+# About Performance
+
+In time series, data is often large (<100M Rows), and contains many groups. Bbecause of this, computational efficiency is paramount. Beginning in pytimetk 0.2.0 we began introducing a new, `polars` backend to help improve the speed. 
+
+## Key benefits:
+
+1. You can get between 2X and 500X speed boost on many common time series operations
+2. You don't need to know how to use `polars` to gain massive speed boosts
+3. Simply turn `engine = 'polars'` to get the speed boost. 
+
+## What affects speed?
+
+Many factors can affect speed. Things that are known to slow performance down:
+
+1. Using non-optimized "lambda" functions. Lambda Functions are created at runtime. This process is flexible but extremely inefficient. Where possible use "built-in" or "configurable" functions instead. 
+   
+2. Not using `polars`. Polars is built on top of Rust, which is a low-level language known for performance and optimized for speed. Using polars usually speeds up computation versus Pandas.
+
+
+
+
+
+# Speed Tests and Conclusions
+
+Load the packages and datasets needed to replicate the speed tests (Click to Expand):
+
+```{python}
+# | eval: true
+
+# Libraries
+import pytimetk as tk
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from pytimetk.utils.polars_helpers import pl_quantile
+from pytimetk.utils.pandas_helpers import pd_quantile
+
+# Datasets
+expedia_df = tk.load_dataset("expedia", parse_dates = ['date_time'])
+m4_daily_df = tk.load_dataset("m4_daily", parse_dates = ['date'])
+stocks_daily_df = tk.load_dataset('stocks_daily', parse_dates=['date'])
+
+# Plotting utility
+def make_time_comparison_plot(title, methods, times, height_spacer=500):
+    """
+    Create a bar chart comparing execution times of different methods.
+    
+    Args:
+    - title (str): Title for the plot.
+    - methods (list of str): Names of the methods being compared.
+    - times (list of float): Execution times corresponding to the methods.
+    - height_spacer (int, optional): Additional space above the tallest bar. Defaults to 5000.
+    
+    Returns:
+    - None. Displays the plot.
+    """
+    
+    # Calculate how many times slower each method is relative to the fastest method
+    min_time = min(times)
+    times_slower = [time / min_time for time in times]
+
+    # Create the bar chart
+    bars = plt.bar(methods, times, color=['blue', 'red', 'green', 'orange'])
+
+    # Add title and labels
+    plt.title(f'{title}: Comparison of Execution Times')
+    plt.ylabel('Execution Time (ms)')
+    plt.xlabel('Methods')
+
+    # Display the execution times and how many times slower on top of the bars
+    for bar, v, multiplier in zip(bars, times, times_slower):
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, height + 50, 
+                 f"{v} ms\n{multiplier:.1f}X slower" if multiplier != 1 else f"{v} ms", 
+                 ha='center', va='bottom', fontsize=9, 
+                 color='black' if multiplier != 1 else 'green')
+
+    # Adjust y-axis limit to make sure all labels fit
+    plt.ylim(0, max(times) + height_spacer)
+
+    # Display the plot
+    plt.tight_layout()
+    return plt
+```
+
+# Feature Engineering Performance Comparisons
+
+This section includes performance comparisons are common Time Series Feature Engineering tasks.
+
+## Summarize By Time `summarize_by_time()`
+
+- Polars is 13.1X faster than Pandas
+
+
+```{python}
+# | echo: false
+
+# Data
+title = "Summarize by Time"
+methods = ['Polars', 'Pandas']
+times = [50.8, 668]
+
+make_time_comparison_plot(title, methods, times, height_spacer=500)
+
+plt.show()
+```
+
+
+:::{.panel-tabset groups="bbands-plotly-plotnine"}
+
+## Polars
+
+```{python}
+# | eval: false
+%%timeit -n 10
+
+df_pytimetk = expedia_df[['site_name', 'date_time', 'cnt', 'is_booking']] \
+    .groupby('site_name') \
+    .summarize_by_time(
+        date_column = 'date_time',
+        value_column = ['cnt', 'is_booking'],
+        freq = 'W',
+        agg_func = ['sum', 'count'],
+        engine = 'polars'
+    )
+
+# 50.8 ms ± 2.45 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+## Pandas
+
+```{python}
+# | eval: false
+%%timeit -n 10
+
+df_pytimetk = expedia_df[['site_name', 'date_time', 'cnt', 'is_booking']] \
+    .groupby('site_name') \
+    .summarize_by_time(
+        date_column = 'date_time',
+        value_column = ['cnt', 'is_booking'],
+        freq = 'W',
+        agg_func = ['sum', 'count'],
+        engine = 'pandas'
+    )
+
+# 668 ms ± 16.5 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+:::
+
+
+## Rolling Calculations `augment_rolling()`
+
+- Polars is 10.8X faster than Pandas
+- Polars is 3,517X faster than Pandas with Lambdas
+
+
+```{python}
+# | echo: false
+import matplotlib.pyplot as plt
+
+# Data
+title = "Augment Rolling"
+height_spacer = 5000
+methods = ['Polars w/ pl_quantile', 'Pandas w/ pd_quantile', 'Pandas w/ Lambda Quantile']
+times = [9.81, 106, 34_500]
+
+make_time_comparison_plot(title, methods, times, height_spacer = 5000)
+
+plt.show()
+```
+
+
+
+:::{.panel-tabset}
+
+## Polars
+
+Uses `pl_quantile()` configurable function.
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_rolling(
+            date_column = 'date', 
+            value_column = 'value', 
+            window = (1,10),
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in std function
+                ('quantile_75', pl_quantile(quantile=0.75)),  # Configurable with all parameters found in polars.Expr.rolling_quantile
+            ],
+            min_periods = 1,
+            engine = 'polars',
+        )
+)
+# 9.81 ms ± 116 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+```
+
+## Pandas
+
+Uses `pd_quantile()` configurable function.
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_rolling(
+            date_column = 'date', 
+            value_column = 'value', 
+            window = (1,10),
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in standard deviation function,
+                # ('quantile_75', lambda x: pd.Series(x).quantile(0.75)),  # Custom quantile function
+                ('quantile_75', pd_quantile(q=0.75))
+            ],
+            min_periods = 1,
+            engine = 'pandas',  # Utilize pandas for the underlying computations
+            show_progress = False,
+        )
+)
+
+# 106 ms ± 2.38 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+## Pandas (Lambda)
+
+Uses `lambda x: pd.Series(x).quantile(0.75)`. Lambda functions are extremely inefficient. 
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_rolling(
+            date_column = 'date', 
+            value_column = 'value', 
+            window = (1,10),
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in standard deviation function,
+                ('quantile_75', lambda x: pd.Series(x).quantile(0.75)), # lambda slows things down
+            ],
+            min_periods = 1,
+            engine = 'pandas',  
+            show_progress = False,
+        )
+)
+
+# 34.5 s ± 236 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+:::
+
+## Augment Expanding `augment_expanding()`
+
+- Polars is 3X faster than Pandas with built-in and configurable functions
+- Polars is 515X faster than Pandas with lambda functions
+
+```{python}
+# | echo: false
+import matplotlib.pyplot as plt
+
+# Data
+title = "Augment Expanding"
+methods = ['Polars w/ pl_quantile', 'Pandas w/ pd_quantile', 'Pandas w/ Lambda Quantile']
+times = [6.95, 20.8, 3580]
+
+make_time_comparison_plot(title, methods, times, 500)
+
+plt.show()
+```
+
+:::{.panel-tabset}
+
+## Polars
+
+Uses `pl_quantile()` configurable function.
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_expanding(
+            date_column = 'date', 
+            value_column = 'value', 
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in std function
+                ('quantile_75', pl_quantile(quantile=0.75)),  # Configurable with all parameters found in polars.Expr.rolling_quantile
+            ],
+            min_periods = 1,
+            engine = 'polars',
+        )
+)
+# 6.95 ms ± 163 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+```
+
+## Pandas
+
+Uses `pd_quantile()` configurable function.
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_expanding(
+            date_column = 'date', 
+            value_column = 'value', 
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in standard deviation function,
+                # ('quantile_75', lambda x: pd.Series(x).quantile(0.75)),  # Custom quantile function
+                ('quantile_75', pd_quantile(q=0.75))
+            ],
+            min_periods = 1,
+            engine = 'pandas',  # Utilize pandas for the underlying computations
+        )
+)
+
+# 20.8 ms ± 1.51 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+## Pandas (Lambda)
+
+Uses `lambda x: pd.Series(x).quantile(0.75)`. Lambda functions are extremely inefficient. 
+
+``` {python}
+# | eval: false
+%%timeit
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_expanding(
+            date_column = 'date', 
+            value_column = 'value', 
+            window_func = [
+                'mean',  # Built-in mean function
+                'std',   # Built-in standard deviation function,
+                ('quantile_75', lambda x: pd.Series(x).quantile(0.75)), # lambda slows things down
+            ],
+            min_periods = 1,
+            engine = 'pandas',  
+        )
+)
+
+# 3.58 s ± 110 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+:::
+
+## Augment Lags `augment_lags()`
+
+- Polars is 1.9X faster than Pandas
+- Speed improvement of Polars (vs Pandas) increases with number of lags
+
+
+```{python}
+# | echo: false
+
+# Data
+title = "Augment Lags"
+methods = ['Polars', 'Pandas']
+times = [37.7, 73.3]
+
+make_time_comparison_plot(title, methods, times, height_spacer=500)
+
+plt.show()
+```
+
+
+:::{.panel-tabset groups="bbands-plotly-plotnine"}
+
+## Polars
+
+```{python}
+# | eval: false
+%%timeit -n 25
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_lags(
+            date_column = 'date', 
+            value_column = 'value', 
+            lags = (2,30),
+            engine = 'polars',  
+        )
+)
+
+# 37.7 ms ± 1.57 ms per loop (mean ± std. dev. of 7 runs, 25 loops each)
+```
+
+## Pandas
+
+```{python}
+# | eval: false
+%%timeit -n 25
+
+expanded_df = (
+    m4_daily_df
+        .groupby('id')
+        .augment_lags(
+            date_column = 'date', 
+            value_column = 'value', 
+            lags = (2,30),
+            engine = 'pandas',  
+        )
+)
+
+# 73.3 ms ± 3.29 ms per loop (mean ± std. dev. of 7 runs, 25 loops each)
+```
+
+:::
+
+# Finance and Techincal Trading Performance Comparisons
+
+## Chande Momentum Oscillator (CMO) `augment_cmo()`
+
+- Polars is 3.3X faster than Pandas
+- Speed improvement of Polars (vs Pandas) increases with number of CMO periods
+
+
+```{python}
+# | echo: false
+
+# Data
+title = "Augment CMO"
+methods = ['Polars', 'Pandas']
+times = [94.4, 310]
+
+make_time_comparison_plot(title, methods, times, height_spacer=500)
+
+plt.show()
+```
+
+
+:::{.panel-tabset groups="bbands-plotly-plotnine"}
+
+## Polars
+
+```{python}
+# | eval: false
+%%timeit -n 25
+
+df = (
+    stocks_daily_df
+        .groupby('symbol')
+        .augment_cmo(
+            date_column = 'date', 
+            value_column = 'adjusted', 
+            periods = (5,30),
+            engine = 'polars',  
+        )
+)
+
+# 94.4 ms ± 3.24 ms per loop (mean ± std. dev. of 7 runs, 25 loops each)
+```
+
+## Pandas
+
+```{python}
+# | eval: false
+%%timeit -n 25
+
+df = (
+    stocks_daily_df
+        .groupby('symbol')
+        .augment_cmo(
+            date_column = 'date', 
+            value_column = 'adjusted', 
+            periods = (5,30),
+            engine = 'pandas',  
+        )
+)
+
+# 73.3 ms ± 3.29 ms per loop (mean ± std. dev. of 7 runs, 25 loops each)
+```
+
+:::
+
+# Conclusions
+
+In general, when speed and performance is needed, which is quite often the case in large-scale time series databases (e.g. finance, customer analytics), the polars engine can be a substantial performance enhancer. Almost every function has experienced a performance increase with the new `polars` engine. We've seen many functions gain 10X increases and beyond. 
+
+
+{{< include ../_includes/_footer.qmd >}}
+
+

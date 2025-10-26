@@ -1,0 +1,67 @@
+# augment_cmo { #pytimetk.augment_cmo }
+
+```python
+augment_cmo(
+    data,
+    date_column,
+    close_column,
+    periods=14,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Calculate the Chande Momentum Oscillator (CMO) using pandas or polars backends.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                   | Description                                                                                                                                     | Default    |
+|---------------|----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | DataFrame or GroupBy(pandas or polars) | Input financial data. Grouped inputs are processed per group before the indicator columns are appended.                                         | _required_ |
+| date_column   | str                                    | Name of the column containing date information.                                                                                                 | _required_ |
+| close_column  | str                                    | Name of the column containing closing prices.                                                                                                   | _required_ |
+| periods       | int, tuple, or list                    | Lookback window(s) applied to the CMO calculation. Accepts a single integer, an inclusive tuple range, or an explicit list. Defaults to ``14``. | `14`       |
+| reduce_memory | bool                                   | Attempt to reduce memory usage when operating on pandas data. If a polars input is supplied a warning is emitted and no conversion occurs.      | `False`    |
+| engine        | (auto, pandas, polars)                 | Execution engine. ``"auto"`` (default) infers the backend from the input data while allowing explicit overrides.                                | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                                                            |
+|--------|-----------|----------------------------------------------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with ``{close_column}_cmo_{period}`` columns appended for every requested period. The return type matches the input backend. |
+
+## Notes {.doc-section .doc-section-notes}
+
+The Chande Momentum Oscillator (CMO) compares the magnitude of recent gains
+to recent losses over the supplied lookback window. Values range from -100
+(all losses) to +100 (all gains). Division-by-zero cases are guarded by
+returning ``NaN`` which matches the pandas behaviour.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import pytimetk as tk
+import polars as pl
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Pandas example (engine inferred)
+cmo_pd = (
+    df.groupby("symbol")
+    .augment_cmo(
+        date_column="date",
+        close_column="close",
+        periods=[14, 28],
+    )
+)
+
+# Polars example using the tk accessor
+cmo_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_cmo(
+        date_column="date",
+        close_column="close",
+        periods=14,
+    )
+)
+```

@@ -1,0 +1,349 @@
+```{r, eval = FALSE}
+# setup: packages, data, resample, basic recipe ------------------------
+library(stacks)
+library(tune)
+library(rsample)
+library(parsnip)
+library(workflows)
+library(recipes)
+library(yardstick)
+library(workflowsets)
+
+set.seed(1)
+
+ctrl_grid <- 
+  tune::control_grid(
+    save_pred = TRUE,
+    save_workflow = TRUE
+  )
+
+ctrl_res <- 
+  tune::control_resamples(
+    save_pred = TRUE,
+    save_workflow = TRUE
+  )
+
+# for regression, predict latency to hatch (excluding NAs)
+tree_frogs_reg <- 
+  tree_frogs |> 
+  filter(!is.na(latency)) |>
+  select(-clutch, -hatched)
+
+set.seed(1)
+tree_frogs_reg_split <- rsample::initial_split(tree_frogs_reg)
+
+set.seed(1)
+tree_frogs_reg_train <- rsample::training(tree_frogs_reg_split)
+
+set.seed(1)
+tree_frogs_reg_test  <- rsample::testing(tree_frogs_reg_split)
+
+set.seed(1)
+reg_folds <- rsample::vfold_cv(tree_frogs_reg_train, v = 5)
+
+tree_frogs_reg_rec <- 
+  recipes::recipe(latency ~ ., data = tree_frogs_reg_train) |>
+  recipes::step_dummy(recipes::all_nominal()) |>
+  recipes::step_zv(recipes::all_predictors())
+
+metric <- yardstick::metric_set(yardstick::rmse)
+
+# linear regression ---------------------------------------
+lin_reg_spec <-
+  parsnip::linear_reg() |>
+  parsnip::set_engine("lm")
+
+reg_wf_lr <- 
+  workflows::workflow() |>
+  workflows::add_model(lin_reg_spec) |>
+  workflows::add_recipe(tree_frogs_reg_rec)
+
+set.seed(1)
+reg_res_lr <- 
+  tune::fit_resamples(
+    object = reg_wf_lr,
+    resamples = reg_folds,
+    metrics = metric,
+    control = ctrl_res
+  )
+
+# SVM regression ----------------------------------
+svm_spec <- 
+  parsnip::svm_rbf(
+    cost = tune::tune(), 
+    rbf_sigma = tune::tune()
+  ) |>
+  parsnip::set_engine("kernlab") |>
+  parsnip::set_mode("regression")
+
+reg_wf_svm <- 
+  workflows::workflow() |>
+  workflows::add_model(svm_spec) |>
+  workflows::add_recipe(tree_frogs_reg_rec)
+
+set.seed(1)
+reg_res_svm <- 
+  tune::tune_grid(
+    object = reg_wf_svm,
+    resamples = reg_folds, 
+    grid = 5,
+    control = ctrl_grid
+  )
+
+# spline regression ---------------------------------------
+spline_rec <- 
+  tree_frogs_reg_rec |>
+  recipes::step_ns(age, deg_free = tune::tune("age"))
+
+reg_wf_sp <- 
+  workflows::workflow() |>
+  workflows::add_model(lin_reg_spec) |>
+  workflows::add_recipe(spline_rec)
+
+set.seed(1)
+reg_res_sp <- 
+  tune::tune_grid(
+    object = reg_wf_sp,
+    resamples = reg_folds,
+    metrics = metric,
+    control = ctrl_grid
+  )
+
+# classification - preliminaries -----------------------------------
+tree_frogs_class <- 
+  tree_frogs |>
+  dplyr::select(-c(clutch, latency))
+
+set.seed(1)
+tree_frogs_class_split <- rsample::initial_split(tree_frogs_class)
+
+set.seed(1)
+tree_frogs_class_train <- rsample::training(tree_frogs_class_split)
+
+set.seed(1)
+tree_frogs_class_test  <- rsample::testing(tree_frogs_class_split)
+
+set.seed(1)
+class_folds <- rsample::vfold_cv(tree_frogs_class_train, v = 5)
+
+tree_frogs_class_rec <- 
+  recipes::recipe(reflex ~ ., data = tree_frogs_class_train) |>
+  recipes::step_dummy(recipes::all_nominal(), -reflex) |>
+  recipes::step_zv(recipes::all_predictors()) |>
+  recipes::step_normalize(recipes::all_numeric())
+
+# random forest classification --------------------------------------
+rand_forest_spec <- 
+  parsnip::rand_forest(
+    mtry = tune::tune(),
+    trees = 500,
+    min_n = tune::tune()
+  ) |>
+  parsnip::set_mode("classification") |>
+  parsnip::set_engine("ranger")
+
+class_wf_rf <-
+  workflows::workflow() |>
+  workflows::add_recipe(tree_frogs_class_rec) |>
+  workflows::add_model(rand_forest_spec)
+
+set.seed(1)
+class_res_rf <- 
+  tune::tune_grid(
+    object = class_wf_rf, 
+    resamples = class_folds, 
+    grid = 10,
+    control = ctrl_grid
+  )
+
+# neural network classification -------------------------------------
+nnet_spec <-
+  mlp(hidden_units = 5, penalty = 0.01, epochs = 100) |>
+  set_mode("classification") |>
+  set_engine("nnet")
+
+class_wf_nn <- 
+  workflows::workflow() |>
+  workflows::add_recipe(tree_frogs_class_rec) |>
+  workflows::add_model(nnet_spec)
+
+set.seed(1)
+class_res_nn <-
+  tune::fit_resamples(
+    object = class_wf_nn, 
+    resamples = class_folds, 
+    control = ctrl_res
+  )
+
+# binary classification --------------------------------
+tree_frogs_2_class_rec <- 
+  recipes::recipe(hatched ~ ., data = tree_frogs_class_train) |>
+  recipes::step_dummy(recipes::all_nominal(), -hatched) |>
+  recipes::step_zv(recipes::all_predictors()) |>
+  recipes::step_normalize(recipes::all_numeric())
+
+set.seed(1)
+rand_forest_spec_2 <- 
+  parsnip::rand_forest(
+    mtry = tune(),
+    trees = 500,
+    min_n = tune()
+  ) |>
+  parsnip::set_mode("classification") |>
+  parsnip::set_engine("ranger")
+
+log_wf_rf <-
+  workflows::workflow() |>
+  workflows::add_recipe(tree_frogs_2_class_rec) |>
+  workflows::add_model(rand_forest_spec_2)
+
+set.seed(1)
+log_res_rf <- 
+  tune::tune_grid(
+    object = log_wf_rf, 
+    resamples = class_folds, 
+    grid = 10,
+    control = ctrl_grid
+  )
+
+nnet_spec_2 <-
+  parsnip::mlp(epochs = 100, hidden_units = 5, penalty = 0.1) |>
+  parsnip::set_mode("classification") |>
+  parsnip::set_engine("nnet", verbose = 0)
+
+log_wf_nn <- 
+  workflows::workflow() |>
+  workflows::add_recipe(tree_frogs_2_class_rec) |>
+  workflows::add_model(nnet_spec_2)
+
+set.seed(1)
+log_res_nn <-
+  tune::fit_resamples(
+    object = log_wf_nn, 
+    resamples = class_folds, 
+    control = ctrl_res
+  )
+```
+```{r, eval = FALSE, include = FALSE}
+# save resamples -------------------------------------
+usethis::use_data(reg_res_lr, overwrite = TRUE)
+usethis::use_data(reg_res_svm, overwrite = TRUE)
+usethis::use_data(reg_res_sp, overwrite = TRUE)
+usethis::use_data(reg_folds, overwrite = TRUE)
+usethis::use_data(class_res_rf, overwrite = TRUE)
+usethis::use_data(class_res_nn, overwrite = TRUE)
+usethis::use_data(class_folds, overwrite = TRUE)
+usethis::use_data(log_res_rf, overwrite = TRUE)
+usethis::use_data(log_res_nn, overwrite = TRUE)
+usethis::use_data(tree_frogs_reg_test, overwrite = TRUE)
+usethis::use_data(tree_frogs_class_test, overwrite = TRUE)
+```
+
+```{r, eval = FALSE, include = FALSE}
+# Additionally, some helper model objects for use in unit tests.
+
+# Stacks
+# ------------------------------------------------------------------------
+st_0 <- stacks()
+
+st_reg_1 <- 
+  stacks() |>
+  add_candidates(reg_res_svm)
+
+st_reg_1_ <-
+  st_reg_1 |>
+  blend_predictions()
+
+st_reg_1__ <-
+  st_reg_1_ |>
+  fit_members()
+
+st_reg_2 <- 
+  stacks() |>
+  add_candidates(reg_res_svm) |>
+  add_candidates(reg_res_sp)
+
+st_class_1 <- 
+  stacks() |>
+  add_candidates(class_res_rf)
+
+st_class_1_non_neg <-
+  st_class_1 |>
+  blend_predictions(non_negative = FALSE)
+
+st_class_1_mixed <-
+  st_class_1 |>
+  blend_predictions(non_negative = FALSE, mixture = c(.25, .75))
+
+st_class_1_ <-
+  st_class_1 |>
+  blend_predictions()
+
+st_class_1__ <- 
+  st_class_1_ |>
+  fit_members()
+
+st_class_2 <- 
+  st_class_1 |>
+  add_candidates(class_res_nn)
+
+st_log_1 <- 
+  stacks() |>
+  add_candidates(log_res_rf)
+
+st_log_1_ <-
+  st_log_1 |>
+  blend_predictions()
+
+st_log_1__ <-
+  st_log_1_ |>
+  fit_members()
+
+st_log_2 <- 
+  st_log_1 |>
+  add_candidates(log_res_nn)
+
+# Resampling Objects
+# ------------------------------------------------------------------------
+# additional fitting/tuning results to test sensitivity to
+# different resampling schemes.
+folds2 <- rsample::vfold_cv(tree_frogs_reg_train, v = 3)
+folds3 <- rsample::vfold_cv(tree_frogs_reg_train, v = 5, repeats = 2)
+folds4 <- rsample::bootstraps(tree_frogs_reg_train)
+folds5 <- rsample::mc_cv(tree_frogs_reg_train)
+
+reg_res_svm_2 <- 
+  tune::tune_grid(
+    object = reg_wf_svm,
+    resamples = folds2, 
+    grid = 5,
+    control = control_stack_grid()
+  )
+
+reg_res_svm_3 <- 
+  tune::tune_grid(
+    object = reg_wf_svm,
+    resamples = folds3, 
+    grid = 5,
+    control = control_stack_grid()
+  )
+  
+reg_res_svm_4 <- 
+  tune::tune_grid(
+    object = reg_wf_svm,
+    resamples = folds4, 
+    grid = 5,
+    control = control_stack_grid()
+  )
+
+reg_res_svm_5 <- 
+  tune::tune_grid(
+    object = reg_wf_svm,
+    resamples = folds5, 
+    grid = 5,
+    control = control_stack_grid()
+  )
+
+# save the environment in an .Rda and load in unit tests
+save.image(file = "tests/testthat/helper_data.Rda", version = 2, compress = "xz")
+```

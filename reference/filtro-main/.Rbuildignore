@@ -1,0 +1,15 @@
+^filtro\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^cran-comments\.md$
+^[\.]?air\.toml$
+^\.vscode$
+^\.github$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^CRAN-SUBMISSION$
+^vignettes/\.quarto$
+^vignettes/*_files$

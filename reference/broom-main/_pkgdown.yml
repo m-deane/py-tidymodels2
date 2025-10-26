@@ -1,0 +1,39 @@
+url: https://broom.tidymodels.org
+
+template:
+  package: tidytemplate
+  bootstrap: 5
+  bslib:
+    danger: "#CA225E"
+    primary: "#CA225E"
+
+  includes:
+      in_header: |
+        <script defer data-domain="broom.tidymodels.org,all.tidymodels.org" src="https://plausible.io/js/plausible.js"></script>
+
+development:
+  mode: auto
+
+default_assets: false
+
+reference:
+
+- title: Tidying generics
+  contents:
+  - tidy
+  - glance
+  - augment
+
+- title: Tidiers
+  contents:
+  - starts_with('tidy')
+  - starts_with('glance')
+  - starts_with('augment')
+  
+- title: Miscellaneous
+  contents:
+  - broom
+  - bootstrap
+  - confint_tidy
+  - finish_glance
+  - fix_data_frame

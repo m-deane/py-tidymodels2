@@ -1,0 +1,69 @@
+[tool.poetry]
+name = "pytimetk"
+version = "2.2.0"
+description = "The time series toolkit for Python."
+authors = [
+    "Business Science <info@business-science.io>",
+    "Quant Science <info@quantscience.io>",
+    "Matt Dancho <mdancho@business-science.io>",
+    "Justin B. Kurland <justin.b.kurland@gmail.com>",
+]
+maintainers = [
+    "Matt Dancho <mdancho@business-science.io>",
+    "Justin B. Kurland <justin.b.kurland@gmail.com>",
+    "Jeff Tackes <tackes@gmail.com>",
+    "Samuel Macêdo <svm.macedo@gmail.com>",
+    "Lucas Okwudishu <clfo2014@gmail.com>",
+    "Alex Riggio <alexmriggio@gmail.com>",
+]
+license = "MIT"
+readme = "README.md"
+keywords = ["time series", "forecasting", "machine learning", "data science"]
+homepage = "https://business-science.github.io/pytimetk/"
+repository = "https://github.com/business-science/pytimetk"
+documentation = "https://business-science.github.io/pytimetk/reference/"
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+pandas = ">=2.0.0"
+pandas-flavor = ">=0.7.0"
+matplotlib = ">=3.8.0"
+plotnine = ">=0.12.3"
+plotly = ">=5.17.0"
+holidays = ">=0.33"
+tsfeatures = ">=0.4.5"
+statsmodels = ">=0.14.0"
+tqdm = ">=4.66.1"
+polars = ">=1.2.0"
+pyarrow = ">=16.1.0"
+pathos = ">=0.3.1"
+adjusttext = ">=0.8"
+xarray = ">=2024.6.0" # "<=2023.10.1" https://github.com/pyjanitor-devs/pandas_flavor/issues/33
+timebasedcv = ">=0.3"
+scikit-learn = ">=1.5.2"
+patsy = ">=0.5.6"
+"cudf-cu12" = { version = ">=24.10.0", optional = true, markers = "python_version >= '3.10' and platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64')" }
+
+
+[tool.pytest.ini_options]
+norecursedirs = ["zzz_local"]
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.25.2"
+pytest = "^7.4.2"
+
+[tool.poetry.group.docs.dependencies]
+quarto = "^0.1.0"
+quartodoc = "^0.7.5"
+
+[tool.poetry.extras]
+gpu = ["cudf-cu12"]
+gpu_cu12 = ["cudf-cu12"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"

@@ -1,0 +1,69 @@
+# augment_bbands { #pytimetk.augment_bbands }
+
+```python
+augment_bbands(
+    data,
+    date_column,
+    close_column,
+    periods=20,
+    std_dev=2,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Calculate Bollinger Bands for pandas or polars data.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                   | Description                                                                                                                                                                                  | Default    |
+|---------------|----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | DataFrame or GroupBy(pandas or polars) | Input financial data. Grouped inputs are processed per group before the bands are appended.                                                                                                  | _required_ |
+| date_column   | str                                    | Name of the column containing date information. Used to preserve the original ordering of results.                                                                                           | _required_ |
+| close_column  | str                                    | Name of the closing price column used to compute the moving average and standard deviation.                                                                                                  | _required_ |
+| periods       | int, tuple, or list                    | Rolling window lengths. An integer adds a single window, a tuple ``(start, end)`` expands to every integer in the inclusive range, and a list provides explicit windows. Defaults to ``20``. | `20`       |
+| std_dev       | float, int, or list                    | Number(s) of standard deviations used when constructing the upper and lower bands. Integers are converted to floats. Defaults to ``2``.                                                      | `2`        |
+| reduce_memory | bool                                   | Attempt to reduce memory usage when operating on pandas data. If a polars input is supplied a warning is emitted and no conversion occurs.                                                   | `False`    |
+| engine        | (auto, pandas, polars)                 | Execution engine. ``"auto"`` (default) infers the backend from the input data while allowing explicit overrides.                                                                             | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                                                                                            |
+|--------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with middle/upper/lower band columns appended for each ``period`` and ``std_dev`` combination. The return type matches the input backend (pandas or polars). |
+
+## Notes {.doc-section .doc-section-notes}
+
+The middle band is the rolling mean of ``close_column``. The upper band is
+the middle band plus ``std_dev`` times the rolling standard deviation, and
+the lower band subtracts the same quantity. Rolling statistics are
+calculated with a minimum window equal to ``period`` which matches the
+behaviour of the pandas implementation.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import polars as pl
+import pytimetk as tk
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Augment a pandas DataFrame (engine inferred)
+bbands_df = df.groupby("symbol").augment_bbands(
+    date_column="date",
+    close_column="close",
+    periods=[20, 40],
+    std_dev=[1.5, 2.0],
+)
+
+# Polars DataFrame using the tk accessor
+bbands_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_bbands(
+        date_column="date",
+        close_column="close",
+        periods=(10, 15),
+        std_dev=2,
+    )
+)
+```

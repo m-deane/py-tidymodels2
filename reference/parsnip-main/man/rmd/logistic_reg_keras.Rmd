@@ -1,0 +1,74 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("logistic_reg", "keras")`
+
+## Tuning Parameters
+
+```{r}
+#| label: keras-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("penalty"),
+                 default = c("0.0"))
+
+param <-
+  logistic_reg() |> 
+  set_engine("keras") |> 
+  make_parameter_list(defaults)
+```
+
+This model has one tuning parameter:
+
+```{r}
+#| label: keras-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+For `penalty`, the amount of regularization is _only_ L2 penalty (i.e., ridge or weight decay). 
+
+## Translation from parsnip to the original package
+
+```{r}
+#| label: keras-csl
+logistic_reg(penalty = double(1)) |> 
+  set_engine("keras") |> 
+  translate()
+```
+
+[keras_mlp()] is a parsnip wrapper around keras code for neural networks. This model fits a linear regression as a network with a single hidden unit. 
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+
+## Case weights
+
+```{r}
+#| child: template-no-case-weights.Rmd
+```
+
+## Saving fitted model objects
+
+```{r}
+#| child: template-bundle.Rmd
+```
+
+## Examples 
+
+The "Fitting and Predicting with parsnip" article contains [examples](https://parsnip.tidymodels.org/articles/articles/Examples.html#logistic-reg-keras) for `logistic_reg()` with the `"keras"` engine.
+
+## References
+
+ - Hoerl, A., & Kennard, R. (2000). _Ridge Regression: Biased Estimation for Nonorthogonal Problems_. Technometrics, 42(1), 80-86. 
+

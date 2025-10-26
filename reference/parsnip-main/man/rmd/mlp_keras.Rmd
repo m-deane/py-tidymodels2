@@ -1,0 +1,95 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("mlp", "keras")`
+
+## Tuning Parameters
+
+```{r}
+#| label: keras-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("hidden_units", "penalty", "dropout", "epochs", "activation"),
+                 default = c("5L", "0.0", "0.0", "20L", "'softmax'"))
+
+param <-
+  mlp() |> 
+  set_engine("keras") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: keras-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+## Translation from parsnip to the original package (regression)
+
+```{r}
+#| label: keras-reg
+mlp(
+  hidden_units = integer(1),
+  penalty = double(1),
+  dropout = double(1),
+  epochs = integer(1),
+  activation = character(1)
+) |>  
+  set_engine("keras") |> 
+  set_mode("regression") |> 
+  translate()
+```
+
+## Translation from parsnip to the original package (classification)
+
+```{r}
+#| label: keras-cls
+mlp(
+  hidden_units = integer(1),
+  penalty = double(1),
+  dropout = double(1),
+  epochs = integer(1),
+  activation = character(1)
+) |> 
+  set_engine("keras") |> 
+  set_mode("classification") |> 
+  translate()
+```
+
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+
+## Case weights
+
+```{r}
+#| child: template-no-case-weights.Rmd
+```
+
+## Saving fitted model objects
+
+```{r}
+#| child: template-bundle.Rmd
+```
+
+## Examples 
+
+The "Fitting and Predicting with parsnip" article contains [examples](https://parsnip.tidymodels.org/articles/articles/Examples.html#mlp-keras) for `mlp()` with the `"keras"` engine.
+
+## References
+
+ - Kuhn, M, and K Johnson. 2013. _Applied Predictive Modeling_. Springer.
+
+

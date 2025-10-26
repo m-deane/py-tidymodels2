@@ -1,0 +1,76 @@
+# augment_stochastic_oscillator { #pytimetk.augment_stochastic_oscillator }
+
+```python
+augment_stochastic_oscillator(
+    data,
+    date_column,
+    high_column,
+    low_column,
+    close_column,
+    k_periods=14,
+    d_periods=3,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Calculate Stochastic Oscillator (%K and %D) using pandas or polars backends.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                   | Description                                                                                                                                | Default    |
+|---------------|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | DataFrame or GroupBy(pandas or polars) | Input financial data. Grouped inputs are processed per group before the indicators are appended.                                           | _required_ |
+| date_column   | str                                    | Name of the column containing date information.                                                                                            | _required_ |
+| high_column   | str                                    | Column containing high prices.                                                                                                             | _required_ |
+| low_column    | str                                    | Column containing low prices.                                                                                                              | _required_ |
+| close_column  | str                                    | Column containing closing prices. Resulting columns are prefixed with this name.                                                           | _required_ |
+| k_periods     | int, tuple, or list                    | Lookback window(s) for the %K calculation. Accepts a single integer, an inclusive tuple range, or an explicit list. Defaults to ``14``.    | `14`       |
+| d_periods     | int or list                            | Lookback window(s) for the %D smoothing calculation. Defaults to ``3``.                                                                    | `3`        |
+| reduce_memory | bool                                   | Attempt to reduce memory usage when operating on pandas data. If a polars input is supplied a warning is emitted and no conversion occurs. | `False`    |
+| engine        | (auto, pandas, polars)                 | Execution engine. ``"auto"`` (default) infers the backend from the input data while allowing explicit overrides.                           | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                                                                    |
+|--------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with %K and %D columns appended for every combination of ``k_periods`` and ``d_periods``. The return type matches the input backend. |
+
+## Notes {.doc-section .doc-section-notes}
+
+%K is defined as ``100 * (Close - LowestLow) / (HighestHigh - LowestLow)``
+where LowestLow/HighestHigh span the specified lookback window. %D is the
+rolling mean of %K over ``d_periods``. Division-by-zero scenarios yield
+``NaN`` values to match the pandas behaviour.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import polars as pl
+import pytimetk as tk
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Pandas example (engine inferred)
+stoch_df = df.groupby("symbol").augment_stochastic_oscillator(
+    date_column="date",
+    high_column="high",
+    low_column="low",
+    close_column="close",
+    k_periods=[14, 21],
+    d_periods=[3, 9],
+)
+
+# Polars example (method chaining)
+stoch_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_stochastic_oscillator(
+        date_column="date",
+        high_column="high",
+        low_column="low",
+        close_column="close",
+        k_periods=14,
+        d_periods=[3],
+    )
+)
+```

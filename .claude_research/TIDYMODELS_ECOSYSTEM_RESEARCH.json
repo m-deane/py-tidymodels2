@@ -1,0 +1,1530 @@
+{
+  "research_metadata": {
+    "research_date": "2025-10-26",
+    "focus": "R tidymodels ecosystem analysis for Python conversion with emphasis on time series",
+    "sources_analyzed": [
+      "https://www.tidymodels.org",
+      "https://business-science.github.io/modeltime/",
+      "Package documentation in /reference/ directory",
+      "Existing py-modeltime-resample implementation"
+    ]
+  },
+
+  "executive_summary": {
+    "overview": "Tidymodels is a comprehensive R ecosystem for statistical modeling and machine learning that follows tidy data principles. It consists of 20+ packages organized into core infrastructure (recipes, parsnip, workflows, tune, yardstick, rsample, broom, dials) and specialized extensions. The modeltime package extends this ecosystem specifically for time series forecasting.",
+
+    "key_principles": [
+      "Unified interface across diverse modeling packages",
+      "Tidy data structures (tibbles) throughout",
+      "Composable workflow components via piping",
+      "Separation of model specification from implementation",
+      "Consistent API patterns across all packages",
+      "Support for both traditional statistics and machine learning"
+    ],
+
+    "time_series_capabilities": "The modeltime ecosystem integrates classical time series methods (ARIMA, ETS, Prophet) with machine learning approaches (XGBoost, Random Forest, Neural Networks) in a unified framework. It provides specialized resampling for temporal data (rolling origin, sliding windows), time series-specific preprocessing (lags, rolling stats, date features), and forecasting workflows with calibration and ensemble capabilities.",
+
+    "python_port_status": "The py-modeltime-resample package implements time series cross-validation (rsample + modeltime.resample functionality) with 24 Python files. Missing components include: recipes (preprocessing), parsnip (model interface), workflows (composition), tune (hyperparameter optimization), yardstick (metrics), workflowsets (experimentation), stacks (ensembling), and the core modeltime forecasting interface."
+  },
+
+  "core_packages": [
+    {
+      "name": "recipes",
+      "version": "1.3.1",
+      "citation": "[1] Kuhn, M. and Wickham, H. 'recipes: Preprocessing and Feature Engineering Steps for Modeling.' CRAN, 2024. https://recipes.tidymodels.org/",
+      "purpose": "Feature engineering and preprocessing pipeline builder",
+      "status": "stable",
+
+      "key_concepts": {
+        "recipe": "A specification of preprocessing steps applied to data",
+        "step": "Individual transformation operation (step_*() functions)",
+        "role": "Variable designation (predictor, outcome, ID)",
+        "prep": "Estimate parameters from training data",
+        "bake": "Apply transformations to new data",
+        "juice": "Extract preprocessed training data"
+      },
+
+      "step_categories": {
+        "imputation": [
+          "step_impute_bag() - Bagged trees",
+          "step_impute_knn() - K-nearest neighbors",
+          "step_impute_linear() - Linear model",
+          "step_impute_mean() - Mean substitution",
+          "step_impute_median() - Median substitution",
+          "step_impute_mode() - Mode substitution",
+          "step_impute_lower() - Below-threshold",
+          "step_impute_roll() - Rolling window statistics",
+          "step_unknown() - Assign missing category"
+        ],
+
+        "transformations": [
+          "step_log() - Logarithmic",
+          "step_sqrt() - Square root",
+          "step_BoxCox() - Box-Cox power transform",
+          "step_YeoJohnson() - Yeo-Johnson transform",
+          "step_logit() - Logit transform",
+          "step_inverse() - Inverse transform",
+          "step_relu() - ReLU activation",
+          "step_hyperbolic() - Hyperbolic functions"
+        ],
+
+        "basis_functions": [
+          "step_bs() - B-splines",
+          "step_ns() - Natural splines",
+          "step_poly() - Polynomial features",
+          "step_harmonic() - Harmonic features"
+        ],
+
+        "date_time_features": [
+          "step_date() - Date features (year, month, day, dow, etc.)",
+          "step_time() - Time features (hour, minute, second, etc.)",
+          "step_holiday() - Holiday indicators"
+        ],
+
+        "time_series_specific": [
+          "step_lag() - Lagged predictors",
+          "step_window() - Moving window functions (rolling mean, sum, etc.)",
+          "step_arrange() - Row ordering",
+          "step_filter() - Row filtering",
+          "step_sample() - Row sampling",
+          "step_slice() - Row slicing",
+          "step_shuffle() - Variable shuffling for permutation"
+        ],
+
+        "encoding": [
+          "step_dummy() - Dummy variables",
+          "step_bin2factor() - Binary to factor",
+          "step_num2factor() - Numeric to factor",
+          "step_string2factor() - String to factor",
+          "step_other() - Collapse infrequent levels",
+          "step_novel() - Handle new factor levels",
+          "step_indicate_na() - Missing indicators",
+          "step_ordinalscore() - Ordinal encoding"
+        ],
+
+        "discretization": [
+          "step_discretize() - Discretize numeric to bins",
+          "step_cut() - Cut points for binning"
+        ],
+
+        "normalization": [
+          "step_center() - Mean centering",
+          "step_scale() - Standard deviation scaling",
+          "step_normalize() - Center + scale",
+          "step_range() - Range scaling [0,1]"
+        ],
+
+        "filters": [
+          "step_zv() - Zero variance filter",
+          "step_nzv() - Near-zero variance filter",
+          "step_corr() - Correlation filter",
+          "step_lincomb() - Linear combination detection"
+        ],
+
+        "dimensionality_reduction": [
+          "step_pca() - Principal component analysis",
+          "step_pls() - Partial least squares",
+          "step_ica() - Independent component analysis",
+          "step_kpca() - Kernel PCA",
+          "step_isomap() - Isomap",
+          "step_nnmf() - Non-negative matrix factorization"
+        ]
+      },
+
+      "time_series_workflow_example": {
+        "description": "Typical recipe for time series regression",
+        "steps": [
+          "step_date(date, features = c('dow', 'month', 'year'))",
+          "step_holiday(date, holidays = timeDate::listHolidays())",
+          "step_lag(target, lag = 1:7)",
+          "step_window(target, window_fn = 'mean', window_size = 7)",
+          "step_dummy(all_nominal_predictors())",
+          "step_zv(all_predictors())",
+          "step_normalize(all_numeric_predictors())"
+        ]
+      },
+
+      "python_equivalents": {
+        "primary": "sklearn.preprocessing, sklearn.compose.ColumnTransformer",
+        "alternatives": ["feature-engine", "category_encoders"],
+        "gaps": [
+          "No native lag/window functions (need manual feature engineering)",
+          "Limited time series preprocessing",
+          "No built-in holiday features",
+          "Less flexible composition syntax"
+        ]
+      },
+
+      "priority_for_port": "HIGH - Essential for time series feature engineering"
+    },
+
+    {
+      "name": "parsnip",
+      "version": "1.3.3",
+      "citation": "[2] Kuhn, M. and Vaughan, D. 'parsnip: A Common API to Modeling and Analysis Functions.' CRAN, 2024. https://parsnip.tidymodels.org/",
+      "purpose": "Unified interface to diverse modeling packages",
+      "status": "stable",
+
+      "key_concepts": {
+        "model_spec": "Model type and mode specification",
+        "engine": "Underlying package/implementation (e.g., ranger, xgboost)",
+        "mode": "Regression, classification, or censored regression",
+        "set_args": "Set hyperparameters",
+        "fit": "Train the model",
+        "predict": "Generate predictions"
+      },
+
+      "model_types": {
+        "linear_models": [
+          "linear_reg() - Linear regression",
+          "logistic_reg() - Logistic regression",
+          "multinom_reg() - Multinomial regression",
+          "poisson_reg() - Poisson regression"
+        ],
+
+        "tree_based": [
+          "decision_tree() - Single decision tree",
+          "rand_forest() - Random forest",
+          "boost_tree() - Gradient boosting (XGBoost, LightGBM, Catboost)",
+          "bart() - Bayesian additive regression trees",
+          "bag_tree() - Bagged trees",
+          "bag_mars() - Bagged MARS"
+        ],
+
+        "rules": [
+          "C5_rules() - C5.0 rules",
+          "cubist_rules() - Cubist rules",
+          "rule_fit() - RuleFit"
+        ],
+
+        "svm": [
+          "svm_linear() - Linear SVM",
+          "svm_poly() - Polynomial kernel SVM",
+          "svm_rbf() - RBF kernel SVM"
+        ],
+
+        "neural_networks": [
+          "mlp() - Multi-layer perceptron",
+          "bag_mlp() - Bagged MLP"
+        ],
+
+        "other": [
+          "mars() - Multivariate adaptive regression splines",
+          "nearest_neighbor() - K-nearest neighbors",
+          "gen_additive_mod() - Generalized additive models",
+          "naive_Bayes() - Naive Bayes",
+          "pls() - Partial least squares",
+          "discrim_linear/quad/regularized/flexible() - Discriminant analysis",
+          "null_model() - Baseline/null model",
+          "auto_ml() - AutoML systems"
+        ],
+
+        "survival": [
+          "survival_reg() - Parametric survival",
+          "proportional_hazards() - Cox proportional hazards"
+        ]
+      },
+
+      "common_engines": {
+        "rand_forest": ["ranger", "randomForest", "spark"],
+        "boost_tree": ["xgboost", "C5.0", "catboost", "lightgbm"],
+        "linear_reg": ["lm", "glmnet", "stan", "spark", "keras"],
+        "logistic_reg": ["glm", "glmnet", "stan", "spark", "keras"]
+      },
+
+      "argument_harmonization": {
+        "description": "Parsnip standardizes argument names across engines",
+        "examples": [
+          "trees: ntree (randomForest), num.trees (ranger), nrounds (xgboost)",
+          "mtry: mtry (all tree packages)",
+          "penalty: lambda (glmnet), reg_lambda (xgboost)",
+          "mixture: alpha (glmnet)"
+        ]
+      },
+
+      "python_equivalents": {
+        "primary": "sklearn model classes (LinearRegression, RandomForestRegressor, etc.)",
+        "alternatives": ["statsmodels", "xgboost", "lightgbm", "catboost"],
+        "gaps": [
+          "No unified parameter interface across packages",
+          "Different prediction APIs",
+          "No separation of specification from fitting"
+        ]
+      },
+
+      "priority_for_port": "CRITICAL - Core abstraction layer for all models"
+    },
+
+    {
+      "name": "workflows",
+      "version": "1.1.4",
+      "citation": "[3] Vaughan, D. 'workflows: Modeling Workflows.' CRAN, 2024. https://workflows.tidymodels.org/",
+      "purpose": "Bundle preprocessor + model + postprocessor into single object",
+      "status": "stable",
+
+      "key_concepts": {
+        "workflow": "Container for modeling components",
+        "preprocessor": "Recipe, formula, or variable specification",
+        "model": "Parsnip model specification",
+        "postprocessor": "Operations after prediction (calibration, etc.)",
+        "add/remove/update": "Modify workflow components"
+      },
+
+      "core_functions": [
+        "workflow() - Create empty workflow",
+        "add_recipe() - Add preprocessing recipe",
+        "add_formula() - Add R formula",
+        "add_variables() - Add variable roles",
+        "add_model() - Add parsnip model",
+        "add_case_weights() - Add case weights",
+        "fit() - Fit entire workflow",
+        "predict() - Predict from fitted workflow",
+        "update_recipe/model() - Update components",
+        "remove_recipe/model() - Remove components"
+      ],
+
+      "advantages": [
+        "Single object encapsulates entire modeling pipeline",
+        "No need to track recipe and model separately",
+        "Automatic preprocessing of new data at prediction time",
+        "Simplified tuning (workflow passed to tune functions)",
+        "Better organization in production environments"
+      ],
+
+      "python_equivalents": {
+        "primary": "sklearn.pipeline.Pipeline",
+        "similarities": ["Chains preprocessing and modeling", "Single fit/predict interface"],
+        "differences": [
+          "sklearn.Pipeline is more restrictive (transformers must have fit/transform)",
+          "workflows support more flexible preprocessors",
+          "workflows have explicit postprocessor support"
+        ]
+      },
+
+      "priority_for_port": "CRITICAL - Essential for composing recipes + models"
+    },
+
+    {
+      "name": "workflowsets",
+      "version": "1.1.0",
+      "citation": "[4] Kuhn, M. and Couch, S. 'workflowsets: Create a Collection of Workflows.' CRAN, 2024. https://workflowsets.tidymodels.org/",
+      "purpose": "Create and evaluate grids of workflow combinations",
+      "status": "experimental",
+
+      "key_concepts": {
+        "workflow_set": "Collection of workflows created from preprocessor x model grid",
+        "cross": "Whether to create all combinations or pair-wise",
+        "workflow_map": "Apply function to all workflows in set",
+        "rank_results": "Compare workflow performances"
+      },
+
+      "core_functions": [
+        "workflow_set() - Create set from preprocessors and models",
+        "workflow_map() - Apply tuning/fitting function to all workflows",
+        "rank_results() - Rank workflows by performance",
+        "autoplot() - Visualize workflow performances",
+        "option_add() - Add workflow-specific options"
+      ],
+
+      "use_cases": [
+        "Model comparison: test multiple models on same data",
+        "Preprocessing comparison: test multiple feature engineering approaches",
+        "Combined search: grid of recipes x models",
+        "Parallel experimentation at scale"
+      ],
+
+      "python_equivalents": {
+        "primary": "None - unique capability",
+        "partial": ["GridSearchCV with nested pipelines"],
+        "gaps": ["No native way to compare multiple pipeline x model combinations"]
+      },
+
+      "priority_for_port": "MEDIUM - Valuable for experimentation but builds on workflows"
+    },
+
+    {
+      "name": "tune",
+      "version": "1.3.0",
+      "citation": "[5] Kuhn, M. 'tune: Tidy Tuning Tools.' CRAN, 2024. https://tune.tidymodels.org/",
+      "purpose": "Hyperparameter tuning and model optimization",
+      "status": "stable",
+
+      "key_concepts": {
+        "tune": "Placeholder for parameters to optimize",
+        "grid": "Set of parameter combinations to try",
+        "resamples": "Cross-validation folds for evaluation",
+        "metrics": "Performance measures to optimize",
+        "select_best": "Choose optimal parameters"
+      },
+
+      "tuning_functions": [
+        "tune_grid() - Grid search",
+        "tune_bayes() - Bayesian optimization",
+        "fit_resamples() - Evaluate without tuning",
+        "last_fit() - Final fit on training set, evaluate on test"
+      ],
+
+      "helper_functions": [
+        "show_best() - Top parameter combinations",
+        "select_best() - Best by metric",
+        "select_by_pct_loss() - Within % of best",
+        "select_by_one_std_err() - One standard error rule",
+        "finalize_workflow() - Update workflow with chosen parameters",
+        "collect_metrics() - Extract performance metrics",
+        "collect_predictions() - Extract predictions"
+      ],
+
+      "parameter_marking": {
+        "description": "Use tune() as placeholder in model specs or recipes",
+        "example": "mtry = tune(), penalty = tune(), num_comp = tune()"
+      },
+
+      "python_equivalents": {
+        "primary": "sklearn.model_selection (GridSearchCV, RandomizedSearchCV)",
+        "alternatives": ["optuna", "hyperopt", "ray.tune"],
+        "gaps": [
+          "tune integrates seamlessly with workflows and recipes",
+          "Consistent API across all tuning strategies",
+          "Better handling of recipe parameters"
+        ]
+      },
+
+      "priority_for_port": "HIGH - Critical for model optimization"
+    },
+
+    {
+      "name": "yardstick",
+      "version": "1.3.2",
+      "citation": "[6] Kuhn, M. and Vaughan, D. 'yardstick: Tidy Characterizations of Model Performance.' CRAN, 2024. https://yardstick.tidymodels.org/",
+      "purpose": "Model performance metrics",
+      "status": "stable",
+
+      "key_concepts": {
+        "metric": "Function that calculates performance",
+        "metric_set": "Collection of metrics",
+        "estimator": "How to average for multiclass (macro, micro, etc.)",
+        "truth": "Actual values",
+        "estimate": "Predicted values"
+      },
+
+      "regression_metrics": [
+        "rmse() - Root mean squared error",
+        "mae() - Mean absolute error",
+        "mape() - Mean absolute percentage error",
+        "mase() - Mean absolute scaled error",
+        "smape() - Symmetric mean absolute percentage error",
+        "mpe() - Mean percentage error",
+        "msd() - Mean signed deviation",
+        "rsq() - R-squared",
+        "rsq_trad() - Traditional R-squared",
+        "ccc() - Concordance correlation coefficient",
+        "rpiq() - Ratio of performance to inter-quartile range",
+        "rpd() - Ratio of performance to deviation",
+        "huber_loss() - Huber loss",
+        "poisson_log_loss() - Poisson log loss",
+        "iic() - Index of ideality of correlation"
+      ],
+
+      "classification_metrics": [
+        "accuracy() - Accuracy",
+        "bal_accuracy() - Balanced accuracy",
+        "kap() - Cohen's kappa",
+        "sens() - Sensitivity/recall",
+        "spec() - Specificity",
+        "ppv() - Precision/positive predictive value",
+        "npv() - Negative predictive value",
+        "mcc() - Matthews correlation coefficient",
+        "j_index() - Youden's J statistic",
+        "f_meas() - F1 score",
+        "detection_prevalence() - Detection prevalence"
+      ],
+
+      "probability_metrics": [
+        "roc_auc() - Area under ROC curve",
+        "pr_auc() - Area under precision-recall curve",
+        "mn_log_loss() - Mean log loss",
+        "brier_class() - Brier score for classification",
+        "gain_capture() - Gain capture",
+        "classification_cost() - Classification cost"
+      ],
+
+      "time_series_metrics": [
+        "mase() - Mean absolute scaled error (includes seasonality)",
+        "mape() - Mean absolute percentage error",
+        "smape() - Symmetric MAPE"
+      ],
+
+      "curve_functions": [
+        "roc_curve() - ROC curve data",
+        "pr_curve() - Precision-recall curve",
+        "gain_curve() - Gain curve",
+        "lift_curve() - Lift curve"
+      ],
+
+      "metric_set_usage": {
+        "description": "Create custom metric collections",
+        "example": "ts_metrics <- metric_set(rmse, mae, mape, mase, rsq)"
+      },
+
+      "python_equivalents": {
+        "primary": "sklearn.metrics",
+        "gaps": [
+          "Less comprehensive for time series (no MASE)",
+          "No metric_set concept for easy collections",
+          "Different API patterns"
+        ]
+      },
+
+      "priority_for_port": "HIGH - Essential for model evaluation"
+    },
+
+    {
+      "name": "rsample",
+      "version": "1.2.1",
+      "citation": "[7] Frick, H., Chow, F., Kuhn, M., et al. 'rsample: General Resampling Infrastructure.' CRAN, 2024. https://rsample.tidymodels.org/",
+      "purpose": "Data splitting and resampling infrastructure",
+      "status": "stable",
+
+      "key_concepts": {
+        "split": "Single division of data into analysis and assessment sets",
+        "rset": "Collection of splits (resamples)",
+        "analysis": "Training portion of split",
+        "assessment": "Testing/validation portion of split"
+      },
+
+      "time_series_methods": [
+        "initial_time_split() - Single chronological split",
+        "rolling_origin() - Rolling window resampling (SUPERSEDED)",
+        "sliding_window() - Time-based sliding windows",
+        "sliding_index() - Index-based sliding windows",
+        "sliding_period() - Period-based sliding windows (e.g., months, years)"
+      ],
+
+      "general_cv_methods": [
+        "vfold_cv() - V-fold cross-validation",
+        "mc_cv() - Monte Carlo cross-validation",
+        "bootstraps() - Bootstrap sampling",
+        "loo_cv() - Leave-one-out CV",
+        "nested_cv() - Nested/double resampling"
+      ],
+
+      "grouped_methods": [
+        "group_vfold_cv() - V-fold respecting groups",
+        "group_mc_cv() - Monte Carlo with groups",
+        "group_bootstraps() - Bootstrap with groups"
+      ],
+
+      "time_series_parameters": {
+        "initial": "Size of initial training set",
+        "assess": "Size of assessment/test set",
+        "skip": "Number of samples to skip between resamples",
+        "step": "Step size for sliding windows",
+        "lag": "Gap between training and assessment",
+        "cumulative": "Expanding vs. rolling window"
+      },
+
+      "sliding_period_features": {
+        "description": "Period-based resampling for irregular time series",
+        "lookback": "How far back to look for training data (e.g., '2 years')",
+        "assess_start/stop": "Assessment period boundaries",
+        "step": "How often to create new splits (e.g., '1 month')"
+      },
+
+      "python_equivalents": {
+        "primary": "sklearn.model_selection (TimeSeriesSplit, KFold)",
+        "alternatives": ["sktime cross-validation"],
+        "gaps": [
+          "sklearn.TimeSeriesSplit is less flexible",
+          "No period-based specifications",
+          "No sliding_period equivalent",
+          "Limited support for irregular time series"
+        ]
+      },
+
+      "priority_for_port": "CRITICAL - Core infrastructure, partially implemented in py-modeltime-resample"
+    },
+
+    {
+      "name": "broom",
+      "version": "1.0.7",
+      "citation": "[8] Robinson, D., Hayes, A., and Couch, S. 'broom: Convert Statistical Objects into Tidy Tibbles.' CRAN, 2024. https://broom.tidymodels.org/",
+      "purpose": "Standardize model output into tidy data frames",
+      "status": "stable",
+
+      "key_concepts": {
+        "tidy": "Extract model coefficients/parameters",
+        "glance": "Extract model-level statistics",
+        "augment": "Add predictions and residuals to original data"
+      },
+
+      "core_functions": [
+        "tidy() - Component-level information (coefficients, etc.)",
+        "glance() - Model-level information (R², AIC, etc.)",
+        "augment() - Observation-level information (.fitted, .resid, etc.)"
+      ],
+
+      "supported_models": "100+ model types from stats, survival, lme4, gam, etc.",
+
+      "augment_columns": [
+        ".fitted - Fitted/predicted values",
+        ".resid - Residuals",
+        ".std.resid - Standardized residuals",
+        ".hat - Leverage",
+        ".sigma - Residual standard deviation",
+        ".cooksd - Cook's distance"
+      ],
+
+      "python_equivalents": {
+        "primary": "None - unique tidying concept",
+        "partial": ["statsmodels summary tables"],
+        "gaps": [
+          "No unified interface across model types",
+          "Different output formats per package",
+          "Manual extraction of diagnostics"
+        ]
+      },
+
+      "priority_for_port": "MEDIUM - Useful but not critical for basic workflows"
+    },
+
+    {
+      "name": "dials",
+      "version": "1.3.0",
+      "citation": "[9] Kuhn, M. 'dials: Tools for Creating Tuning Parameter Values.' CRAN, 2024. https://dials.tidymodels.org/",
+      "purpose": "Define and create tuning parameter grids",
+      "status": "stable",
+
+      "key_concepts": {
+        "param": "Parameter object with range, type, transformation",
+        "grid_regular": "Regular grid of values",
+        "grid_random": "Random grid",
+        "grid_latin_hypercube": "Latin hypercube sampling",
+        "grid_max_entropy": "Maximum entropy design"
+      },
+
+      "parameter_objects": [
+        "mtry() - Number of predictors for trees",
+        "trees() - Number of trees",
+        "min_n() - Minimum node size",
+        "tree_depth() - Maximum tree depth",
+        "learn_rate() - Learning rate",
+        "penalty() - Regularization penalty",
+        "mixture() - Elastic net mixture",
+        "neighbors() - Number of neighbors",
+        "num_comp() - Number of PCA components",
+        "deg_free() - Degrees of freedom for splines"
+      ],
+
+      "grid_functions": [
+        "grid_regular() - Factorial grid",
+        "grid_random() - Random combinations",
+        "grid_latin_hypercube() - Space-filling design",
+        "grid_max_entropy() - Maximum entropy"
+      ],
+
+      "parameter_constructors": [
+        "new_quant_param() - Create quantitative parameter",
+        "new_qual_param() - Create qualitative parameter"
+      ],
+
+      "python_equivalents": {
+        "primary": "sklearn.model_selection.ParameterGrid, ParameterSampler",
+        "gaps": [
+          "No parameter object abstraction",
+          "Less sophisticated grid generation",
+          "No space-filling designs"
+        ]
+      },
+
+      "priority_for_port": "MEDIUM - Supports tune package functionality"
+    },
+
+    {
+      "name": "finetune",
+      "version": "1.3.0",
+      "citation": "[10] Kuhn, M. 'finetune: Additional Functions for Model Tuning.' CRAN, 2024. https://finetune.tidymodels.org/",
+      "purpose": "Advanced tuning methods beyond grid/Bayesian search",
+      "status": "experimental",
+
+      "key_methods": {
+        "simulated_annealing": "Iterative optimization accepting some suboptimal steps",
+        "racing": "Eliminate poor parameter combinations early"
+      },
+
+      "core_functions": [
+        "tune_sim_anneal() - Simulated annealing optimization",
+        "tune_race_anova() - Racing via ANOVA",
+        "tune_race_win_loss() - Racing via win/loss statistics",
+        "control_race() - Control parameters for racing"
+      ],
+
+      "racing_concept": {
+        "description": "Start with small resamples, eliminate poor performers, continue with survivors",
+        "benefits": ["Computational efficiency", "Early stopping for bad parameters"]
+      },
+
+      "python_equivalents": {
+        "primary": "None - unique algorithms",
+        "partial": ["optuna pruning", "hyperopt"],
+        "gaps": ["No racing methods", "Different optimization strategies"]
+      },
+
+      "priority_for_port": "LOW - Advanced feature, can defer"
+    },
+
+    {
+      "name": "stacks",
+      "version": "1.0.4",
+      "citation": "[11] Couch, S. 'stacks: Tidy Model Stacking.' CRAN, 2024. https://stacks.tidymodels.org/",
+      "purpose": "Model stacking and ensembling",
+      "status": "stable",
+
+      "key_concepts": {
+        "data_stack": "Collection of candidate member predictions",
+        "model_stack": "Fitted ensemble with stacking coefficients",
+        "candidate_members": "Models considered for ensemble",
+        "members": "Models with non-zero stacking coefficients",
+        "metalearning": "Learning how to combine candidate predictions"
+      },
+
+      "workflow": [
+        "1. stacks() - Initialize empty stack",
+        "2. add_candidates() - Add model predictions from tune/fit results",
+        "3. blend_predictions() - Determine stacking coefficients via regularization",
+        "4. fit_members() - Refit members with non-zero coefficients on full data",
+        "5. predict() - Generate ensemble predictions"
+      ],
+
+      "stacking_method": "Regularized linear model (glmnet) to combine predictions",
+
+      "features": [
+        "Any parsnip model can be a candidate",
+        "Any rsample resampling scheme supported",
+        "Any yardstick metric for evaluation",
+        "Automatic handling of correlation among members"
+      ],
+
+      "python_equivalents": {
+        "primary": "mlxtend.classifier.StackingClassifier/Regressor",
+        "alternatives": ["vecstack", "h2o.stackedEnsemble"],
+        "gaps": [
+          "stacks integrates perfectly with tidymodels workflows",
+          "More flexible candidate specification",
+          "Better visualization and diagnostics"
+        ]
+      },
+
+      "priority_for_port": "MEDIUM - Valuable for ensemble methods"
+    },
+
+    {
+      "name": "hardhat",
+      "version": "1.4.0",
+      "citation": "[12] Vaughan, D. and Kuhn, M. 'hardhat: Construct Modeling Packages.' CRAN, 2024. https://hardhat.tidymodels.org/",
+      "purpose": "Developer tools for creating modeling packages",
+      "status": "stable",
+
+      "key_concepts": {
+        "mold": "Process training data for modeling",
+        "forge": "Process new data for prediction using training blueprint",
+        "blueprint": "Specification of preprocessing steps",
+        "validate": "Input validation functions"
+      },
+
+      "core_functions": [
+        "mold() - Preprocess training data",
+        "forge() - Preprocess prediction data",
+        "new_model() - Model object constructor",
+        "validate_prediction_size() - Check prediction dimensions",
+        "scream() - Stop with informative error",
+        "spruce_numeric() - Prepare numeric predictions",
+        "spruce_class() - Prepare classification predictions"
+      ],
+
+      "purpose_summary": "Hardhat provides the infrastructure that parsnip, workflows, and recipes are built on. It's the foundation for creating new tidymodels-compatible packages.",
+
+      "python_equivalents": {
+        "primary": "sklearn.base (BaseEstimator, TransformerMixin)",
+        "gaps": [
+          "Less comprehensive validation",
+          "No mold/forge concept",
+          "Different extension pattern"
+        ]
+      },
+
+      "priority_for_port": "HIGH - Foundation for other packages"
+    }
+  ],
+
+  "time_series_extensions": [
+    {
+      "name": "modeltime",
+      "version": "1.3.1",
+      "citation": "[13] Dancho, M. 'modeltime: The Tidymodels Extension for Time Series Modeling.' CRAN, 2024. https://business-science.github.io/modeltime/",
+      "purpose": "Unified interface for time series forecasting models",
+      "status": "stable",
+
+      "key_models": {
+        "classical": [
+          "arima_reg() - ARIMA models",
+          "arima_boost() - ARIMA with XGBoost errors",
+          "exp_smoothing() - Exponential smoothing/ETS",
+          "seasonal_reg() - Seasonal decomposition",
+          "nnetar_reg() - Neural network autoregression",
+          "prophet_reg() - Facebook Prophet",
+          "prophet_boost() - Prophet with XGBoost",
+          "naive_reg() - Naive/seasonal naive forecasts"
+        ],
+
+        "advanced": [
+          "adam() - ADAM exponential smoothing",
+          "temporal_hierarchy() - Hierarchical forecasting"
+        ],
+
+        "ml_based": [
+          "Any parsnip model: linear_reg(), rand_forest(), boost_tree(), svm_rbf(), mars()"
+        ]
+      },
+
+      "model_engines": {
+        "arima_reg": ["auto_arima", "arima"],
+        "arima_boost": ["auto_arima_xgboost", "arima_xgboost"],
+        "exp_smoothing": ["ets", "smooth_es", "croston", "theta"],
+        "prophet_reg": ["prophet"],
+        "prophet_boost": ["prophet_xgboost"],
+        "seasonal_reg": ["stlm_ets", "stlm_arima", "tbats"],
+        "nnetar_reg": ["nnetar"]
+      },
+
+      "workflow": {
+        "steps": [
+          "1. Create models with parsnip interface",
+          "2. modeltime_table() - Organize models",
+          "3. modeltime_calibrate() - Calibrate on out-of-sample data",
+          "4. modeltime_forecast() - Generate forecasts",
+          "5. modeltime_accuracy() - Calculate accuracy metrics",
+          "6. plot_modeltime_forecast() - Visualize results"
+        ]
+      },
+
+      "key_functions": [
+        "modeltime_table() - Create table of models",
+        "modeltime_calibrate() - Calibrate forecasts",
+        "modeltime_forecast() - Generate forecast",
+        "modeltime_accuracy() - Accuracy table",
+        "modeltime_refit() - Refit on new data",
+        "modeltime_residuals() - Extract residuals",
+        "modeltime_fit_workflowset() - Fit workflow set",
+        "modeltime_recursive() - Recursive forecasting for ML models"
+      ],
+
+      "recursive_forecasting": {
+        "description": "Convert ML models to recursive multi-step forecasters",
+        "use_case": "Use lagged features with random forest, XGBoost, etc.",
+        "function": "recursive(model_spec, transform = lag_transformer, ...)"
+      },
+
+      "calibration_concept": "Evaluate model on holdout set to generate realistic forecast intervals",
+
+      "accuracy_metrics": [
+        "mae - Mean absolute error",
+        "mape - Mean absolute percentage error",
+        "mase - Mean absolute scaled error",
+        "smape - Symmetric MAPE",
+        "rmse - Root mean squared error",
+        "rsq - R-squared"
+      ],
+
+      "python_equivalents": {
+        "primary": "statsmodels.tsa, sktime, prophet",
+        "gaps": [
+          "No unified interface across time series packages",
+          "Different APIs for ARIMA vs Prophet vs ML",
+          "No calibration concept",
+          "Limited ensemble capabilities",
+          "No recursive wrapper for ML models"
+        ]
+      },
+
+      "priority_for_port": "CRITICAL - Core time series functionality"
+    },
+
+    {
+      "name": "modeltime.resample",
+      "version": "0.2.3",
+      "citation": "[14] Dancho, M. 'modeltime.resample: Resampling Tools for Time Series Forecasting.' CRAN, 2024. https://business-science.github.io/modeltime.resample/",
+      "purpose": "Time series cross-validation and backtesting",
+      "status": "stable",
+
+      "key_functions": [
+        "modeltime_fit_resamples() - Fit models to time series CV folds",
+        "plot_modeltime_resamples() - Visualize resample performance",
+        "summarize_accuracy() - Aggregate metrics across resamples"
+      ],
+
+      "integration": "Works with rsample time series resampling functions",
+
+      "python_implementation": {
+        "package": "py-modeltime-resample",
+        "status": "Partial implementation",
+        "implemented_features": [
+          "time_series_split() - Single train/test split",
+          "time_series_cv() - Rolling/expanding window CV",
+          "fit_resamples() - Fit models to CV folds",
+          "resample_accuracy() - Calculate metrics",
+          "plot_time_series_cv_plan() - Visualize CV plan",
+          "plot_resamples() - Plot fitted/predicted values",
+          "evaluate_model() - Convenience function",
+          "compare_models() - Multi-model comparison",
+          "fit_resamples_parallel() - Parallel processing",
+          "create_interactive_dashboard() - Interactive visualization",
+          "plot_model_comparison_matrix() - Heatmap/radar comparisons"
+        ],
+        "file_count": 24,
+        "core_modules": ["core/splits.py", "core/modeling.py", "metrics/accuracy.py"]
+      },
+
+      "priority_for_port": "PARTIALLY COMPLETE - Continue development"
+    },
+
+    {
+      "name": "modeltime.ensemble",
+      "version": "1.0.3",
+      "citation": "[15] Dancho, M. 'modeltime.ensemble: Ensemble Algorithms for Time Series Forecasting.' CRAN, 2024. https://business-science.github.io/modeltime.ensemble/",
+      "purpose": "Time series ensemble methods",
+      "status": "stable",
+
+      "ensemble_types": [
+        "ensemble_average() - Simple averaging",
+        "ensemble_weighted() - Weighted average by accuracy",
+        "ensemble_model_spec() - Metalearner approach"
+      ],
+
+      "priority_for_port": "MEDIUM - Can leverage stacks package concepts"
+    },
+
+    {
+      "name": "timetk",
+      "version": "2.9.0",
+      "citation": "[16] Dancho, M. 'timetk: Time Series Data Wrangling, Visualization and Preprocessing.' CRAN, 2024. https://business-science.github.io/timetk/",
+      "purpose": "Time series data manipulation and feature engineering",
+      "status": "stable",
+
+      "key_features": [
+        "Date/datetime feature engineering",
+        "Lag and differencing operations",
+        "Rolling window functions",
+        "Time series visualization",
+        "Missing value handling",
+        "Time series decomposition",
+        "Fourier/seasonal features",
+        "Holiday calendars"
+      ],
+
+      "core_functions": [
+        "tk_augment_timeseries_signature() - Add date features",
+        "tk_augment_lags() - Add lags",
+        "tk_augment_differences() - Add differences",
+        "tk_augment_slidify() - Rolling window features",
+        "tk_augment_fourier() - Fourier features",
+        "plot_time_series() - Time series plots",
+        "plot_seasonal_diagnostics() - Seasonal analysis"
+      ],
+
+      "python_equivalents": {
+        "primary": "pandas date/time functions",
+        "alternatives": ["featuretools", "tsfresh"],
+        "gaps": [
+          "Less comprehensive feature engineering",
+          "No unified time series visualization",
+          "Manual lag/rolling creation"
+        ]
+      },
+
+      "priority_for_port": "HIGH - Important for time series preprocessing (could integrate with recipes)"
+    }
+  ],
+
+  "package_interdependencies": {
+    "dependency_graph": {
+      "hardhat": "Foundation for all packages",
+      "rsample": "Provides resampling to tune, workflows",
+      "recipes": "Preprocessor for workflows",
+      "parsnip": "Model specification for workflows",
+      "workflows": "Bundles recipes + parsnip, consumed by tune/workflowsets",
+      "dials": "Parameter specifications for tune",
+      "tune": "Optimization using workflows and rsample",
+      "yardstick": "Metrics for tune and modeltime",
+      "workflowsets": "Multiple workflows for tune",
+      "stacks": "Ensembles from tune results",
+      "broom": "Tidying for parsnip models",
+      "modeltime": "Time series models via parsnip, uses rsample/yardstick"
+    },
+
+    "typical_workflow_sequence": [
+      "1. rsample - Create train/test split or CV folds",
+      "2. recipes - Define preprocessing steps",
+      "3. parsnip - Specify model type and engine",
+      "4. workflows - Combine recipe + model",
+      "5. dials - Define parameter grid (if tuning)",
+      "6. tune - Find optimal parameters via CV",
+      "7. yardstick - Evaluate performance",
+      "8. workflows - Finalize with best parameters",
+      "9. parsnip - Fit final model",
+      "10. yardstick - Assess on test set"
+    ],
+
+    "time_series_workflow_sequence": [
+      "1. timetk - Feature engineering (lags, rolling, date features)",
+      "2. rsample - Time series CV (sliding_period, rolling_origin)",
+      "3. recipes - Additional preprocessing (normalization, etc.)",
+      "4. modeltime - Create time series models (arima_reg, prophet_reg, ML models)",
+      "5. modeltime_table - Organize models",
+      "6. modeltime.resample - Fit to CV folds (or tune for hyperparameters)",
+      "7. modeltime_calibrate - Calibrate on holdout set",
+      "8. modeltime_accuracy - Calculate accuracy metrics",
+      "9. modeltime.ensemble - Create ensemble (optional)",
+      "10. modeltime_forecast - Generate forecasts",
+      "11. plot_modeltime_forecast - Visualize"
+    ]
+  },
+
+  "time_series_workflows": {
+    "typical_workflows": [
+      {
+        "name": "Classical Forecasting",
+        "steps": [
+          "1. Feature engineering: Date features, holidays",
+          "2. Create ARIMA/ETS/Prophet models",
+          "3. Time series CV with sliding_period",
+          "4. Compare model accuracy",
+          "5. Select best model",
+          "6. Refit on full training set",
+          "7. Generate forecasts"
+        ],
+        "packages_used": ["rsample", "modeltime", "yardstick"]
+      },
+
+      {
+        "name": "ML-Based Forecasting",
+        "steps": [
+          "1. Feature engineering: Lags, rolling stats, date features, holidays",
+          "2. Create recipe with normalization",
+          "3. Specify ML models (random forest, XGBoost)",
+          "4. Create workflows (recipe + model)",
+          "5. Time series CV",
+          "6. Hyperparameter tuning",
+          "7. Make recursive for multi-step forecasting",
+          "8. Generate forecasts"
+        ],
+        "packages_used": ["timetk", "recipes", "parsnip", "workflows", "rsample", "tune", "modeltime"]
+      },
+
+      {
+        "name": "Ensemble Forecasting",
+        "steps": [
+          "1. Create multiple models (ARIMA, Prophet, ML)",
+          "2. Time series CV for all models",
+          "3. Calibrate each model",
+          "4. Compare accuracy",
+          "5. Create ensemble (average, weighted, or stacked)",
+          "6. Generate ensemble forecasts"
+        ],
+        "packages_used": ["modeltime", "modeltime.ensemble", "stacks", "rsample"]
+      },
+
+      {
+        "name": "Hyperparameter Optimization",
+        "steps": [
+          "1. Feature engineering with recipe (with tune() placeholders)",
+          "2. Model specification with tune() parameters",
+          "3. Create workflow",
+          "4. Define parameter grid",
+          "5. Time series CV with tune_grid()",
+          "6. Select best parameters",
+          "7. Finalize workflow",
+          "8. Fit and forecast"
+        ],
+        "packages_used": ["recipes", "parsnip", "workflows", "dials", "tune", "rsample", "modeltime"]
+      }
+    ],
+
+    "key_patterns": {
+      "lag_features": "Use timetk::tk_augment_lags() or recipes::step_lag()",
+      "rolling_features": "Use timetk::tk_augment_slidify() or recipes::step_window()",
+      "date_features": "Use timetk::tk_augment_timeseries_signature() or recipes::step_date()",
+      "holiday_features": "Use timetk holiday functions or recipes::step_holiday()",
+      "cross_validation": "Use rsample::sliding_period() or rolling_origin()",
+      "recursive_forecasting": "Use modeltime::recursive() for ML models",
+      "calibration": "Always use modeltime_calibrate() before forecasting",
+      "ensembling": "Combine via modeltime.ensemble or stacks"
+    }
+  },
+
+  "python_port_strategy": {
+    "priority_tiers": {
+      "tier_1_critical": {
+        "packages": ["hardhat", "rsample", "parsnip", "workflows", "modeltime"],
+        "rationale": "Core infrastructure for any modeling workflow, especially time series",
+        "dependencies": "hardhat is foundation, others build on it",
+        "estimated_effort": "Large - these are complex packages",
+        "approach": "Start with hardhat abstractions, then rsample, parsnip, workflows in parallel, finally modeltime"
+      },
+
+      "tier_2_high_priority": {
+        "packages": ["recipes", "tune", "yardstick", "timetk"],
+        "rationale": "Essential for preprocessing, optimization, and evaluation",
+        "dependencies": "recipes/tune/yardstick depend on tier 1",
+        "estimated_effort": "Large for recipes/tune, medium for yardstick/timetk",
+        "approach": "Recipes has many step functions - prioritize time series steps. Tune integrates grid/Bayesian search. Yardstick needs comprehensive metrics."
+      },
+
+      "tier_3_medium_priority": {
+        "packages": ["workflowsets", "stacks", "dials", "broom"],
+        "rationale": "Valuable for experimentation and ensembling but not critical for basic workflows",
+        "dependencies": "Build on tier 1 and 2",
+        "estimated_effort": "Medium",
+        "approach": "Implement after core functionality is stable"
+      },
+
+      "tier_4_low_priority": {
+        "packages": ["finetune", "modeltime.ensemble", "modeltime.h2o", "modeltime.gluonts"],
+        "rationale": "Advanced features that can be deferred",
+        "dependencies": "Build on complete ecosystem",
+        "estimated_effort": "Small to medium",
+        "approach": "Consider after tier 1-3 complete"
+      }
+    },
+
+    "architectural_recommendations": {
+      "base_classes": {
+        "preprocessor": "Abstract base for recipes, formulas, variable specs",
+        "model_spec": "Parsnip-like model specification",
+        "workflow": "Container for preprocessor + model",
+        "split": "Single train/test division",
+        "rset": "Collection of splits",
+        "metric": "Performance measure function"
+      },
+
+      "design_patterns": [
+        "Builder pattern for model/recipe specification",
+        "Strategy pattern for different engines",
+        "Template method for fit/predict",
+        "Composite for workflows",
+        "Factory for model creation"
+      ],
+
+      "api_principles": [
+        "Method chaining for fluent interface (like pandas)",
+        "Consistent naming (fit, predict, transform)",
+        "Type hints throughout",
+        "Immutable specifications (create new on update)",
+        "Integration with pandas DataFrames"
+      ],
+
+      "python_backend_mapping": {
+        "recipes_backends": ["sklearn.preprocessing", "category_encoders", "feature-engine", "custom implementations"],
+        "parsnip_backends": ["sklearn models", "statsmodels", "xgboost", "lightgbm", "catboost", "prophet"],
+        "tune_backends": ["sklearn GridSearchCV", "optuna", "hyperopt"],
+        "yardstick_backends": ["sklearn.metrics", "custom implementations for time series"],
+        "modeltime_backends": ["statsmodels.tsa", "prophet", "sktime", "custom wrappers"]
+      }
+    },
+
+    "package_structure": {
+      "suggested_organization": [
+        "py-tidymodels/ (meta-package)",
+        "├── py-hardhat/ (foundation)",
+        "├── py-rsample/ (resampling)",
+        "├── py-parsnip/ (models)",
+        "├── py-recipes/ (preprocessing)",
+        "├── py-workflows/ (composition)",
+        "├── py-tune/ (optimization)",
+        "├── py-yardstick/ (metrics)",
+        "├── py-dials/ (parameters)",
+        "├── py-workflowsets/ (experimentation)",
+        "├── py-stacks/ (ensembling)",
+        "├── py-broom/ (tidying)",
+        "├── py-modeltime/ (time series)",
+        "└── py-timetk/ (time series features)"
+      ]
+    },
+
+    "phased_implementation": {
+      "phase_1_foundation": {
+        "target": "Basic modeling pipeline for time series",
+        "packages": ["py-hardhat (core abstractions)", "py-rsample (time series CV)", "py-parsnip (basic models)"],
+        "deliverable": "Can specify model, create CV splits, fit, predict",
+        "duration": "3-4 months"
+      },
+
+      "phase_2_workflows": {
+        "target": "Preprocessing and composition",
+        "packages": ["py-recipes (core steps)", "py-workflows", "py-yardstick (basic metrics)"],
+        "deliverable": "Can preprocess, combine with model, evaluate",
+        "duration": "3-4 months"
+      },
+
+      "phase_3_optimization": {
+        "target": "Hyperparameter tuning",
+        "packages": ["py-tune", "py-dials"],
+        "deliverable": "Can tune workflows with grid/random search",
+        "duration": "2-3 months"
+      },
+
+      "phase_4_time_series": {
+        "target": "Full time series functionality",
+        "packages": ["py-modeltime", "py-timetk"],
+        "deliverable": "Complete time series workflow with forecasting",
+        "duration": "3-4 months"
+      },
+
+      "phase_5_advanced": {
+        "target": "Advanced features",
+        "packages": ["py-workflowsets", "py-stacks", "py-finetune"],
+        "deliverable": "Experimentation and ensembling capabilities",
+        "duration": "2-3 months"
+      }
+    }
+  },
+
+  "gap_analysis": {
+    "python_ecosystem_current_state": {
+      "preprocessing": {
+        "available": ["sklearn.preprocessing", "category_encoders", "feature-engine"],
+        "gaps": [
+          "No recipe-style pipeline builder with roles",
+          "Limited time series preprocessing",
+          "No step_lag, step_window equivalents",
+          "No built-in holiday features",
+          "Less composable than recipes"
+        ]
+      },
+
+      "modeling": {
+        "available": ["sklearn models", "statsmodels", "xgboost", "lightgbm", "prophet"],
+        "gaps": [
+          "No unified interface (parsnip-equivalent)",
+          "Different APIs across packages",
+          "No separation of specification from fitting",
+          "No consistent parameter naming"
+        ]
+      },
+
+      "workflows": {
+        "available": ["sklearn.pipeline"],
+        "gaps": [
+          "Less flexible than workflows",
+          "No explicit preprocessor types",
+          "Limited postprocessing support",
+          "Harder to update components"
+        ]
+      },
+
+      "tuning": {
+        "available": ["sklearn GridSearchCV/RandomizedSearchCV", "optuna", "hyperopt"],
+        "gaps": [
+          "Not integrated with pipeline builders",
+          "Different APIs for different strategies",
+          "Limited recipe parameter tuning",
+          "No workflowsets concept"
+        ]
+      },
+
+      "resampling": {
+        "available": ["sklearn.model_selection", "sktime"],
+        "gaps": [
+          "TimeSeriesSplit less flexible than rsample",
+          "No period-based specifications",
+          "Limited support for irregular time series",
+          "Partially addressed by py-modeltime-resample"
+        ]
+      },
+
+      "metrics": {
+        "available": ["sklearn.metrics"],
+        "gaps": [
+          "Limited time series metrics (no MASE)",
+          "No metric_set concept",
+          "Different API patterns"
+        ]
+      },
+
+      "time_series_forecasting": {
+        "available": ["statsmodels.tsa", "prophet", "sktime", "darts"],
+        "gaps": [
+          "No unified interface across packages",
+          "No calibration concept",
+          "Limited ensemble capabilities",
+          "No recursive ML wrapper",
+          "Different workflows for ARIMA vs Prophet vs ML",
+          "No modeltime-equivalent orchestration"
+        ]
+      },
+
+      "ensembling": {
+        "available": ["mlxtend", "vecstack"],
+        "gaps": [
+          "Not integrated with preprocessing pipelines",
+          "Manual candidate specification",
+          "Limited diagnostics"
+        ]
+      }
+    },
+
+    "py_modeltime_resample_status": {
+      "implemented": [
+        "Time series splitting (single and CV)",
+        "Rolling and expanding window CV",
+        "Period-based specifications",
+        "Model fitting to resamples",
+        "Accuracy calculation",
+        "Visualization (static and interactive)",
+        "Parallel processing",
+        "Interactive dashboard",
+        "Model comparison matrix"
+      ],
+
+      "missing_from_r_version": [
+        "Integration with workflows (doesn't exist yet)",
+        "Direct modeltime model support (would need py-modeltime)",
+        "Some specialized resampling methods",
+        "Automatic feature engineering integration"
+      ],
+
+      "architecture": {
+        "core_modules": {
+          "splits": "Time series splitting logic",
+          "modeling": "Model fitting to resamples",
+          "accuracy": "Metric calculation"
+        },
+        "design_patterns": ["Functional approach", "Pandas-centric", "Scikit-learn compatible"],
+        "strengths": ["Clean API", "Good documentation", "Interactive features"],
+        "areas_for_improvement": ["Better integration with future workflow system", "More resampling strategies"]
+      }
+    }
+  },
+
+  "implementation_recommendations": {
+    "time_series_priority_order": [
+      {
+        "sequence": 1,
+        "component": "py-hardhat",
+        "rationale": "Foundation for all other packages",
+        "key_features": ["mold/forge pattern", "blueprint abstractions", "validation utilities"],
+        "backend": "Pure Python with pandas"
+      },
+
+      {
+        "sequence": 2,
+        "component": "py-rsample (enhance existing)",
+        "rationale": "Already partially implemented in py-modeltime-resample",
+        "key_features": ["Time series CV methods", "split/rset abstractions", "integration with hardhat"],
+        "backend": "Enhance existing implementation"
+      },
+
+      {
+        "sequence": 3,
+        "component": "py-parsnip",
+        "rationale": "Unified model interface critical for all workflows",
+        "key_features": ["Model specification API", "Engine system", "Parameter harmonization", "fit/predict methods"],
+        "backend": "Wrappers around sklearn, statsmodels, xgboost, prophet, etc."
+      },
+
+      {
+        "sequence": 4,
+        "component": "py-recipes (time series subset)",
+        "rationale": "Essential preprocessing for time series",
+        "priority_steps": ["step_lag", "step_window", "step_date", "step_holiday", "step_normalize", "step_dummy"],
+        "backend": "sklearn + pandas + custom implementations"
+      },
+
+      {
+        "sequence": 5,
+        "component": "py-workflows",
+        "rationale": "Composition layer for recipes + models",
+        "key_features": ["workflow container", "add_recipe/model", "fit/predict pipeline", "update methods"],
+        "backend": "Pure Python coordinating recipes + parsnip"
+      },
+
+      {
+        "sequence": 6,
+        "component": "py-yardstick (time series metrics)",
+        "rationale": "Evaluation critical for model selection",
+        "priority_metrics": ["rmse", "mae", "mape", "mase", "smape", "rsq"],
+        "backend": "sklearn.metrics + custom implementations"
+      },
+
+      {
+        "sequence": 7,
+        "component": "py-modeltime",
+        "rationale": "Time series specific models and forecasting workflow",
+        "key_features": ["arima_reg", "prophet_reg", "exp_smoothing", "modeltime_table", "modeltime_calibrate", "modeltime_forecast", "recursive()"],
+        "backend": "statsmodels.tsa + prophet + custom wrappers"
+      },
+
+      {
+        "sequence": 8,
+        "component": "py-tune",
+        "rationale": "Hyperparameter optimization",
+        "key_features": ["tune_grid", "tune_bayes", "integration with workflows", "time series CV support"],
+        "backend": "sklearn + optuna"
+      },
+
+      {
+        "sequence": 9,
+        "component": "py-timetk",
+        "rationale": "Advanced time series feature engineering",
+        "key_features": ["Lag/rolling operations", "Date feature extraction", "Fourier features", "Visualization"],
+        "backend": "pandas + custom implementations"
+      },
+
+      {
+        "sequence": 10,
+        "component": "py-stacks",
+        "rationale": "Ensemble methods for time series",
+        "key_features": ["data_stack", "blend_predictions", "fit_members"],
+        "backend": "sklearn + custom stacking logic"
+      }
+    ],
+
+    "code_organization_example": {
+      "py_parsnip_structure": [
+        "parsnip/",
+        "├── __init__.py",
+        "├── model_spec.py (ModelSpec base class)",
+        "├── engines/ (engine implementations)",
+        "│   ├── sklearn_engine.py",
+        "│   ├── statsmodels_engine.py",
+        "│   └── xgboost_engine.py",
+        "├── models/ (model types)",
+        "│   ├── linear_reg.py",
+        "│   ├── rand_forest.py",
+        "│   └── boost_tree.py",
+        "├── fit.py (fit methods)",
+        "├── predict.py (predict methods)",
+        "└── utils.py"
+      ],
+
+      "py_recipes_structure": [
+        "recipes/",
+        "├── __init__.py",
+        "├── recipe.py (Recipe class)",
+        "├── step.py (Step base class)",
+        "├── steps/ (step implementations)",
+        "│   ├── datetime.py (step_date, step_time)",
+        "│   ├── lag.py (step_lag)",
+        "│   ├── window.py (step_window)",
+        "│   ├── normalization.py (step_normalize, etc.)",
+        "│   ├── encoding.py (step_dummy, etc.)",
+        "│   └── filters.py (step_zv, step_corr, etc.)",
+        "├── prep.py (prep methods)",
+        "├── bake.py (bake methods)",
+        "└── roles.py (variable roles)"
+      ],
+
+      "py_modeltime_structure": [
+        "modeltime/",
+        "├── __init__.py",
+        "├── models/ (time series model specs)",
+        "│   ├── arima_reg.py",
+        "│   ├── prophet_reg.py",
+        "│   ├── exp_smoothing.py",
+        "│   └── seasonal_reg.py",
+        "├── table.py (modeltime_table)",
+        "├── calibrate.py (modeltime_calibrate)",
+        "├── forecast.py (modeltime_forecast)",
+        "├── accuracy.py (modeltime_accuracy)",
+        "├── refit.py (modeltime_refit)",
+        "├── recursive.py (recursive forecasting)",
+        "└── plot.py (visualization)"
+      ]
+    },
+
+    "testing_strategy": {
+      "unit_tests": "Test each step, model spec, workflow component independently",
+      "integration_tests": "Test full workflows end-to-end",
+      "comparison_tests": "Compare outputs with R tidymodels on same data",
+      "performance_tests": "Benchmark against sklearn directly",
+      "time_series_tests": "Validate on standard forecasting datasets (M3, M4, etc.)"
+    },
+
+    "documentation_approach": {
+      "api_docs": "Sphinx with NumPy docstring format",
+      "tutorials": "Jupyter notebooks mirroring tidymodels getting started",
+      "cookbook": "Time series specific examples",
+      "comparison_guide": "R tidymodels to Python translation guide",
+      "architecture_docs": "Design decisions and patterns"
+    }
+  },
+
+  "community_insights": {
+    "tidymodels_strengths": [
+      "Consistent, predictable API across packages",
+      "Excellent integration between components",
+      "Strong focus on good software engineering practices",
+      "Comprehensive documentation and learning resources",
+      "Active development and community",
+      "Separation of concerns (spec vs fit vs predict)"
+    ],
+
+    "python_ml_ecosystem_strengths": [
+      "sklearn is mature and widely adopted",
+      "Rich deep learning ecosystem (PyTorch, TensorFlow)",
+      "Strong numerical computing foundation (NumPy)",
+      "Excellent data manipulation (pandas)",
+      "Growing time series libraries (sktime, darts)"
+    ],
+
+    "opportunities_for_python_port": [
+      "Bring tidymodels workflow elegance to Python",
+      "Unified time series forecasting interface",
+      "Better preprocessing composability",
+      "Consistent API across diverse backends",
+      "Improved reproducibility and code organization",
+      "Bridge gap between traditional stats and ML for time series"
+    ],
+
+    "challenges": [
+      "Large scope - tidymodels is 20+ packages",
+      "Need critical mass of functionality to be useful",
+      "sklearn already dominant in Python",
+      "Maintaining API consistency with R version",
+      "Performance considerations (R packages often call C/C++)",
+      "Community adoption and momentum"
+    ]
+  },
+
+  "references": {
+    "primary_sources": [
+      {
+        "citation": "[1-12] Individual package citations listed above",
+        "url_pattern": "https://{package}.tidymodels.org/"
+      },
+      {
+        "citation": "[13-16] Modeltime ecosystem packages",
+        "url_pattern": "https://business-science.github.io/{package}/"
+      }
+    ],
+
+    "additional_resources": [
+      {
+        "title": "Tidy Modeling with R",
+        "authors": "Kuhn, M. and Silge, J.",
+        "url": "https://www.tmwr.org/",
+        "description": "Comprehensive book on tidymodels"
+      },
+      {
+        "title": "Time Series Analysis with tidymodels",
+        "url": "https://www.tidymodels.org/learn/models/time-series/",
+        "description": "Official time series guide"
+      },
+      {
+        "title": "High-Performance Time Series Forecasting Course",
+        "provider": "Business Science",
+        "url": "https://university.business-science.io/",
+        "description": "In-depth modeltime training"
+      }
+    ]
+  }
+}

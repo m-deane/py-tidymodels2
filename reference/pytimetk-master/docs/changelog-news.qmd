@@ -1,0 +1,353 @@
+---
+title: "Changelog for Pytimetk"
+jupyter: python3
+toc: true
+toc-depth: 3
+number-sections: false
+---
+
+# pytimetk 2.1.0
+
+## Release Summary
+
+pytimetk 2.1.0 introduces **GPU acceleration (Beta)** powered by NVIDIA RAPIDS. Feature engineering helpers and Polars lazy pipelines now tap the GPU when `cudf` and `polars[gpu]` are installed, while remaining fully backward compatible with CPU-only environments.
+
+### GPU Acceleration (Beta)
+
+- Optional install via `pip install pytimetk[gpu] --extra-index-url=https://pypi.nvidia.com` plus `pip install "polars[gpu]" --extra-index-url=https://pypi.nvidia.com`.
+- Automatic CPU fallback whenever the GPU engine is unavailable or a plan is not supported, so existing notebooks keep running.
+- Runtime helpers in `pytimetk.utils.gpu_support` (`is_cudf_available()`, `is_polars_gpu_available()`) make it easy to validate the environment.
+
+### Documentation & Examples
+
+- New GPU Acceleration guide (`production/02_gpu_acceleration.html`) walks through setup, verification, and sample pipelines.
+- Fresh examples show GPU-accelerated workflows for `augment_rolling`, financial indicators (RSI/MACD), and Polars lazy frames.
+- Polars lazy execution improvements reduce overhead when collecting on the GPU.
+
+### Performance Highlights
+
+- Rolling window statistics receive 10–100× speed-ups on large datasets with the Polars GPU engine.
+- Financial indicators such as RSI and MACD benchmark 5–50× faster on compatible hardware.
+
+### Compatibility & Known Issues
+
+- GPU support is opt-in and retains CPU fallbacks for unsupported functions (e.g., custom Python callbacks, expression-incompatible pipelines).
+- Multi-GPU deployments remain experimental and will be documented in future iterations.
+
+**Full Changelog:** <https://github.com/business-science/pytimetk/compare/v2.0.1...v2.1.0>
+
+# pytimetk 2.0.1
+
+## Improvements
+
+- `augment_spline()` now validates both `date_column` and `value_column`, sorts data by date before generating spline bases, and restores the original row order once features are added for both pandas and Polars engines.
+
+**Full Changelog:** <https://github.com/business-science/pytimetk/compare/v2.0.0...v2.0.1>
+
+# pytimetk 2.0.0
+
+## Highlights
+
+- First-class Polars support via a `.tk` accessor spanning core helpers, feature engineering, and plotting routines.
+- Introduced **Feature Store & Caching (Beta)** to persist expensive feature engineering steps and reload them on demand. Optional MLflow integration keeps feature lineage tied to experiments.
+- Added `augment_spline()` for spline basis expansions alongside broader financial indicator coverage.
+- Major documentation refresh, including Polars-first examples and a new clustering tutorial.
+
+## New Features
+
+### Polars `.tk` Accessor
+- Access pytimetk helpers directly on `pl.DataFrame` objects (`df.tk.plot_timeseries(...)`, `df.tk.augment_timeseries_signature(...)`) with performance parity to pandas paths.
+- Financial indicators (ADX, ATR, BBands, CMO, MACD, PPO, ROC, RSI, stochastic oscillator, etc.) now ship with Polars implementations.
+
+### Feature Store & Caching (Beta)
+- Register transforms once and rebuild feature sets on-demand with automatic versioning and metadata.
+- Supports local paths or any `pyarrow.fs` (e.g., S3), plus optional MLflow artifact logging.
+
+### Spline Basis Expansions
+- `augment_spline()` creates spline features for modeling non-linear trends (B-splines, natural splines) across pandas and Polars engines.
+
+## Improvements
+
+- Upgraded `pandas_flavor`, refactored tests, and resolved deprecations across anomalize and Hilbert pipelines.
+- Enhanced Polars compatibility for diffs, pct change, lags/leads, risk metrics, and plotting helpers.
+- Documentation updates covering Feature Store, spline usage, and new tutorials.
+
+## Bug Fixes
+
+- Resolved Plotly x-axis date labeling and multiple Polars interoperability gaps (sequence helpers, summarize/filter utilities, EWM args).
+- Stabilized GitHub Actions with refreshed dependency matrix.
+
+**Full Changelog:** <https://github.com/business-science/pytimetk/compare/v1.2.5...v2.0.0>
+
+# pytimetk 1.2.5
+
+## Bug Fixes
+
+- Polars backends now supply both `partition_by` and `order_by` when building window expressions with `.over()`, resolving runtime errors on recent Polars releases.
+
+**Full Changelog:** <https://github.com/business-science/pytimetk/compare/v1.2.4...v1.2.5>
+
+# pytimetk 1.2.4
+
+## Improvements
+
+- Fixed a regression in QS Momentum calculations when using the 21-126-126 configuration.
+- Added a `point_color` argument to `plot_correlation_funnel()` for finer-grained styling.
+
+**Full Changelog:** <https://github.com/business-science/pytimetk/compare/v1.2.3...v1.2.4>
+
+
+# pytimetk 1.2.3
+
+## Improvements
+
+- `augment_fip_momentum()`: Improve calculation. Allow user to flip the sign with `fip_method = 'modified'`. Users can also use `skip_window` to skip the first n periods before the calculation. This helps with mean reversion.
+
+# pytimetk 1.2.2
+
+## Improvements
+
+- `augment_rolling_risk_metrics()`: 100X speedup for polars rolling kurtosis
+
+# pytimetk 1.2.1
+
+## Improvements:
+
+- `augment_rolling_risk_metrics()`: Gains a new `metrics` argument allowing users to speed up calculations by only requesting the rolling risk metrics they need. Default `None` is all metrics. 
+
+# pytimetk 1.2.0
+
+## New Functions
+
+- `augment_drawdown()`: The augment_drawdown function calculates the drawdown metrics for a financial time series using either pandas or polars engine, and returns the augmented DataFrame with peak value, drawdown, and drawdown percentage columns.
+- `augment_rolling_risk_metrics()`: The augment_rolling_risk_metrics function calculates rolling risk-adjusted performance metrics for a financial time series using either pandas or polars engine, and returns the augmented DataFrame with columns for Sharpe Ratio, Sortino Ratio, and other metrics.
+- `augment_fip_momentum()`: Calculate the "Frog In The Pan" (FIP) momentum metric over one or more rolling windows using either pandas or polars engine, augmenting the DataFrame with FIP columns.
+- `augment_stochastic_oscillator`: The `augment_stochastic_oscillator()` function calculates the Stochastic Oscillator (%K and %D) for a financial instrument using either pandas or polars engine, and returns the augmented DataFrame.
+- `augment_adx()`: Calculate Average Directional Index (ADX), +DI, and -DI for a financial time series to determine strength of trend.
+- `augment_hurst_exponent()`: Calculate the Hurst Exponent on a rolling window for a financial time series.
+- `augment_ewma_volatility()`: Calculate Exponentially Weighted Moving Average (EWMA) volatility for a financial time series.
+- `augment_regime_detection()`: Detect regimes in a financial time series using a specified method (e.g., HMM).
+
+
+## Bug Fixes and Speed Improvements
+
+- `summarize_by_time()`: polars engine rebuild. Columns should match pandas engine.
+- `__init__.py`: updated to fix circular imports
+- `get_date_summary()`: Fixed issues with polar tz
+- `augment_hilbert()`: Improve polars engine and fix error with groupby()
+- `augment_ewm()`: fix example `from pytimetk import augment_ewm`
+- `test_plot_timeseries`: Fix broken test
+
+# pytimetk 1.1.2
+
+## Bug Fixes
+
+- `augment_rsi()`: fix issue with pandas engine column names
+
+
+# pytimetk 1.1.1
+
+## Bug Fixes
+
+- `augment_ppo()`: fixed issues with leftover multi-index when using grouped df and pandas engine
+- `augment_qsmomentum()`: Fixed issue with divide by zero when standard deviation is zero
+
+# pytimetk 1.1.0
+
+## New Features
+
+### Time Series Cross Validation (TSCV)
+
+Integration with `timebasedcv` #291. New Classes:
+
+- `TimeSeriesCV()`: An enhanced version of `TimeBasedSplit()` that defaults to `mode = "backwards"`, allows for maximum splits using `split_limit`, and adds enhanced diagnostics like `glimpse()` and `plot()`
+
+### Plotly Dropdowns
+
+A plotly dropdown automates the group-wise analysis. Instead of facets, which are only powerful for <=9 plots at a time, a dropdown can easily visualize more plots. 
+
+- `plot_timeseries()`: Gets new parameters `plotly_dropdown`, `plotly_dropdown_x`, `plotly_dropdown_y` #301
+- `plot_anomalies()`: Gets new parameters `plotly_dropdown`, `plotly_dropdown_x`, `plotly_dropdown_y` #301
+
+### Wide-Format Plotting
+
+- plot_timeseries(value_column = list(), color_column=list()): Now supports multiple columns in wide format for grouped time series data visualization. #136
+
+
+# pytimetk 1.0.1
+
+## Fixes:
+
+- `tk.summarize_by_time()`: AttributeError: 'DataFrame' object has no attribute 'groupby' #298
+
+# pytimetk 1.0.0 
+
+## Pandas and Polars Compatibility:
+
+Upgrading to:
+
+- pandas >= 2.0.0
+- polars >= 1.2.0
+
+Use pytimetk <=0.4.0 to support:
+
+- pandas <2.0.0
+- polars <1.0.0
+
+## Improvements:
+
+- Implement `sort_dataframe()`: This function is used internally to make sure Polars and Pandas engines perform grouped operations consistently and correctly. #286 #290
+- `.augment_lags()` and `.augment_leads()`: value_column now accepts any dtype. #295
+
+# pytimetk 0.4.0
+
+## Feature Engineering Module:
+
+1. `augment_pct_change()`: pandas and polars engines
+
+## Finance Module Updates:
+
+1. `augment_macd()`: MACD, pandas and polars engines
+2. `augment_bbands()`: Bollinger Bands, pandas and polars engines
+3. `augment_atr()`: Average True Range, pandas and polars engines
+4. `augment_ppo()`: Percentage Price Oscillator, pandas and polars engines
+5. `augment_rsi()`: Relative Strength Index, pandas and polars engines
+6. `augment_qsmomentum()`: Quant Science Momentum Indicator, pandas and polars engines
+7. `augment_roc()`: Rate of Change (ROC), pandas and polars engines
+
+## Polars Upgrades
+
+- Migrate to `polars 0.20.7`
+
+# pytimetk 0.3.0 
+
+### Correlation Funnel
+
+The R package `correlationfunnel` has been ported inside `pytimetk`:
+
+- `binarize()`
+- `correlate()`
+- `plot_correlation_funnel()`
+
+### Core:
+
+- `filter_by_time()` - Filtering with time-based strings
+
+### Feature Engineering:
+
+- `augment_diffs()` - Can now add differenced columns
+- `augment_fourier()` - Can now add fourier features. 
+
+### Finance Module:
+
+- `augment_cmo()`: Chande Momentum Oscillator (CMO)
+
+
+### New Polars Backends:
+
+- `augment_diffs()`
+- `augment_fourier()` 
+- `augment_cmo()` 
+
+### General
+
+- Make memory reduction optional #275
+
+# pytimetk 0.2.1
+
+Bugfix - Issue with `augment_rolling(engine='pandas')` and `augment_expanding(engine='pandas')` with concatinating rolled/expanded calc's to the correct group
+
+# pytimetk 0.2.0
+
+### Anomaly Detection
+
+- `anomalize()`: A new scalable function for detecting time series anomalies (outliers) 
+- `plot_anomalies()`: A scalable visualization tool for inspecting anomalies in time series data. 
+- `plot_anomalies_decomp`: A scalable visualization tool for inspecting the observed, seasonal, trend, and remainder decomposition, which are useful for telling you whether or not anomalies are being detected to your preference.
+- `plot_anomalies_cleaned()`: A scalable visualization tool for showing the before and after transformation for the cleaned vs uncleaned anomalies. 
+
+### New Functions:
+
+- `apply_by_time()`: For complex apply-style aggregations by time. 
+- `augment_rolling_apply()`: For complex rolling operations using apply-style data frame functions.  
+- `augment_expanding()`: For expanding calculations with single-column functions (e.g. mean). 
+- `augment_expanding_apply()`: For complex expanding operations with apply-style data frame functions.
+- `augment_hilbert()`: Hilbert features for signal processing.
+- `augment_wavelet()`: Wavelet transform features. 
+- `get_frequency()`: Infer a pandas-like frequency. More robust than `pandas.infer_freq`.
+- `get_seasonal_frequency()`: Infer the pandas-like seasonal frequency (periodicity) for the time series. 
+- `get_trend_frequency()`: Infer the pandas-like trend for the time series. 
+
+### New Finance Module
+
+More coming soon.
+
+- `augment_ewm()`: Exponentially weighted augmentation
+
+### Speed Improvements
+
+#### Polars Engines:
+
+- `summarize_by_time()`: Gains a polars engine. 
+  - 3X to 10X speed improvements. 
+- `augment_lags()` and `augment_leads()`: Gains a polars engine. Speed improvements increase with number of lags/leads. 
+  - 6.5X speed improvement with 100 lags. 
+- `augment_rolling()`: Gains a polars engine. 10X speed improvement.
+- `augment_expanding()`: Gains a polars engine. 
+- `augment_timeseries_signature()`: Gains a polars engine. 3X speed improvement.
+- `augment_holiday_signature()`: Gains a polars engine.
+
+#### Parallel Processing and Vectorized Optimizations:
+
+- `pad_by_time()`: Complete overhaul. Uses Cartesian Product (Vectorization) to enhance the speed. 1000s of time series can now be padded in seconds.
+  - **Independent review: Time went from over 90 minutes to 13 seconds for a 500X speedup on 10M rows.** 
+- `future_frame()`: Complete overhaul. Uses vectorization when possible. Grouped parallel processing. Set `threads = -1` to use all cores. 
+  - **Independent Review: Time went from 11 minutes to 2.5 minutes for a 4.4X speedup on 10M rows**
+- `ts_features`: Uses concurrent futures to parallelize tasks. Set `threads = -1` to use all cores.
+- `ts_summary`: Uses concurrent futures to parallelize tasks. Set `threads = -1` to use all cores.
+- `anomalize`: Uses concurrent futures to parallelize tasks. Set `threads = -1` to use all cores.
+- `augment_rolling()` and `augment_rolling_apply()`: Uses concurrent futures to parallelize tasks. Set `threads = -1` to use all cores.
+
+### Helpful Utilities:
+
+- `parallel_apply`: Mimics the `pandas apply()` function with concurrent futures.
+- `progress_apply`: Adds a progress bar to pandas apply()
+- `glimpse()`: Mimics tidyverse (tibble) glimpse function
+
+### New Data Sets:
+
+- `expedia`: Expedia hotel searches time series data set
+
+### 3 New Applied Tutorials:
+
+1. [Sales Analysis Tutorial](/tutorials/01_sales_crm.html)
+2. [Finance Analysis Tutorial](/tutorials/02_finance.html)
+3. [Demand Forecasting Tutorial](/tutorials/03_demand_forecasting.html)
+4. [Anomaly Detection Tutorial](/tutorials/04_anomaly_detection.html)
+
+### Final Deprecations:
+
+- `summarize_by_time()`: `kind = "period"`. This was removed for consistency with `pytimetk`. "timestamp" is the default. 
+- `augment_rolling()`: `use_independent_variables`. This is replaced by `augment_rolling_apply()`.
+
+# pytimetk 0.1.0 (2023-10-02)
+
+### About the Initial release. 
+
+This release includes the following features:
+
+1. A workhorse plotting function called `plot_timeseries()` 💪
+2. Three (3) data wrangling functions that will simplify 90% of time series tasks 🙏
+3. Five (5) "augmentor" functions: These add hundreds of features to time series to help in predictive tasks 🧠
+4. Two (2) time series feature summarizes: identify key aspects of your time series 🔍
+5. Nine (9) pandas series and DatetimeIndex helpers (work more easily with these timestamp data structures) ⏲
+6. Four (4) date utility functions that fill in missing function gaps in pandas 🐼
+7. Two (2) Visualization utilities to help you customize your visualizations and make them look MORE professional 📈
+8. Two (2) Pandas helpers that help clean up and understand pandas data frames with time series 🎇
+9. Twelve (12) time series datasets that you can practice PyTimeTK time series analysis on 🔢
+
+### The PyTimeTK website comes with:
+
+1. Two (2) Getting started tutorials
+2. Five (5) Guides covering common tasks
+3. Coming Soon: Applied Tutorials in Sales, Finance, Demand Forecasting, Anomaly Detection, and more.

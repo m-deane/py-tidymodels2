@@ -1,0 +1,12 @@
+.Rhistory
+.RData
+.Rproj.user
+.DS_Store
+tests/testthat/derby.log
+tests/testthat/logs/
+*.history
+derby.log
+logs/*
+revdep/*
+docs*
+docs

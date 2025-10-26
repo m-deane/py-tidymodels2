@@ -1,0 +1,41 @@
+# flatten_multiindex_column_names { #pytimetk.flatten_multiindex_column_names }
+
+```python
+flatten_multiindex_column_names(data, sep='_')
+```
+
+Takes a DataFrame as input and flattens the column
+names if they are in a multi-index format.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                       | Default    |
+|--------|--------------|-------------------------------------------------------------------|------------|
+| data   | pd.DataFrame | The parameter "data" is expected to be a pandas DataFrame object. | _required_ |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type         | Description                                            |
+|--------|--------------|--------------------------------------------------------|
+|        | pd.DataFrame | The input data with flattened multiindex column names. |
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import pandas as pd
+import pytimetk as tk
+
+date_rng = pd.date_range(start='2023-01-01', end='2023-01-03', freq='D')
+
+data = {
+    'date': date_rng,
+    ('values', 'value1'): [1, 4, 7],
+    ('values', 'value2'): [2, 5, 8],
+    ('metrics', 'metric1'): [3, 6, 9],
+    ('metrics', 'metric2'): [3, 6, 9],
+}
+df = pd.DataFrame(data)
+
+df.flatten_multiindex_column_names()
+
+```

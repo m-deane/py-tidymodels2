@@ -1,0 +1,94 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("svm_linear", "LiblineaR")`
+
+## Tuning Parameters
+
+```{r}
+#| label: LiblineaR-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("cost", "margin"),
+                 default = c("1.0", "no default"))
+
+param <-
+  svm_linear() |> 
+  set_engine("LiblineaR") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: LiblineaR-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+This engine fits models that are L2-regularized for L2-loss. In the [LiblineaR::LiblineaR()] documentation, these are types 1 (classification) and 11 (regression).
+
+Parsnip changes the default range for `cost` to `c(-10, 5)`.
+
+## Translation from parsnip to the original package (regression)
+
+```{r}
+#| label: LiblineaR-reg
+svm_linear(
+  cost = double(1),
+  margin = double(1)
+) |>  
+  set_engine("LiblineaR") |> 
+  set_mode("regression") |> 
+  translate()
+```
+
+## Translation from parsnip to the original package (classification)
+
+```{r}
+#| label: LiblineaR-cls
+svm_linear(
+  cost = double(1)
+) |> 
+  set_engine("LiblineaR") |> 
+  set_mode("classification") |> 
+  translate()
+```
+
+The `margin` parameter does not apply to classification models. 
+
+Note that the `LiblineaR` engine does not produce class probabilities. When optimizing the model using the tune package, the default metrics require class probabilities. To use the  `tune_*()` functions, a metric set must be passed as an argument that only contains metrics for hard class predictions (e.g., accuracy).
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+
+## Case weights
+
+```{r}
+#| child: template-no-case-weights.Rmd
+```
+
+## Sparse Data
+
+```{r}
+#| child: template-uses-sparse-data.Rmd
+```
+
+## Examples 
+
+The "Fitting and Predicting with parsnip" article contains [examples](https://parsnip.tidymodels.org/articles/articles/Examples.html#svm-linear-LiblineaR) for `svm_linear()` with the `"LiblineaR"` engine.
+
+## References
+
+ - Kuhn, M, and K Johnson. 2013. _Applied Predictive Modeling_. Springer.
+

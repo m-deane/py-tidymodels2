@@ -1,0 +1,68 @@
+url: https://tune.tidymodels.org/
+
+navbar:
+  components:
+    home: ~
+    tutorials:
+      text: Learn more
+      menu:
+      - text: "Grid search"
+        href: https://www.tidymodels.org/learn/work/tune-svm/
+      - text: "Bayesian optimization of classification model"
+        href: https://www.tidymodels.org/learn/work/bayes-opt/
+      - text: "Tuning text models"
+        href: https://www.tidymodels.org/learn/work/tune-text/
+
+template:
+  package: tidytemplate
+  bootstrap: 5
+  bslib:
+    danger: "#CA225E"
+    primary: "#CA225E"
+
+  includes:
+      in_header: |
+        <script defer data-domain="tune.tidymodels.org,all.tidymodels.org" src="https://plausible.io/js/plausible.js"></script>
+
+development:
+  mode: auto
+
+figures:
+  fig.width: 8
+  fig.height: 5.75
+
+reference:
+  - title: Functions for tuning
+    contents:
+    - starts_with("tune")
+    - starts_with("melodie")
+    - fit_resamples
+    - fit_best
+    - last_fit
+    - conf_bound
+    - starts_with("control")
+    - autoplot.tune_results
+    - augment.tune_results
+    - coord_obs_pred
+    - expo_decay
+    - starts_with("collect")
+    - starts_with("compute")
+    - filter_parameters
+    - show_best
+    - show_notes
+    - starts_with("select_")
+    - starts_with("extract_")
+    - starts_with("finalize")
+    - coord_obs_pred
+    - conf_mat_resampled
+    - example_ames_knn
+    - starts_with("int_pctl")
+    - parallelism
+  - title: Developer functions
+    contents:
+    - merge.recipe
+    - parameters.workflow
+    - message_wrap
+    - .use_case_weights_with_yardstick
+    - .stash_last_result
+    - new_backend_options

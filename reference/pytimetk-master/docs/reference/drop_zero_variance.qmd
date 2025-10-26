@@ -1,0 +1,21 @@
+# drop_zero_variance { #pytimetk.drop_zero_variance }
+
+```python
+drop_zero_variance(data)
+```
+
+The function `drop_zero_variance` takes a pandas DataFrame as input and returns a new DataFrame with
+columns that have zero variance removed.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name   | Type         | Description                                                                                       | Default    |
+|--------|--------------|---------------------------------------------------------------------------------------------------|------------|
+| data   | pd.DataFrame | The `data` parameter is a pandas DataFrame or a pandas DataFrameGroupBy object. It represents the | _required_ |
+| data   | pd.DataFrame |                                                                                                   | _required_ |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name      | Type   | Description                                                    |
+|-----------|--------|----------------------------------------------------------------|
+| DataFrame |        | a filtered DataFrame with columns that have non-zero variance. |

@@ -1,0 +1,63 @@
+name: timetk-checks
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Poetry requires python 3.9+
+          - { os: ubuntu-latest, python-version: '3.9' }
+          - { os: ubuntu-latest, python-version: '3.10' }
+          - { os: ubuntu-latest, python-version: '3.11' }
+          - { os: macos-latest, python-version: '3.9' }
+          # Poetry is giving some pep517 errors on windows
+          # Note: This error originates from the build backend, and is likely not a problem with poetry but with supersmoother (0.4) not supporting PEP 517 builds. You can verify this by running 'pip wheel --use-pep517 "supersmoother (==0.4)"'.
+          # - { os: windows-latest, python-version: '3.9' }
+          
+    
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.python-version }})
+
+    steps:
+      - name: Set up Python Version
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.config.python-version }}
+
+      - name: Check-out repository
+        uses: actions/checkout@v2
+
+      - name: Install poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install package
+        run: poetry install
+      
+      - run: |
+          source $VENV
+          pytest --version
+
+      - name: Test with pytest
+        run: poetry run pytest tests/ --verbose

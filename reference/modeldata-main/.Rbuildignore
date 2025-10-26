@@ -1,0 +1,15 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^README\.Rmd$
+^codecov\.yml$
+^CODE_OF_CONDUCT\.md$
+^data-raw$
+^revdep$
+^.Rhistory$
+^[\.]?air\.toml$
+^\.vscode$

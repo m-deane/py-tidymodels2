@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+notes/
+inst/doc
+data-raw/paper/paper.tex
+vignettes/articles/workflowsets_cache*

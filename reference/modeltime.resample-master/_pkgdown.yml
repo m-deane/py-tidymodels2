@@ -1,0 +1,90 @@
+url: https://business-science.github.io/modeltime.resample/
+template:
+  bootstrap: 5
+  bootswatch: lux
+  params:
+    ganalytics: G-20GDZ5LL77
+
+navbar:
+  bg: primary
+  title: "modeltime.resample"
+  left:
+    - icon: fa-home
+      href: index.html
+    - text: "Getting Started"
+      href: articles/getting-started.html
+    - text: "Articles"
+      href: articles/index.html
+      menu:
+        - text: 'Single Time Series'
+        - text: "Resampling Single Time Series"
+          href: articles/getting-started.html
+        - text: '---'
+        - text: 'Multiple Time Series'
+        - text: "Resampling Panel Data"
+          href: articles/panel-data.html
+    - text: "API"
+      href: reference/index.html
+      menu:
+        - text: 'API Functions'
+        - icon: fa-home
+          text: 'Function Reference'
+          href: reference/index.html
+        - text: '---'
+        - text: 'Change History'
+        - text: "News"
+          href: news/index.html
+    - text: "Ecosystem"
+      menu:
+        - text: 'Forecast'
+        - text: 'Modeltime (Forecasting)'
+          href: https://business-science.github.io/modeltime/
+        - text: 'TimeTK (Time Series Analysis)'
+          href: https://business-science.github.io/timetk/
+        - text: "---"
+        - text: 'Improve'
+        - text: 'Modeltime Ensemble (Blending Forecasts)'
+          href: https://business-science.github.io/modeltime.ensemble/
+        - text: 'Modeltime Resample (Backtesting)'
+          href: https://business-science.github.io/modeltime.resample/
+        - text: "---"
+        - text: 'Scale'
+        - text: 'Modeltime H2O (AutoML)'
+          href: https://business-science.github.io/modeltime.h2o/
+        - text: 'Modeltime GluonTS (Deep Learning)'
+          href: https://business-science.github.io/modeltime.gluonts/
+    - text: Python
+      menu:
+      - text: Forecast
+      - text: Timetk for Python (Time Series Analysis)
+        href: https://business-science.github.io/pytimetk/
+    - icon: fas fa-graduation-cap
+      text: "Learn"
+      href: https://university.business-science.io/p/ds4b-203-r-high-performance-time-series-forecasting/
+
+  right:
+    - icon: fab fa-github
+      href: https://github.com/business-science/modeltime.resample
+
+reference:
+  - title: Core Functions
+    desc: Functions used to create resample predictions.
+    contents:
+    - "time_series_cv"
+    - "modeltime_fit_resamples"
+    - "modeltime_resample_accuracy"
+    - "plot_modeltime_resamples"
+  - title: Helper Functions
+    contents:
+    - "unnest_modeltime_resamples"
+    - starts_with("get_target")
+  - title: Data
+    contents:
+    - "m750_training_resamples_fitted"
+
+
+repo:
+  url:
+    home: https://github.com/business-science/modeltime.resample
+    source: https://github.com/business-science/modeltime.resample/blob/master/
+    issue: https://github.com/business-science/modeltime.resample/issues/

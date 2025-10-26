@@ -1,0 +1,111 @@
+# augment_hilbert { #pytimetk.augment_hilbert }
+
+```python
+augment_hilbert(
+    data,
+    date_column,
+    value_column,
+    reduce_memory=True,
+    engine='auto',
+)
+```
+
+Apply the Hilbert transform to specified columns of a DataFrame or
+DataFrameGroupBy object.
+
+Signal Processing: The Hilbert transform is used in various signal processing techniques, including phase and amplitude modulation and demodulation, and in the analysis of signals with time-varying amplitude and frequency.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                                     | Description                                                                                                                                                                                                                                                                                            | Default    |
+|---------------|----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | pd.DataFrame or pd.core.groupby.generic.DataFrameGroupBy | Input DataFrame or DataFrameGroupBy object with one or more columns of real-valued signals.                                                                                                                                                                                                            | _required_ |
+| value_column  | str or list                                              | List of column names in 'data' to which the Hilbert transform will be applied.                                                                                                                                                                                                                         | _required_ |
+| reduce_memory | bool                                                     | The `reduce_memory` parameter is used to specify whether to reduce the memory usage of the DataFrame by converting int, float to smaller bytes and str to categorical data. This reduces memory for large data but may impact resolution of float and will change str to categorical. Default is True. | `True`     |
+| engine        | (auto, pandas, polars)                                   | Specifies the backend to use for the computation. When "auto" (default) the backend is inferred from the input data. Use "pandas" or "polars" to force a specific backend.                                                                                                                             | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name       | Type      | Description                                                                                                                                                               |
+|------------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| df_hilbert | DataFrame | A new DataFrame with the 2 Hilbert-transformed columns added, 1 for the real and 1 for imaginary (original columns are preserved). Matches the backend of the input data. |
+
+## Notes {.doc-section .doc-section-notes}
+
+The Hilbert transform is used in time series analysis primarily for:
+
+1. Creating Analytic Signals: Forms a complex-valued signal whose
+properties (magnitude and phase) provide valuable insights into the
+original signal's structure.
+
+2. Determining Instantaneous Phase/Frequency: Offers real-time signal
+characteristics, crucial for non-stationary signals whose properties
+change over time.
+
+3. Extracting Amplitude Envelope: Helps in identifying signal's
+amplitude variations, useful in various analysis tasks.
+
+4. Enhancing Signal Analysis: Assists in tasks like demodulation, trend
+analysis, feature extraction for machine learning, and improving
+signal-to-noise ratio, providing a deeper understanding of underlying
+patterns and trends.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+# Example 1: Using Pandas Engine on a pandas groupby object
+import pytimetk as tk
+import pandas as pd
+
+df = tk.load_dataset('walmart_sales_weekly', parse_dates=['Date'])
+
+
+df_hilbert = (
+    df
+        .groupby('id')
+        .augment_hilbert(
+            date_column = 'Date',
+            value_column = ['Weekly_Sales'],
+            engine = 'pandas'
+        )
+)
+
+df_hilbert.head()
+```
+
+```{python}
+# Example 2: Using the polars accessor on a grouped table
+import pytimetk as tk
+import polars as pl
+
+
+df = tk.load_dataset('walmart_sales_weekly', parse_dates=['Date'])
+df_hilbert = (
+    pl.from_pandas(df)
+        .group_by('id')
+        .tk.augment_hilbert(
+            date_column = 'Date',
+            value_column = ['Weekly_Sales'],
+        )
+)
+
+df_hilbert.head()
+```
+
+```{python}
+# Example 3: Using the polars accessor on a DataFrame
+import pytimetk as tk
+import polars as pl
+
+
+df = tk.load_dataset('taylor_30_min', parse_dates=['date'])
+df_hilbert = (
+    pl.from_pandas(df)
+        .tk.augment_hilbert(
+            date_column = 'date',
+            value_column = ['value'],
+        )
+)
+
+df_hilbert.head()
+```

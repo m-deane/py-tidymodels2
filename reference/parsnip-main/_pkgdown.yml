@@ -1,0 +1,114 @@
+url: https://parsnip.tidymodels.org/
+
+navbar:
+  components:
+    home: ~
+    tutorials:
+      text: Learn more
+      menu:
+      - text: "Regression modeling"
+        href: https://www.tidymodels.org/learn/models/parsnip-ranger-glmnet/
+      - text: "Classification modeling"
+        href: https://www.tidymodels.org/learn/models/parsnip-nnet/
+      - text: "Making a parsnip model from scratch"
+        href: https://www.tidymodels.org/learn/develop/models/
+
+template:
+  package: tidytemplate
+  bootstrap: 5
+  bslib:
+    primary: "#CA225E"
+
+  includes:
+      in_header: |
+        <script defer data-domain="parsnip.tidymodels.org,all.tidymodels.org" src="https://plausible.io/js/plausible.js"></script>
+
+development:
+  mode: auto
+
+figures:
+  fig.width: 8
+  fig.height: 5.75
+
+reference:
+  - title: Models
+    contents:
+      - auto_ml
+      - bag_mars
+      - bag_mlp
+      - bag_tree
+      - bart
+      - boost_tree
+      - cubist_rules
+      - C5_rules
+      - decision_tree
+      - discrim_flexible
+      - discrim_linear
+      - discrim_quad
+      - discrim_regularized
+      - gen_additive_mod
+      - glm_grouped
+      - linear_reg
+      - logistic_reg
+      - mars
+      - mlp
+      - multinom_reg
+      - naive_Bayes
+      - nearest_neighbor
+      - null_model
+      - pls
+      - poisson_reg
+      - proportional_hazards
+      - rand_forest
+      - rule_fit
+      - survival_reg
+      - svm_linear
+      - svm_poly
+      - svm_rbf
+  - title: Infrastructure
+    contents:
+      - autoplot.model_fit
+      - add_rowindex
+      - augment.model_fit
+      - case_weights
+      - case_weights_allowed
+      - descriptors
+      - extract-parsnip
+      - fit.model_spec
+      - fit_xy
+      - control_parsnip
+      - glance.model_fit
+      - matrix_to_quantile_pred
+      - model_fit
+      - model_formula
+      - model_spec
+      - multi_predict
+      - parsnip_addin
+      - predict.model_fit
+      - reexports
+      - repair_call
+      - set_args
+      - set_engine
+      - set_mode
+      - show_engines
+      - sparse_data
+      - tidy.model_fit
+      - translate
+      - starts_with("update")
+      - matches("_train")
+
+  - title: Developer tools
+    contents:
+      - condense_control
+      - contr_one_hot
+      - set_new_model
+      - maybe_matrix
+      - min_cols
+      - max_mtry_formula
+      - required_pkgs
+      - required_pkgs.model_spec
+      - req_pkgs
+      - .extract_surv_status
+      - .extract_surv_time
+      - .model_param_name_key
+      - .get_prediction_column_names

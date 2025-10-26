@@ -1,0 +1,75 @@
+# augment_qsmomentum { #pytimetk.augment_qsmomentum }
+
+```python
+augment_qsmomentum(
+    data,
+    date_column,
+    close_column,
+    roc_fast_period=21,
+    roc_slow_period=252,
+    returns_period=126,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Calculate Quant Science Momentum (QSM) for pandas or polars inputs.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name            | Type                                   | Description                                                                                                                                | Default    |
+|-----------------|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data            | DataFrame or GroupBy(pandas or polars) | Input financial data. Grouped inputs are processed per group before the momentum columns are appended.                                     | _required_ |
+| date_column     | str                                    | Name of the column containing date information.                                                                                            | _required_ |
+| close_column    | str                                    | Column containing closing prices used to compute QSM.                                                                                      | _required_ |
+| roc_fast_period | int, tuple, or list                    | Lookback window(s) for the fast Rate of Change (ROC). Accepts a single integer, an inclusive tuple range, or a list of explicit periods.   | `21`       |
+| roc_slow_period | int, tuple, or list                    | Lookback window(s) for the slow ROC component.                                                                                             | `252`      |
+| returns_period  | int, tuple, or list                    | Lookback window(s) used when calculating the rolling standard deviation of returns.                                                        | `126`      |
+| reduce_memory   | bool                                   | Attempt to reduce memory usage when operating on pandas data. If a polars input is supplied a warning is emitted and no conversion occurs. | `False`    |
+| engine          | (auto, pandas, polars, cudf)           | Execution engine. ``"auto"`` (default) infers the backend from the input data while allowing explicit overrides.                           | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                                                                              |
+|--------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with ``{close_column}_qsmom_{fast}_{slow}_{returns}`` columns appended for every valid combination. The return type matches the input backend. |
+
+## Notes {.doc-section .doc-section-notes}
+
+QSM measures the difference between slow and fast ROC values normalised by
+the rolling volatility of returns. Only combinations where ``fast < slow``
+and ``returns_period <= slow`` are evaluated. If no combinations satisfy
+these rules a ``ValueError`` is raised to surface the configuration issue.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import pytimetk as tk
+import polars as pl
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Calculate QSM for multiple ROCs using pandas backend
+qsm_pd = (
+    df.groupby("symbol")
+    .augment_qsmomentum(
+        date_column="date",
+        close_column="close",
+        roc_fast_period=[5, 21],
+        roc_slow_period=252,
+        returns_period=126,
+    )
+)
+
+# Compute QSM on a polars DataFrame via the tk accessor
+qsm_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_qsmomentum(
+        date_column="date",
+        close_column="close",
+        roc_fast_period=[5, 21],
+        roc_slow_period=252,
+        returns_period=126,
+    )
+)
+```

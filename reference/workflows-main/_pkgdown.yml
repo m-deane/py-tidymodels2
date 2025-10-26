@@ -1,0 +1,29 @@
+url: https://workflows.tidymodels.org/
+
+template:
+  package: tidytemplate
+  bootstrap: 5
+  bslib:
+    primary: "#CA225E"
+  includes:
+      in_header: |
+        <script defer data-domain="workflows.tidymodels.org,all.tidymodels.org" src="https://plausible.io/js/plausible.js"></script>
+
+development:
+  mode: auto
+
+figures:
+  fig.width: 8
+  fig.height: 5.75
+
+navbar:
+  left:
+  - text: Workflow Stages
+    href: articles/stages.html
+  - text: Getting Started
+    href: articles/extras/getting-started.html
+  - text: News
+    href: news/index.html
+  - text: Reference
+    href: reference/index.html
+

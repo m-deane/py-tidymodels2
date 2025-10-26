@@ -1,0 +1,294 @@
+---
+title: "Data Wrangling"
+jupyter: python3
+toc: true
+toc-depth: 3
+number-sections: true
+number-depth: 2
+code-fold: show
+code-tools: 
+    source: false
+    toggle: true
+---
+
+This section will cover data wrangling for timeseries using pytimetk. We'll show examples for the following functions:
+
+* `summarize_by_time()`
+* `future_frame()`
+* `pad_by_time()`
+
+::: {.callout-note collapse="false"}
+## Perequisite
+
+Before proceeding, be sure to review the Timetk Basics section if you haven't already.
+
+:::
+
+# Summarize by Time
+
+`summarize_by_time()` aggregates time series data from lower frequency (time periods) to higher frequency.
+
+**Load Libraries & Data**
+```{python}
+# import libraries
+import pytimetk as tk
+import pandas as pd
+import numpy as np
+
+# import data
+m4_daily_df = tk.load_dataset('m4_daily', parse_dates = ['date'])
+
+print(m4_daily_df.head())
+print('\nLength of the full dataset:', len(m4_daily_df))
+
+```
+
+::: {.callout-tip collapse="false"}
+## Help Doc Info: `summarize_by_time`
+
+Use `help(tk.summarize_by_time)` to review additional helpful documentation.
+
+:::
+
+## Basic Example
+
+The `m4_daily` dataset has a **daily** frequency. Say we are interested in forecasting at the **weekly** level. We can use `summarize_by_time()` to aggregate to a weekly level
+
+
+```{python}
+# summarize by time: daily to weekly
+summarized_df = m4_daily_df \
+	.summarize_by_time(
+		date_column  = 'date',
+		value_column = 'value',
+		freq         = 'W',
+		agg_func     = 'sum'
+	)
+
+print(summarized_df.head())
+print('\nLength of the full dataset:', len(summarized_df))
+```
+
+The data has now been aggregated at the weekly level. Notice we now have 1977 rows, compared to full dataset which had 9743 rows.
+
+
+## Additional Aggregate Functions
+`summarize_by_time()` can take additional aggregate functions in the `agg_func` argument.
+
+```{python}
+# summarize by time with additional aggregate functions
+summarized_multiple_agg_df = m4_daily_df \
+	.summarize_by_time(
+		date_column  = 'date',
+		value_column = 'value',
+		freq         = 'W',
+		agg_func     = ['sum', 'min', 'max']
+	)
+
+summarized_multiple_agg_df.head()
+```
+
+## Summarize by Time with Grouped Time Series
+`summarize_by_time()` also works with groups.
+
+```{python}
+# summarize by time with groups and additional aggregate functions
+grouped_summarized_df = (
+    m4_daily_df
+        .groupby('id')
+        .summarize_by_time(
+            date_column  = 'date',
+            value_column = 'value',
+            freq         = 'W',
+            agg_func     = [
+                'sum',
+                'min',
+                ('q25', lambda x: np.quantile(x, 0.25)),
+				'median',
+                ('q75', lambda x: np.quantile(x, 0.75)),
+                'max'
+            ],
+        )
+)
+
+grouped_summarized_df.head()
+```
+
+
+# Future Frame
+
+`future_frame()` can be used to extend timeseries data beyond the existing index (date). This is necessary when trying to make future predictions.
+
+::: {.callout-tip collapse="false"}
+## Help Doc Info: `future_frame()`
+
+Use `help(tk.future_frame)` to review additional helpful documentation.
+
+:::
+
+
+## Basic Example
+We'll continue with our use of the `m4_daily_df` dataset. Recall we've alread aggregated at the **weekly** level (`summarized_df`). Lets checkout the last week in the `summarized_df`:
+
+```{python}
+# last week in dataset
+summarized_df \
+    .sort_values(by = 'date', ascending = True) \
+    .iloc[: -1] \
+    .tail(1)
+```
+
+::: {.callout-note collapse="false"}
+## `iloc()`
+
+`iloc[: -1]` is used to filter out the last row and keep only dates that are the start of the week.
+
+:::
+
+We can see that the last week is the week of 2016-05-01. Now say we wanted to forecast the next 8 weeks. We can extend the dataset beyound the week of 2016-05-01:
+
+```{python}
+# extend dataset by 12 weeks
+summarized_extended_df = summarized_df \
+	.future_frame(
+		date_column = 'date',
+		length_out  = 8
+	)
+
+summarized_extended_df
+```
+
+To get only the future data, we can filter the dataset for where `value` is missing (`np.nan`).
+
+```{python}
+# get only future data
+summarized_extended_df \
+	.query('value.isna()')
+
+```
+
+## Future Frame with Grouped Time Series
+`future_frame()` also works for grouped time series. We can see an example using our grouped summarized dataset (`grouped_summarized_df`) from earlier:
+
+```{python}
+# future frame with grouped time series
+grouped_summarized_df[['id', 'date', 'value_sum']] \
+	.groupby('id') \
+	.future_frame(
+		date_column = 'date',
+		length_out  = 8
+	) \
+	.query('value_sum.isna()') # filtering to return only the future data
+
+```
+
+
+# Pad by Time
+
+`pad_by_time()` can be used to add rows where timestamps are missing. For example, when working with sales data that may have missing values on weekends or holidays.
+
+::: {.callout-tip collapse="false"}
+## Help Doc Info: `pad_by_time()`
+
+Use `help(tk.pad_by_time)` to review additional helpful documentation.
+
+:::
+
+## Basic Example
+Let's start with a basic example to see how `pad_by_time()` works. We'll create some sample data with missing timestamps:
+
+```{python}
+
+# libraries
+import pytimetk as tk
+import pandas as pd
+import numpy as np
+
+# sample quarterly data with missing timestamp for Q3
+dates = pd.to_datetime(["2021-01-01", "2021-04-01", "2021-10-01"])
+value = range(len(dates))
+
+df = pd.DataFrame({
+    'date': dates,
+    'value': range(len(dates))
+})
+
+df
+
+```
+
+Now we can use `pad_by_time()` to fill in the missing timestamp:
+
+```{python}
+
+# pad by time
+df \
+	.pad_by_time(
+		date_column = 'date',
+		freq        = 'QS' # specifying quarter start frequency
+	)
+
+```
+
+We can also specify shorter time frequency:
+
+```{python}
+
+# pad by time with shorter frequency
+df \
+	.pad_by_time(
+		date_column = 'date',
+		freq        = 'MS' # specifying month start frequency
+	) \
+	.assign(value = lambda x: x['value'].fillna(0)) # replace NaN with 0
+
+```
+
+## Pad by Time with Grouped Time Series
+`pad_by_time()` can also be used with grouped time series. Let's use the `stocks_daily` dataset to showcase an example:
+
+```{python}
+
+# load dataset
+stocks_df = tk.load_dataset('stocks_daily', parse_dates = ['date'])
+
+# pad by time
+stocks_df \
+	.groupby('symbol') \
+	.pad_by_time(
+		date_column = 'date',
+		freq        = 'D'
+	) \
+	.assign(id = lambda x: x['symbol'].ffill())
+```
+
+
+To replace NaN with 0 in a dataframe with multiple columns:
+
+```{python}
+
+from functools import partial
+
+# columns to replace NaN with 0
+cols_to_fill = ['open', 'high', 'low', 'close', 'volume', 'adjusted']
+
+# define a function to fillna
+def fill_na_col(df, col):
+    return df[col].fillna(0)
+
+# pad by time and replace NaN with 0
+stocks_df \
+	.groupby('symbol') \
+	.pad_by_time(
+		date_column = 'date',
+		freq        = 'D'
+	) \
+	.assign(id = lambda x: x['symbol'].ffill()) \
+	.assign(**{col: partial(fill_na_col, col=col) for col in cols_to_fill})
+```
+
+# Next Steps
+
+Check out the [Adding Features (Augmenting) Time Series Data Guide next.](/guides/05_augmenting.html)
+
+{{< include ../_includes/_footer.qmd >}}

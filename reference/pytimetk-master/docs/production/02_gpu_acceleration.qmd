@@ -1,0 +1,159 @@
+---
+title: "GPU Acceleration"
+description: "Install and verify optional NVIDIA RAPIDS support for pytimetk."
+---
+
+# Overview
+
+`pytimetk` works out-of-the-box on CPU. GPU acceleration is optional and only
+activates when the relevant RAPIDS components are installed. The steps below
+show how to opt-in while keeping full backwards compatibility for existing
+workflows.
+
+> **Warning**
+> RAPIDS packages are built for specific CUDA and Python versions. Verify that
+> your NVIDIA driver and CUDA runtime match the wheels you plan to install.
+
+# Installation
+
+## 1. Enable the RAPIDS extra (optional)
+
+```bash
+# poetry
+poetry install -E gpu
+
+# pip
+pip install pytimetk[gpu] \
+  --extra-index-url=https://pypi.nvidia.com
+```
+
+The `gpu` extra only declares `cudf` as an optional dependency. You still need
+NVIDIA's PyPI index (or a local RAPIDS wheelhouse) for the actual download.
+
+## 2. Install Polars with the GPU engine
+
+```bash
+pip install "polars[gpu]" --extra-index-url=https://pypi.nvidia.com
+```
+
+When loaded, you can materialise lazy pipelines on the GPU using:
+
+```python
+import polars as pl
+
+result = (
+    pl.LazyFrame({"value": [1.2, 3.4]})
+    .select(pl.col("value").rolling_mean(2))
+    .collect(engine="gpu")  # or engine=pl.GPUEngine(raise_on_fail=True)
+)
+```
+
+The examples below illustrate how to use GPU acceleration in practice. They are
+provided as reference snippets and are not executed as part of the documentation
+build (notice the ``eval=FALSE`` flag).
+
+## Example: accelerating `augment_rolling`
+
+```python
+import polars as pl
+import pytimetk as tk
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+result = (
+    pl.from_pandas(df)
+    .lazy()
+    .tk.augment_rolling(
+        date_column="date",
+        value_column="close",
+        window=[10, 20, 30, 40],
+        window_func=["mean", "std"],
+    )
+    .collect(engine="gpu")
+)
+```
+
+## Example: pandas + `cudf.pandas` (no code changes required)
+
+```python
+import cudf.pandas
+cudf.pandas.install()
+
+import pandas as pd
+import pytimetk as tk
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+result = (
+    df.groupby("symbol")
+    .augment_rolling(
+        date_column="date",
+        value_column="close",
+        window=[10, 20, 30, 40],
+        window_func=["mean", "std"],
+        threads=1,
+    )
+)
+
+# `result` is a pandas DataFrame, but operations run on the GPU whenever
+# rapids-cuDF supports the requested rolling functions.
+```
+
+## 3. Enable `cudf.pandas` (optional)
+
+To accelerate compatible pandas workloads, install RAPIDS and opt-in to
+`cudf.pandas` before importing pandas:
+
+```python
+import cudf.pandas
+cudf.pandas.install()
+
+import pandas as pd
+```
+
+In notebooks you can use the magic `%load_ext cudf.pandas` instead. pandas APIs
+that are unsupported on the GPU automatically fall back to the CPU
+implementation, so existing scripts continue to run.
+
+# Verifying the environment
+
+`pytimetk` exposes lightweight helpers in `pytimetk.utils.gpu_support` to
+interrogate the runtime:
+
+```python
+from pytimetk.utils import gpu_support
+
+if gpu_support.is_cudf_available():
+    print("cuDF detected:", gpu_support.cudf_version())
+
+if gpu_support.is_polars_gpu_available():
+    print("Polars GPU engine is ready")
+```
+
+Return values default to `False` when optional dependencies are missing. This
+ensures CPU-only deployments run without modification.
+
+# Current limitations
+
+- Many pandas workflows still rely on `.groupby().apply(...)` or Python UDFs.
+  These patterns execute on the CPU today, even with `cudf.pandas` enabled.
+- Polars GPU execution requires lazy, expression-only queries. Routines that
+  use `map_groups` or Python callbacks currently materialise on the CPU.
+- Rolling risk metrics on GPU now support Sharpe, Sortino, Treynor, Information, Omega,
+  volatility, skewness, and kurtosis; unsupported custom metrics still fall back to the
+  pandas path with a warning so results stay consistent.
+
+# Runtime status by component
+
+| Component | GPU behaviour |
+| --- | --- |
+| Feature engineering (lags, diffs, pct_change, leads, rolling, expanding) | Native cuDF (strings-only) + Polars expression pipelines; custom Python callables still fall back |
+| Feature engineering (ewm) | cuDF backend supported for numeric columns; polars inputs fallback to pandas |
+| Finance indicators (RSI, MACD, Bollinger Bands, ATR/NATR, ADX, CMO, PPO, ROC, rolling risk metrics*, stochastic oscillator, FIP momentum, QS momentum, EWMA volatility, drawdown, regime detection, Hurst) | cuDF implementations cover the common price-based calculations; rolling risk metrics accelerate Sharpe, Sortino, Treynor, Information, Omega, volatility, skewness, and kurtosis while unsupported custom metrics still fall back with a warning |
+| Polars pipelines | Expression-only; pytimetk automatically attempts `.collect(engine="gpu")` when RAPIDS Polars is installed (set `PYTIMETK_POLARS_GPU=0` to disable) |
+
+*Rolling risk metrics GPU support today covers Sharpe, Sortino, Treynor, Information, Omega, volatility, skewness, and kurtosis.
+
+Future releases will incrementally replace these bottlenecks with
+GPU-compatible implementations. Until then, GPU components remain entirely
+optional and safe to omit.

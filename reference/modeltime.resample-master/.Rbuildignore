@@ -1,0 +1,13 @@
+^modeltime\.resample\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^\.travis\.yml$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^CRAN-RELEASE$
+^cran-comments\.md$
+^\.github$
+^CRAN-SUBMISSION$

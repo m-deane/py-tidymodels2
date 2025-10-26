@@ -1,0 +1,354 @@
+---
+title: "Demand Forecasting"
+jupyter: python3
+toc: true
+toc-depth: 3
+number-sections: true
+number-depth: 2
+code-fold: show
+code-tools: 
+    source: false
+    toggle: true
+---
+
+Timetk enables you to generate features from the time column of your data very easily. This tutorial showcases how easy it is to perform time series forecasting with `pytimetk`. The specific methods we will be using are:
+
+- `tk.augment_timeseries_signature()`: Add 29 time series features to a DataFrame.
+- `tk.augment_lags()`: Adds past values of a feature as a predictor
+- `tk.augment_rolling()`: Calculates rolling window aggregates of a feature.
+- `tk.plot_timeseries()`: Creates time series plots using different plotting engines such as Plotnine, Matplotlib, and Plotly.
+- `tk.future_frame()`: Extend a DataFrame or GroupBy object with future dates.
+
+# Tutorial Setup
+## Load Packages
+Load the following packages before proceeding with this tutorial. 
+
+```{python}
+import pandas as pd
+import numpy as np
+import pytimetk as tk
+
+from sklearn.ensemble import RandomForestRegressor
+```
+
+The tutorial is divided into three parts: We will first have a look at the Walmart dataset and perform some preprocessing. Secondly, we will create models based on different features, and see how the time features can be useful. Finally, we will solve the task of time series forecasting, using the features from augment_timeseries_signature, augment_lags, and augment_rolling, to predict future sales.
+
+## Load & Inspect dataset
+
+The first thing we want to do is to load the dataset. It is a subset of the Walmart sales prediction Kaggle competition. You can get more insights about the dataset by following this link: [walmart_sales_weekly](https://business-science.github.io/timetk/reference/walmart_sales_weekly.html). The most important thing to know about the dataset is that you are provided with some features like the fuel price or whether the week contains holidays and you are expected to predict the weekly sales column for 7 different departments of a given store. Of course, you also have the date for each week, and that is what we can leverage to create additional features.
+
+Let us start by loading the dataset and cleaning it. Note that we also removed some columns due to 
+* duplication of data
+* 0 variance
+* No future data available in current dataset.
+
+```{python}
+# We start by loading the dataset
+# /walmart_sales_weekly.html
+dset = tk.load_dataset('walmart_sales_weekly', parse_dates = ['Date'])
+
+dset = dset.drop(columns=[
+    'id', # This column can be removed as it is equivalent to 'Dept'
+    'Store', # This column has only one possible value
+    'Type', # This column has only one possible value
+    'Size', # This column has only one possible value
+    'MarkDown1', 'MarkDown2', 'MarkDown3', 'MarkDown4', 'MarkDown5',
+    'IsHoliday', 'Temperature', 'Fuel_Price', 'CPI',
+       'Unemployment'])
+
+dset.head()
+```
+
+We can plot the values of each department to get an idea of how the data looks like.  Using the `plot_timeseries` method with a groupby allows us to create multiple plots by group.
+
+::: {.callout-note collapse="true"}
+## Getting More Info: `tk.plot_timeseries()`
+
+- Click here to see our [Data Visualization Guide](/guides/01_visualization.html)
+- Use `help(tk.plot_timeseries)` to review additional helpful documentation.  
+
+:::
+
+:::{.panel-tabset groups="bbands-plotly-plotnine"}
+
+## Plotly
+```{python}
+sales_df = dset
+fig = sales_df.groupby('Dept').plot_timeseries(
+    date_column='Date',
+    value_column='Weekly_Sales',
+    facet_ncol = 2,
+    x_axis_date_labels = "%Y",
+    engine = 'plotly')
+fig
+  
+```
+## Plotnine
+```{python}
+fig = sales_df.groupby('Dept').plot_timeseries(
+    date_column='Date',
+    value_column='Weekly_Sales',
+    facet_ncol = 2,
+    x_axis_date_labels = "%Y",
+    engine = 'plotnine')
+fig
+```
+:::
+
+# Create a Department Forecast Model
+
+## Making Future Dates Easier with `tk.future_frame`
+
+
+
+When building machine learning models, we need to setup our dataframe to hold information about the future. This is the dataframe that will get passed to our `model.predict()` call. This is made easy with `tk.future_frame()`.
+
+
+::: {.callout-note collapse="true"}
+## Getting to know `tk.future_frame()`
+
+Curious about the various options it provides? 
+
+- Click here to see our [Data Wrangling Guide](/guides/04_wrangling.html)
+- Use `help(tk.future_frame)` to review additional helpful documentation. And explore the plethora of possibilities!
+
+:::
+Notice this function adds 5 weeks to our dateset for each department and fills in weekly sales with nulls.
+Previously our max date was 2012-10-26.
+```{python}
+print(sales_df.groupby('Dept').Date.max())
+```
+
+After applying our future frame, we can now see values 5 weeks in the future, and our dataframe has been extended to 2012-11-30 for all groups.
+
+```{python}
+sales_df_with_futureframe = sales_df \
+    .groupby('Dept') \
+    .future_frame(
+        date_column = 'Date',
+        length_out  = 5
+    )
+```
+```{python}
+sales_df_with_futureframe.groupby('Dept').Date.max()
+```
+
+
+
+## Date Features with `tk.augment_timeseries_signature`
+Machine Learning models generally cannot process raw date objects directly. Moreover, they lack an inherent understanding of the passage of time. This means that, without specific features, a model can't differentiate between a January observation and a June one. To bridge this gap, the tk.augment_timeseries_signature function is invaluable. It generates 29 distinct date-oriented features suitable for model inputs.
+
+::: {.callout-note collapse="true"}
+## Getting More Info: `tk.augment_timeseries_signature()`,`tk.augment_lags()`, `tk.augment_rolling()`
+
+- Click here to see our [Adding Features (Augmenting)](/guides/05_augmenting.html)
+- Use 
+`help(tk.augment_timeseries_signature)` 
+`help(tk.augment_lags)`
+`help(tk.augment_rolling)`
+to review additional helpful documentation.  
+:::
+
+It's crucial, however, to align these features with the granularity of your dataset. Given the weekly granularity of the Walmart dataset, any date attributes finer than 'week' should be excluded for relevance and efficiency.
+
+```{python}
+sales_df_dates = sales_df_with_futureframe.augment_timeseries_signature(date_column = 'Date')
+sales_df_dates.head(10)
+```
+
+Upon reviewing the generated features, it's evident that certain attributes don't align with the granularity of our dataset. For optimal results, features exhibiting no variance—like "Date_hour" due to the weekly nature of our data—should be omitted. We also spot redundant features, such as "Date_Month" and "Date_month_lbl"; both convey month information, albeit in different formats. To enhance clarity and computational efficiency, we'll refine our dataset to include only the most relevant columns.
+
+Additionally, we've eliminated certain categorical columns, which, although compatible with models like LightGBM and Catboost, demand extra processing for many tree-based ML models. While 1-hot encoding is a popular method for managing categorical data, it's not typically recommended for date attributes. Instead, leveraging numeric date features directly, combined with the integration of Fourier features, can effectively capture cyclical patterns.
+
+```{python}
+sales_df_dates.glimpse()
+```
+```{python}
+sales_df_dates = sales_df_dates[[
+    'Date'
+    ,'Dept'
+    , 'Weekly_Sales'
+    , 'Date_year'
+    , 'Date_month'
+    , 'Date_yweek'
+    , 'Date_mweek'  
+    ]]
+sales_df_dates.tail(10)
+```
+
+## Lag Features with `tk.augment_lags`
+
+As previously noted, it's important to recognize that machine learning models lack inherent awareness of time, a vital consideration in time series modeling. Furthermore, these models operate under the assumption that each row is independent, meaning that the information from last month's weekly sales is not inherently integrated into the prediction of next month's sales target. To address this limitation, we incorporate additional features, such as lags, into the models to capture temporal dependencies. You can easily achieve this by employing the `tk.augment_lags` function.
+```{python}
+df_with_lags = sales_df_dates \
+    .groupby('Dept') \
+    .augment_lags(
+        date_column  = 'Date',
+        value_column = 'Weekly_Sales',
+        lags         = [5,6,7,8,9]
+    )
+df_with_lags.head(5)
+```
+
+## Rolling Lag Features with `tk.augment_rolling`
+Another pivotal aspect of time series analysis involves the utilization of rolling lags. These operations facilitate computations within a moving time window, enabling the use of functions such as "mean" and "std" on these rolling windows. This can be achieved by invoking the `tk.augment_rolling()` function on grouped time series data. To execute this, we will initially gather all columns containing 'lag' in their names. We then apply this function to the lag values, as opposed to the weekly sales, since we lack future weekly sales data. By applying these functions to the lag values, we ensure the prevention of data leakage and maintain the adaptability of our method to unforeseen future data.
+
+```{python}
+lag_columns = [col for col in df_with_lags.columns if 'lag' in col]
+
+df_with_rolling = df_with_lags \
+    .groupby('Dept') \
+    .augment_rolling(
+        date_column  = 'Date',
+        value_column = lag_columns,
+        window  = 4,
+        window_func = 'mean',
+        threads = 1 # Change to -1 to use all available cores
+    ) 
+df_with_rolling[df_with_rolling.Dept ==1].head(10)
+```
+Notice when we add lag values to our dataframe, this creates several NA values.  This is because when using lags, there will be some data that is not available early in our dataset.Thus as a result, NA values are introduced.
+
+To simplify and clean up the process, we will remove these rows entirely since we already extracted some meaningful information from them (ie. lags, rolling lags).
+
+```{python}
+all_lag_columns = [col for col in df_with_rolling.columns if 'lag' in col]
+
+df_no_nas = df_with_rolling \
+    .dropna(subset=all_lag_columns, inplace=False)
+
+df_no_nas.head()
+```
+
+We can call `tk.glimpse()` again to quickly see what features we still have available. 
+
+```{python}
+df_no_nas.glimpse()
+```
+
+## Training and Future Sets
+Now that we have our training set built, we can start to train our regressor.  To do so, let's first do some model cleanup.
+
+Split our data in to train and future sets.
+```{python}
+future = df_no_nas[df_no_nas.Weekly_Sales.isnull()]
+train = df_no_nas[df_no_nas.Weekly_Sales.notnull()]
+```
+
+## Model with regressor
+We still have a datetime object in our training data.  We will need to remove that before passing to our regressor.  Let's subset our column to just the features we want to use for modeling.
+
+```{python}
+train_columns = [ 
+    'Dept'
+    , 'Date_year'
+    , 'Date_month'
+    , 'Date_yweek'
+    , 'Date_mweek'
+    , 'Weekly_Sales_lag_5'
+    , 'Weekly_Sales_lag_6'
+    , 'Weekly_Sales_lag_7'
+    , 'Weekly_Sales_lag_8'
+    , 'Weekly_Sales_lag_5_rolling_mean_win_4'
+    , 'Weekly_Sales_lag_6_rolling_mean_win_4'
+    , 'Weekly_Sales_lag_7_rolling_mean_win_4'
+    , 'Weekly_Sales_lag_8_rolling_mean_win_4'
+    ]
+
+X = train[train_columns]
+y = train[['Weekly_Sales']]
+
+model = RandomForestRegressor(random_state=123)
+model = model.fit(X, y)
+```
+
+Now that we have a trained model, we can pass in our future frame to predict weekly sales.
+
+```{python}
+predicted_values = model.predict(future[train_columns])
+future['y_pred'] = predicted_values
+
+future.head(10)
+```
+
+Let's create a label to split up our actuals from our prediction dataset before recombining.
+
+```{python}
+train['type'] = 'actuals'
+future['type'] = 'prediction'
+
+full_df = pd.concat([train, future])
+
+full_df.head(10)
+```
+
+## Pre-Visualization Clean-up
+
+```{python}
+full_df['Weekly_Sales'] = np.where(full_df.type =='actuals', full_df.Weekly_Sales, full_df.y_pred)
+```
+
+## Plot Predictions
+
+:::{.panel-tabset groups="bbands-plotly-plotnine"}
+
+## Plotly
+```{python}
+full_df \
+    .groupby('Dept') \
+    .plot_timeseries(
+        date_column = 'Date',
+        value_column = 'Weekly_Sales',
+        color_column = 'type',
+        smooth = False,
+        smooth_alpha = 0,
+        facet_ncol = 2,
+        facet_scales = "free",
+        y_intercept_color = tk.palette_timetk()['steel_blue'],
+        width = 800,
+        height = 600,
+        engine = 'plotly'
+    )
+```
+
+## Plotnine## 
+```{python}
+full_df \
+    .groupby('Dept') \
+    .plot_timeseries(
+        date_column = 'Date',
+        value_column = 'Weekly_Sales',
+        color_column = 'type',
+        smooth = False,
+        smooth_alpha = 0,
+        facet_ncol = 2,
+        facet_scales = "free",
+        y_intercept_color = tk.palette_timetk()['steel_blue'],
+        width = 800,
+        height = 600,
+        engine = 'plotnine'
+    )
+```
+:::
+Our weekly sales forecasts exhibit a noticeable alignment with historical trends, indicating that our models are effectively capturing essential data signals. It's worth noting that with some additional feature engineering, we have the potential to further enhance the model's performance.
+
+Here are some additional techniques that can be explored to elevate its performance:
+
+1. Experiment with the incorporation of various lags using the versatile `tk.augment_lags()` function.
+2. Enhance the model's capabilities by introducing additional rolling calculations through `tk.augment_rolling()`.
+3. Consider incorporating cyclic features by utilizing `tk.augment_fourier()`.
+4. Try different models and build a robust cross-validation strategy for model selection.
+
+These strategies hold promise for refining the model's accuracy and predictive power
+
+# Conclusion
+This exemplifies the remarkable capabilities of pytimetk in aiding Data Scientists in conducting comprehensive time series analysis for demand forecasting. Throughout this process, we employed various pytimetk functions and techniques to enhance our analytical approach:
+
+- We harnessed the power of `tk.augment_time_signature()` to generate a plethora of date features, enriching our dataset.
+- The feature engineering functions `tk.augment_lags()` and `tk.augment_rolling()` from pytimetk played a pivotal role in our analysis, enabling us to create lag-based features and rolling calculations.
+- Utilizing `tk.future_frame()`, we constructed our prediction set
+- To gain valuable insights into our final model's performance, we leveraged `tk.plot_timeseries()` to visualize our results.
+
+These pytimetk features provide incredibly powerful techniques with a very easy strcuture and minimal code.  They were indispensable in crafting a high-quality sales forecast, seamlessly integrated with sklearn.
+
+{{< include ../_includes/_footer.qmd >}}

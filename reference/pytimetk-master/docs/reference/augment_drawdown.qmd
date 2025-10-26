@@ -1,0 +1,63 @@
+# augment_drawdown { #pytimetk.augment_drawdown }
+
+```python
+augment_drawdown(
+    data,
+    date_column,
+    close_column,
+    reduce_memory=False,
+    engine='auto',
+)
+```
+
+Calculate running drawdown statistics for pandas or polars data.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+| Name          | Type                                   | Description                                                                                                                                | Default    |
+|---------------|----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| data          | DataFrame or GroupBy(pandas or polars) | Input time-series data. Grouped inputs are processed per group before the drawdown metrics are appended.                                   | _required_ |
+| date_column   | str                                    | Name of the column containing date information.                                                                                            | _required_ |
+| close_column  | str                                    | Name of the column containing the values used to compute drawdowns.                                                                        | _required_ |
+| reduce_memory | bool                                   | Attempt to reduce memory usage when operating on pandas data. If a polars input is supplied a warning is emitted and no conversion occurs. | `False`    |
+| engine        | (auto, pandas, polars)                 | Execution engine. ``"auto"`` (default) infers the backend from the input data while allowing explicit overrides.                           | `"auto"`   |
+
+## Returns {.doc-section .doc-section-returns}
+
+| Name   | Type      | Description                                                                                                                                                                           |
+|--------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|        | DataFrame | DataFrame with the following columns appended:  - ``{close_column}_peak`` - ``{close_column}_drawdown`` - ``{close_column}_drawdown_pct``  The return type matches the input backend. |
+
+## Notes {.doc-section .doc-section-notes}
+
+Drawdown measures the peak-to-trough decline of a series. The running peak
+is computed with a cumulative maximum per group (if present) and the
+drawdown percentage is expressed relative to that peak. When the peak is
+zero the percentage drawdown is left as ``NaN`` to avoid division by zero.
+
+## Examples {.doc-section .doc-section-examples}
+
+```{python}
+import pytimetk as tk
+import polars as pl
+
+df = tk.load_dataset("stocks_daily", parse_dates=["date"])
+
+# Pandas DataFrame (engine inferred)
+dd_pd = (
+    df.groupby("symbol")
+    .augment_drawdown(
+        date_column="date",
+        close_column="close",
+    )
+)
+
+# Polars DataFrame using the tk accessor
+dd_pl = (
+    pl.from_pandas(df.query("symbol == 'AAPL'"))
+    .tk.augment_drawdown(
+        date_column="date",
+        close_column="close",
+    )
+)
+```

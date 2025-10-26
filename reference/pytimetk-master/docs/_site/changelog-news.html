@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>pytimetk - Changelog for Pytimetk</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=330861489"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '330861489', { 'anonymize_ip': true});
+</script>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-76139189-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-76139189-2');
+</script>
+
+<!-- SUMO -->
+<script src="//load.sumome.com/" data-sumo-site-id="070b24e7e068776f081d1a2a477c11bcfe804d8310bdfd4e44277194b8e41b07" async="async"></script>
+
+
+<meta property="og:title" content="pytimetk - Changelog for Pytimetk">
+<meta property="og:description" content="">
+<meta property="og:site-name" content="pytimetk">
+<meta name="twitter:title" content="pytimetk - Changelog for Pytimetk">
+<meta name="twitter:description" content="">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    <img src="https://www.business-science.io/img/business-science-logo.png" alt="" class="navbar-logo">
+    </a>
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">pytimetk</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools ms-auto">
+    <a href="https://github.com/business-science/pytimetk" rel="" title="" class="quarto-navigation-tool px-1" aria-label=""><i class="bi bi-github"></i></a>
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./changelog-news.html">📧 Change Log</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTimeTK 📈</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false">
+ <span class="menu-text">🏁 Getting Started:</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./getting-started/01_installation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Install</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./getting-started/02_quick_start.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Quick Start</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false">
+ <span class="menu-text">🗺️ Guides:</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/01_visualization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data Visualization</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/02_timetk_concepts.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTimeTK Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/03_pandas_frequency.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pandas Frequencies</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/04_wrangling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data Wrangling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/05_augmenting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adding Features (Augmenting)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./guides/06_anomalize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Anomaly Detection</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+ <span class="menu-text">📘 Applied Tutorials:</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/01_sales_crm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sales Analysis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/02_finance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Finance Analysis</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/03_demand_forecasting.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Demand Forecasting</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/04_anomaly_detection.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Anomaly Detection in Website Traffic</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/05_clustering.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Clustering Stocks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/06_correlationfunnel.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Correlation Funnel</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./tutorials/07_timeseries_crossvalidation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Time Series Cross Validation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
+ <span class="menu-text">🛠️ Production:</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./production/01_feature_store.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Feature Store &amp; Caching (Beta)</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./production/02_gpu_acceleration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GPU Acceleration</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">🏎️ Performance:</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./performance/01_speed_comparisons.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Speed Comparisons</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./reference/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">📄 API Reference</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://github.com/business-science/pytimetk" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">⭐ PyTimeTK on Github</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./contributing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">🍻 Contributing</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./changelog-news.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">📧 Change Log</span></a>
+  </div>
+</li>
+        <li class="px-0"><hr class="sidebar-divider hi "></li>
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">
+ <span class="menu-text">📚 More References:</span></span>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://www.business-science.io/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Business Science</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://www.quantscience.io/" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Quant Science</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="https://business-science.github.io/timetk/" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Timetk (R Version)</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#pytimetk-2.1.0" id="toc-pytimetk-2.1.0" class="nav-link active" data-scroll-target="#pytimetk-2.1.0">pytimetk 2.1.0</a>
+  <ul class="collapse">
+  <li><a href="#release-summary" id="toc-release-summary" class="nav-link" data-scroll-target="#release-summary">Release Summary</a>
+  <ul class="collapse">
+  <li><a href="#gpu-acceleration-beta" id="toc-gpu-acceleration-beta" class="nav-link" data-scroll-target="#gpu-acceleration-beta">GPU Acceleration (Beta)</a></li>
+  <li><a href="#documentation-examples" id="toc-documentation-examples" class="nav-link" data-scroll-target="#documentation-examples">Documentation &amp; Examples</a></li>
+  <li><a href="#performance-highlights" id="toc-performance-highlights" class="nav-link" data-scroll-target="#performance-highlights">Performance Highlights</a></li>
+  <li><a href="#compatibility-known-issues" id="toc-compatibility-known-issues" class="nav-link" data-scroll-target="#compatibility-known-issues">Compatibility &amp; Known Issues</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#pytimetk-2.0.1" id="toc-pytimetk-2.0.1" class="nav-link" data-scroll-target="#pytimetk-2.0.1">pytimetk 2.0.1</a>
+  <ul class="collapse">
+  <li><a href="#improvements" id="toc-improvements" class="nav-link" data-scroll-target="#improvements">Improvements</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-2.0.0" id="toc-pytimetk-2.0.0" class="nav-link" data-scroll-target="#pytimetk-2.0.0">pytimetk 2.0.0</a>
+  <ul class="collapse">
+  <li><a href="#highlights" id="toc-highlights" class="nav-link" data-scroll-target="#highlights">Highlights</a></li>
+  <li><a href="#new-features" id="toc-new-features" class="nav-link" data-scroll-target="#new-features">New Features</a>
+  <ul class="collapse">
+  <li><a href="#polars-.tk-accessor" id="toc-polars-.tk-accessor" class="nav-link" data-scroll-target="#polars-.tk-accessor">Polars <code>.tk</code> Accessor</a></li>
+  <li><a href="#feature-store-caching-beta" id="toc-feature-store-caching-beta" class="nav-link" data-scroll-target="#feature-store-caching-beta">Feature Store &amp; Caching (Beta)</a></li>
+  <li><a href="#spline-basis-expansions" id="toc-spline-basis-expansions" class="nav-link" data-scroll-target="#spline-basis-expansions">Spline Basis Expansions</a></li>
+  </ul></li>
+  <li><a href="#improvements-1" id="toc-improvements-1" class="nav-link" data-scroll-target="#improvements-1">Improvements</a></li>
+  <li><a href="#bug-fixes" id="toc-bug-fixes" class="nav-link" data-scroll-target="#bug-fixes">Bug Fixes</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.5" id="toc-pytimetk-1.2.5" class="nav-link" data-scroll-target="#pytimetk-1.2.5">pytimetk 1.2.5</a>
+  <ul class="collapse">
+  <li><a href="#bug-fixes-1" id="toc-bug-fixes-1" class="nav-link" data-scroll-target="#bug-fixes-1">Bug Fixes</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.4" id="toc-pytimetk-1.2.4" class="nav-link" data-scroll-target="#pytimetk-1.2.4">pytimetk 1.2.4</a>
+  <ul class="collapse">
+  <li><a href="#improvements-2" id="toc-improvements-2" class="nav-link" data-scroll-target="#improvements-2">Improvements</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.3" id="toc-pytimetk-1.2.3" class="nav-link" data-scroll-target="#pytimetk-1.2.3">pytimetk 1.2.3</a>
+  <ul class="collapse">
+  <li><a href="#improvements-3" id="toc-improvements-3" class="nav-link" data-scroll-target="#improvements-3">Improvements</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.2" id="toc-pytimetk-1.2.2" class="nav-link" data-scroll-target="#pytimetk-1.2.2">pytimetk 1.2.2</a>
+  <ul class="collapse">
+  <li><a href="#improvements-4" id="toc-improvements-4" class="nav-link" data-scroll-target="#improvements-4">Improvements</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.1" id="toc-pytimetk-1.2.1" class="nav-link" data-scroll-target="#pytimetk-1.2.1">pytimetk 1.2.1</a>
+  <ul class="collapse">
+  <li><a href="#improvements-5" id="toc-improvements-5" class="nav-link" data-scroll-target="#improvements-5">Improvements:</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.2.0" id="toc-pytimetk-1.2.0" class="nav-link" data-scroll-target="#pytimetk-1.2.0">pytimetk 1.2.0</a>
+  <ul class="collapse">
+  <li><a href="#new-functions" id="toc-new-functions" class="nav-link" data-scroll-target="#new-functions">New Functions</a></li>
+  <li><a href="#bug-fixes-and-speed-improvements" id="toc-bug-fixes-and-speed-improvements" class="nav-link" data-scroll-target="#bug-fixes-and-speed-improvements">Bug Fixes and Speed Improvements</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.1.2" id="toc-pytimetk-1.1.2" class="nav-link" data-scroll-target="#pytimetk-1.1.2">pytimetk 1.1.2</a>
+  <ul class="collapse">
+  <li><a href="#bug-fixes-2" id="toc-bug-fixes-2" class="nav-link" data-scroll-target="#bug-fixes-2">Bug Fixes</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.1.1" id="toc-pytimetk-1.1.1" class="nav-link" data-scroll-target="#pytimetk-1.1.1">pytimetk 1.1.1</a>
+  <ul class="collapse">
+  <li><a href="#bug-fixes-3" id="toc-bug-fixes-3" class="nav-link" data-scroll-target="#bug-fixes-3">Bug Fixes</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.1.0" id="toc-pytimetk-1.1.0" class="nav-link" data-scroll-target="#pytimetk-1.1.0">pytimetk 1.1.0</a>
+  <ul class="collapse">
+  <li><a href="#new-features-1" id="toc-new-features-1" class="nav-link" data-scroll-target="#new-features-1">New Features</a>
+  <ul class="collapse">
+  <li><a href="#time-series-cross-validation-tscv" id="toc-time-series-cross-validation-tscv" class="nav-link" data-scroll-target="#time-series-cross-validation-tscv">Time Series Cross Validation (TSCV)</a></li>
+  <li><a href="#plotly-dropdowns" id="toc-plotly-dropdowns" class="nav-link" data-scroll-target="#plotly-dropdowns">Plotly Dropdowns</a></li>
+  <li><a href="#wide-format-plotting" id="toc-wide-format-plotting" class="nav-link" data-scroll-target="#wide-format-plotting">Wide-Format Plotting</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.0.1" id="toc-pytimetk-1.0.1" class="nav-link" data-scroll-target="#pytimetk-1.0.1">pytimetk 1.0.1</a>
+  <ul class="collapse">
+  <li><a href="#fixes" id="toc-fixes" class="nav-link" data-scroll-target="#fixes">Fixes:</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-1.0.0" id="toc-pytimetk-1.0.0" class="nav-link" data-scroll-target="#pytimetk-1.0.0">pytimetk 1.0.0</a>
+  <ul class="collapse">
+  <li><a href="#pandas-and-polars-compatibility" id="toc-pandas-and-polars-compatibility" class="nav-link" data-scroll-target="#pandas-and-polars-compatibility">Pandas and Polars Compatibility:</a></li>
+  <li><a href="#improvements-6" id="toc-improvements-6" class="nav-link" data-scroll-target="#improvements-6">Improvements:</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-0.4.0" id="toc-pytimetk-0.4.0" class="nav-link" data-scroll-target="#pytimetk-0.4.0">pytimetk 0.4.0</a>
+  <ul class="collapse">
+  <li><a href="#feature-engineering-module" id="toc-feature-engineering-module" class="nav-link" data-scroll-target="#feature-engineering-module">Feature Engineering Module:</a></li>
+  <li><a href="#finance-module-updates" id="toc-finance-module-updates" class="nav-link" data-scroll-target="#finance-module-updates">Finance Module Updates:</a></li>
+  <li><a href="#polars-upgrades" id="toc-polars-upgrades" class="nav-link" data-scroll-target="#polars-upgrades">Polars Upgrades</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-0.3.0" id="toc-pytimetk-0.3.0" class="nav-link" data-scroll-target="#pytimetk-0.3.0">pytimetk 0.3.0</a>
+  <ul class="collapse">
+  <li><a href="#correlation-funnel" id="toc-correlation-funnel" class="nav-link" data-scroll-target="#correlation-funnel">Correlation Funnel</a></li>
+  <li><a href="#core" id="toc-core" class="nav-link" data-scroll-target="#core">Core:</a></li>
+  <li><a href="#feature-engineering" id="toc-feature-engineering" class="nav-link" data-scroll-target="#feature-engineering">Feature Engineering:</a></li>
+  <li><a href="#finance-module" id="toc-finance-module" class="nav-link" data-scroll-target="#finance-module">Finance Module:</a></li>
+  <li><a href="#new-polars-backends" id="toc-new-polars-backends" class="nav-link" data-scroll-target="#new-polars-backends">New Polars Backends:</a></li>
+  <li><a href="#general" id="toc-general" class="nav-link" data-scroll-target="#general">General</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-0.2.1" id="toc-pytimetk-0.2.1" class="nav-link" data-scroll-target="#pytimetk-0.2.1">pytimetk 0.2.1</a></li>
+  <li><a href="#pytimetk-0.2.0" id="toc-pytimetk-0.2.0" class="nav-link" data-scroll-target="#pytimetk-0.2.0">pytimetk 0.2.0</a>
+  <ul class="collapse">
+  <li><a href="#anomaly-detection" id="toc-anomaly-detection" class="nav-link" data-scroll-target="#anomaly-detection">Anomaly Detection</a></li>
+  <li><a href="#new-functions-1" id="toc-new-functions-1" class="nav-link" data-scroll-target="#new-functions-1">New Functions:</a></li>
+  <li><a href="#new-finance-module" id="toc-new-finance-module" class="nav-link" data-scroll-target="#new-finance-module">New Finance Module</a></li>
+  <li><a href="#speed-improvements" id="toc-speed-improvements" class="nav-link" data-scroll-target="#speed-improvements">Speed Improvements</a></li>
+  <li><a href="#helpful-utilities" id="toc-helpful-utilities" class="nav-link" data-scroll-target="#helpful-utilities">Helpful Utilities:</a></li>
+  <li><a href="#new-data-sets" id="toc-new-data-sets" class="nav-link" data-scroll-target="#new-data-sets">New Data Sets:</a></li>
+  <li><a href="#new-applied-tutorials" id="toc-new-applied-tutorials" class="nav-link" data-scroll-target="#new-applied-tutorials">3 New Applied Tutorials:</a></li>
+  <li><a href="#final-deprecations" id="toc-final-deprecations" class="nav-link" data-scroll-target="#final-deprecations">Final Deprecations:</a></li>
+  </ul></li>
+  <li><a href="#pytimetk-0.1.0-2023-10-02" id="toc-pytimetk-0.1.0-2023-10-02" class="nav-link" data-scroll-target="#pytimetk-0.1.0-2023-10-02">pytimetk 0.1.0 (2023-10-02)</a>
+  <ul class="collapse">
+  <li><a href="#about-the-initial-release." id="toc-about-the-initial-release." class="nav-link" data-scroll-target="#about-the-initial-release.">About the Initial release.</a></li>
+  <li><a href="#the-pytimetk-website-comes-with" id="toc-the-pytimetk-website-comes-with" class="nav-link" data-scroll-target="#the-pytimetk-website-comes-with">The PyTimeTK website comes with:</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/business-science/pytimetk/edit/main/changelog-news.qmd" class="toc-action">Edit this page</a></p><p><a href="https://github.com/business-science/pytimetk/issues" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Changelog for Pytimetk</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="pytimetk-2.1.0" class="level1">
+<h1>pytimetk 2.1.0</h1>
+<section id="release-summary" class="level2">
+<h2 class="anchored" data-anchor-id="release-summary">Release Summary</h2>
+<p>pytimetk 2.1.0 introduces <strong>GPU acceleration (Beta)</strong> powered by NVIDIA RAPIDS. Feature engineering helpers and Polars lazy pipelines now tap the GPU when <code>cudf</code> and <code>polars[gpu]</code> are installed, while remaining fully backward compatible with CPU-only environments.</p>
+<section id="gpu-acceleration-beta" class="level3">
+<h3 class="anchored" data-anchor-id="gpu-acceleration-beta">GPU Acceleration (Beta)</h3>
+<ul>
+<li>Optional install via <code>pip install pytimetk[gpu] --extra-index-url=https://pypi.nvidia.com</code> plus <code>pip install "polars[gpu]" --extra-index-url=https://pypi.nvidia.com</code>.</li>
+<li>Automatic CPU fallback whenever the GPU engine is unavailable or a plan is not supported, so existing notebooks keep running.</li>
+<li>Runtime helpers in <code>pytimetk.utils.gpu_support</code> (<code>is_cudf_available()</code>, <code>is_polars_gpu_available()</code>) make it easy to validate the environment.</li>
+</ul>
+</section>
+<section id="documentation-examples" class="level3">
+<h3 class="anchored" data-anchor-id="documentation-examples">Documentation &amp; Examples</h3>
+<ul>
+<li>New GPU Acceleration guide (<code>production/02_gpu_acceleration.html</code>) walks through setup, verification, and sample pipelines.</li>
+<li>Fresh examples show GPU-accelerated workflows for <code>augment_rolling</code>, financial indicators (RSI/MACD), and Polars lazy frames.</li>
+<li>Polars lazy execution improvements reduce overhead when collecting on the GPU.</li>
+</ul>
+</section>
+<section id="performance-highlights" class="level3">
+<h3 class="anchored" data-anchor-id="performance-highlights">Performance Highlights</h3>
+<ul>
+<li>Rolling window statistics receive 10–100× speed-ups on large datasets with the Polars GPU engine.</li>
+<li>Financial indicators such as RSI and MACD benchmark 5–50× faster on compatible hardware.</li>
+</ul>
+</section>
+<section id="compatibility-known-issues" class="level3">
+<h3 class="anchored" data-anchor-id="compatibility-known-issues">Compatibility &amp; Known Issues</h3>
+<ul>
+<li>GPU support is opt-in and retains CPU fallbacks for unsupported functions (e.g., custom Python callbacks, expression-incompatible pipelines).</li>
+<li>Multi-GPU deployments remain experimental and will be documented in future iterations.</li>
+</ul>
+<p><strong>Full Changelog:</strong> <a href="https://github.com/business-science/pytimetk/compare/v2.0.1...v2.1.0" class="uri">https://github.com/business-science/pytimetk/compare/v2.0.1...v2.1.0</a></p>
+</section>
+</section>
+</section>
+<section id="pytimetk-2.0.1" class="level1">
+<h1>pytimetk 2.0.1</h1>
+<section id="improvements" class="level2">
+<h2 class="anchored" data-anchor-id="improvements">Improvements</h2>
+<ul>
+<li><code>augment_spline()</code> now validates both <code>date_column</code> and <code>value_column</code>, sorts data by date before generating spline bases, and restores the original row order once features are added for both pandas and Polars engines.</li>
+</ul>
+<p><strong>Full Changelog:</strong> <a href="https://github.com/business-science/pytimetk/compare/v2.0.0...v2.0.1" class="uri">https://github.com/business-science/pytimetk/compare/v2.0.0...v2.0.1</a></p>
+</section>
+</section>
+<section id="pytimetk-2.0.0" class="level1">
+<h1>pytimetk 2.0.0</h1>
+<section id="highlights" class="level2">
+<h2 class="anchored" data-anchor-id="highlights">Highlights</h2>
+<ul>
+<li>First-class Polars support via a <code>.tk</code> accessor spanning core helpers, feature engineering, and plotting routines.</li>
+<li>Introduced <strong>Feature Store &amp; Caching (Beta)</strong> to persist expensive feature engineering steps and reload them on demand. Optional MLflow integration keeps feature lineage tied to experiments.</li>
+<li>Added <code>augment_spline()</code> for spline basis expansions alongside broader financial indicator coverage.</li>
+<li>Major documentation refresh, including Polars-first examples and a new clustering tutorial.</li>
+</ul>
+</section>
+<section id="new-features" class="level2">
+<h2 class="anchored" data-anchor-id="new-features">New Features</h2>
+<section id="polars-.tk-accessor" class="level3">
+<h3 class="anchored" data-anchor-id="polars-.tk-accessor">Polars <code>.tk</code> Accessor</h3>
+<ul>
+<li>Access pytimetk helpers directly on <code>pl.DataFrame</code> objects (<code>df.tk.plot_timeseries(...)</code>, <code>df.tk.augment_timeseries_signature(...)</code>) with performance parity to pandas paths.</li>
+<li>Financial indicators (ADX, ATR, BBands, CMO, MACD, PPO, ROC, RSI, stochastic oscillator, etc.) now ship with Polars implementations.</li>
+</ul>
+</section>
+<section id="feature-store-caching-beta" class="level3">
+<h3 class="anchored" data-anchor-id="feature-store-caching-beta">Feature Store &amp; Caching (Beta)</h3>
+<ul>
+<li>Register transforms once and rebuild feature sets on-demand with automatic versioning and metadata.</li>
+<li>Supports local paths or any <code>pyarrow.fs</code> (e.g., S3), plus optional MLflow artifact logging.</li>
+</ul>
+</section>
+<section id="spline-basis-expansions" class="level3">
+<h3 class="anchored" data-anchor-id="spline-basis-expansions">Spline Basis Expansions</h3>
+<ul>
+<li><code>augment_spline()</code> creates spline features for modeling non-linear trends (B-splines, natural splines) across pandas and Polars engines.</li>
+</ul>
+</section>
+</section>
+<section id="improvements-1" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-1">Improvements</h2>
+<ul>
+<li>Upgraded <code>pandas_flavor</code>, refactored tests, and resolved deprecations across anomalize and Hilbert pipelines.</li>
+<li>Enhanced Polars compatibility for diffs, pct change, lags/leads, risk metrics, and plotting helpers.</li>
+<li>Documentation updates covering Feature Store, spline usage, and new tutorials.</li>
+</ul>
+</section>
+<section id="bug-fixes" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes">Bug Fixes</h2>
+<ul>
+<li>Resolved Plotly x-axis date labeling and multiple Polars interoperability gaps (sequence helpers, summarize/filter utilities, EWM args).</li>
+<li>Stabilized GitHub Actions with refreshed dependency matrix.</li>
+</ul>
+<p><strong>Full Changelog:</strong> <a href="https://github.com/business-science/pytimetk/compare/v1.2.5...v2.0.0" class="uri">https://github.com/business-science/pytimetk/compare/v1.2.5...v2.0.0</a></p>
+</section>
+</section>
+<section id="pytimetk-1.2.5" class="level1">
+<h1>pytimetk 1.2.5</h1>
+<section id="bug-fixes-1" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes-1">Bug Fixes</h2>
+<ul>
+<li>Polars backends now supply both <code>partition_by</code> and <code>order_by</code> when building window expressions with <code>.over()</code>, resolving runtime errors on recent Polars releases.</li>
+</ul>
+<p><strong>Full Changelog:</strong> <a href="https://github.com/business-science/pytimetk/compare/v1.2.4...v1.2.5" class="uri">https://github.com/business-science/pytimetk/compare/v1.2.4...v1.2.5</a></p>
+</section>
+</section>
+<section id="pytimetk-1.2.4" class="level1">
+<h1>pytimetk 1.2.4</h1>
+<section id="improvements-2" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-2">Improvements</h2>
+<ul>
+<li>Fixed a regression in QS Momentum calculations when using the 21-126-126 configuration.</li>
+<li>Added a <code>point_color</code> argument to <code>plot_correlation_funnel()</code> for finer-grained styling.</li>
+</ul>
+<p><strong>Full Changelog:</strong> <a href="https://github.com/business-science/pytimetk/compare/v1.2.3...v1.2.4" class="uri">https://github.com/business-science/pytimetk/compare/v1.2.3...v1.2.4</a></p>
+</section>
+</section>
+<section id="pytimetk-1.2.3" class="level1">
+<h1>pytimetk 1.2.3</h1>
+<section id="improvements-3" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-3">Improvements</h2>
+<ul>
+<li><code>augment_fip_momentum()</code>: Improve calculation. Allow user to flip the sign with <code>fip_method = 'modified'</code>. Users can also use <code>skip_window</code> to skip the first n periods before the calculation. This helps with mean reversion.</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.2.2" class="level1">
+<h1>pytimetk 1.2.2</h1>
+<section id="improvements-4" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-4">Improvements</h2>
+<ul>
+<li><code>augment_rolling_risk_metrics()</code>: 100X speedup for polars rolling kurtosis</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.2.1" class="level1">
+<h1>pytimetk 1.2.1</h1>
+<section id="improvements-5" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-5">Improvements:</h2>
+<ul>
+<li><code>augment_rolling_risk_metrics()</code>: Gains a new <code>metrics</code> argument allowing users to speed up calculations by only requesting the rolling risk metrics they need. Default <code>None</code> is all metrics.</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.2.0" class="level1">
+<h1>pytimetk 1.2.0</h1>
+<section id="new-functions" class="level2">
+<h2 class="anchored" data-anchor-id="new-functions">New Functions</h2>
+<ul>
+<li><code>augment_drawdown()</code>: The augment_drawdown function calculates the drawdown metrics for a financial time series using either pandas or polars engine, and returns the augmented DataFrame with peak value, drawdown, and drawdown percentage columns.</li>
+<li><code>augment_rolling_risk_metrics()</code>: The augment_rolling_risk_metrics function calculates rolling risk-adjusted performance metrics for a financial time series using either pandas or polars engine, and returns the augmented DataFrame with columns for Sharpe Ratio, Sortino Ratio, and other metrics.</li>
+<li><code>augment_fip_momentum()</code>: Calculate the “Frog In The Pan” (FIP) momentum metric over one or more rolling windows using either pandas or polars engine, augmenting the DataFrame with FIP columns.</li>
+<li><code>augment_stochastic_oscillator</code>: The <code>augment_stochastic_oscillator()</code> function calculates the Stochastic Oscillator (%K and %D) for a financial instrument using either pandas or polars engine, and returns the augmented DataFrame.</li>
+<li><code>augment_adx()</code>: Calculate Average Directional Index (ADX), +DI, and -DI for a financial time series to determine strength of trend.</li>
+<li><code>augment_hurst_exponent()</code>: Calculate the Hurst Exponent on a rolling window for a financial time series.</li>
+<li><code>augment_ewma_volatility()</code>: Calculate Exponentially Weighted Moving Average (EWMA) volatility for a financial time series.</li>
+<li><code>augment_regime_detection()</code>: Detect regimes in a financial time series using a specified method (e.g., HMM).</li>
+</ul>
+</section>
+<section id="bug-fixes-and-speed-improvements" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes-and-speed-improvements">Bug Fixes and Speed Improvements</h2>
+<ul>
+<li><code>summarize_by_time()</code>: polars engine rebuild. Columns should match pandas engine.</li>
+<li><code>__init__.py</code>: updated to fix circular imports</li>
+<li><code>get_date_summary()</code>: Fixed issues with polar tz</li>
+<li><code>augment_hilbert()</code>: Improve polars engine and fix error with groupby()</li>
+<li><code>augment_ewm()</code>: fix example <code>from pytimetk import augment_ewm</code></li>
+<li><code>test_plot_timeseries</code>: Fix broken test</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.1.2" class="level1">
+<h1>pytimetk 1.1.2</h1>
+<section id="bug-fixes-2" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes-2">Bug Fixes</h2>
+<ul>
+<li><code>augment_rsi()</code>: fix issue with pandas engine column names</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.1.1" class="level1">
+<h1>pytimetk 1.1.1</h1>
+<section id="bug-fixes-3" class="level2">
+<h2 class="anchored" data-anchor-id="bug-fixes-3">Bug Fixes</h2>
+<ul>
+<li><code>augment_ppo()</code>: fixed issues with leftover multi-index when using grouped df and pandas engine</li>
+<li><code>augment_qsmomentum()</code>: Fixed issue with divide by zero when standard deviation is zero</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.1.0" class="level1">
+<h1>pytimetk 1.1.0</h1>
+<section id="new-features-1" class="level2">
+<h2 class="anchored" data-anchor-id="new-features-1">New Features</h2>
+<section id="time-series-cross-validation-tscv" class="level3">
+<h3 class="anchored" data-anchor-id="time-series-cross-validation-tscv">Time Series Cross Validation (TSCV)</h3>
+<p>Integration with <code>timebasedcv</code> #291. New Classes:</p>
+<ul>
+<li><code>TimeSeriesCV()</code>: An enhanced version of <code>TimeBasedSplit()</code> that defaults to <code>mode = "backwards"</code>, allows for maximum splits using <code>split_limit</code>, and adds enhanced diagnostics like <code>glimpse()</code> and <code>plot()</code></li>
+</ul>
+</section>
+<section id="plotly-dropdowns" class="level3">
+<h3 class="anchored" data-anchor-id="plotly-dropdowns">Plotly Dropdowns</h3>
+<p>A plotly dropdown automates the group-wise analysis. Instead of facets, which are only powerful for &lt;=9 plots at a time, a dropdown can easily visualize more plots.</p>
+<ul>
+<li><code>plot_timeseries()</code>: Gets new parameters <code>plotly_dropdown</code>, <code>plotly_dropdown_x</code>, <code>plotly_dropdown_y</code> #301</li>
+<li><code>plot_anomalies()</code>: Gets new parameters <code>plotly_dropdown</code>, <code>plotly_dropdown_x</code>, <code>plotly_dropdown_y</code> #301</li>
+</ul>
+</section>
+<section id="wide-format-plotting" class="level3">
+<h3 class="anchored" data-anchor-id="wide-format-plotting">Wide-Format Plotting</h3>
+<ul>
+<li>plot_timeseries(value_column = list(), color_column=list()): Now supports multiple columns in wide format for grouped time series data visualization. #136</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="pytimetk-1.0.1" class="level1">
+<h1>pytimetk 1.0.1</h1>
+<section id="fixes" class="level2">
+<h2 class="anchored" data-anchor-id="fixes">Fixes:</h2>
+<ul>
+<li><code>tk.summarize_by_time()</code>: AttributeError: ‘DataFrame’ object has no attribute ‘groupby’ #298</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-1.0.0" class="level1">
+<h1>pytimetk 1.0.0</h1>
+<section id="pandas-and-polars-compatibility" class="level2">
+<h2 class="anchored" data-anchor-id="pandas-and-polars-compatibility">Pandas and Polars Compatibility:</h2>
+<p>Upgrading to:</p>
+<ul>
+<li>pandas &gt;= 2.0.0</li>
+<li>polars &gt;= 1.2.0</li>
+</ul>
+<p>Use pytimetk &lt;=0.4.0 to support:</p>
+<ul>
+<li>pandas &lt;2.0.0</li>
+<li>polars &lt;1.0.0</li>
+</ul>
+</section>
+<section id="improvements-6" class="level2">
+<h2 class="anchored" data-anchor-id="improvements-6">Improvements:</h2>
+<ul>
+<li>Implement <code>sort_dataframe()</code>: This function is used internally to make sure Polars and Pandas engines perform grouped operations consistently and correctly. #286 #290</li>
+<li><code>.augment_lags()</code> and <code>.augment_leads()</code>: value_column now accepts any dtype. #295</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-0.4.0" class="level1">
+<h1>pytimetk 0.4.0</h1>
+<section id="feature-engineering-module" class="level2">
+<h2 class="anchored" data-anchor-id="feature-engineering-module">Feature Engineering Module:</h2>
+<ol type="1">
+<li><code>augment_pct_change()</code>: pandas and polars engines</li>
+</ol>
+</section>
+<section id="finance-module-updates" class="level2">
+<h2 class="anchored" data-anchor-id="finance-module-updates">Finance Module Updates:</h2>
+<ol type="1">
+<li><code>augment_macd()</code>: MACD, pandas and polars engines</li>
+<li><code>augment_bbands()</code>: Bollinger Bands, pandas and polars engines</li>
+<li><code>augment_atr()</code>: Average True Range, pandas and polars engines</li>
+<li><code>augment_ppo()</code>: Percentage Price Oscillator, pandas and polars engines</li>
+<li><code>augment_rsi()</code>: Relative Strength Index, pandas and polars engines</li>
+<li><code>augment_qsmomentum()</code>: Quant Science Momentum Indicator, pandas and polars engines</li>
+<li><code>augment_roc()</code>: Rate of Change (ROC), pandas and polars engines</li>
+</ol>
+</section>
+<section id="polars-upgrades" class="level2">
+<h2 class="anchored" data-anchor-id="polars-upgrades">Polars Upgrades</h2>
+<ul>
+<li>Migrate to <code>polars 0.20.7</code></li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-0.3.0" class="level1">
+<h1>pytimetk 0.3.0</h1>
+<section id="correlation-funnel" class="level3">
+<h3 class="anchored" data-anchor-id="correlation-funnel">Correlation Funnel</h3>
+<p>The R package <code>correlationfunnel</code> has been ported inside <code>pytimetk</code>:</p>
+<ul>
+<li><code>binarize()</code></li>
+<li><code>correlate()</code></li>
+<li><code>plot_correlation_funnel()</code></li>
+</ul>
+</section>
+<section id="core" class="level3">
+<h3 class="anchored" data-anchor-id="core">Core:</h3>
+<ul>
+<li><code>filter_by_time()</code> - Filtering with time-based strings</li>
+</ul>
+</section>
+<section id="feature-engineering" class="level3">
+<h3 class="anchored" data-anchor-id="feature-engineering">Feature Engineering:</h3>
+<ul>
+<li><code>augment_diffs()</code> - Can now add differenced columns</li>
+<li><code>augment_fourier()</code> - Can now add fourier features.</li>
+</ul>
+</section>
+<section id="finance-module" class="level3">
+<h3 class="anchored" data-anchor-id="finance-module">Finance Module:</h3>
+<ul>
+<li><code>augment_cmo()</code>: Chande Momentum Oscillator (CMO)</li>
+</ul>
+</section>
+<section id="new-polars-backends" class="level3">
+<h3 class="anchored" data-anchor-id="new-polars-backends">New Polars Backends:</h3>
+<ul>
+<li><code>augment_diffs()</code></li>
+<li><code>augment_fourier()</code></li>
+<li><code>augment_cmo()</code></li>
+</ul>
+</section>
+<section id="general" class="level3">
+<h3 class="anchored" data-anchor-id="general">General</h3>
+<ul>
+<li>Make memory reduction optional #275</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-0.2.1" class="level1">
+<h1>pytimetk 0.2.1</h1>
+<p>Bugfix - Issue with <code>augment_rolling(engine='pandas')</code> and <code>augment_expanding(engine='pandas')</code> with concatinating rolled/expanded calc’s to the correct group</p>
+</section>
+<section id="pytimetk-0.2.0" class="level1">
+<h1>pytimetk 0.2.0</h1>
+<section id="anomaly-detection" class="level3">
+<h3 class="anchored" data-anchor-id="anomaly-detection">Anomaly Detection</h3>
+<ul>
+<li><code>anomalize()</code>: A new scalable function for detecting time series anomalies (outliers)</li>
+<li><code>plot_anomalies()</code>: A scalable visualization tool for inspecting anomalies in time series data.</li>
+<li><code>plot_anomalies_decomp</code>: A scalable visualization tool for inspecting the observed, seasonal, trend, and remainder decomposition, which are useful for telling you whether or not anomalies are being detected to your preference.</li>
+<li><code>plot_anomalies_cleaned()</code>: A scalable visualization tool for showing the before and after transformation for the cleaned vs uncleaned anomalies.</li>
+</ul>
+</section>
+<section id="new-functions-1" class="level3">
+<h3 class="anchored" data-anchor-id="new-functions-1">New Functions:</h3>
+<ul>
+<li><code>apply_by_time()</code>: For complex apply-style aggregations by time.</li>
+<li><code>augment_rolling_apply()</code>: For complex rolling operations using apply-style data frame functions.<br>
+</li>
+<li><code>augment_expanding()</code>: For expanding calculations with single-column functions (e.g.&nbsp;mean).</li>
+<li><code>augment_expanding_apply()</code>: For complex expanding operations with apply-style data frame functions.</li>
+<li><code>augment_hilbert()</code>: Hilbert features for signal processing.</li>
+<li><code>augment_wavelet()</code>: Wavelet transform features.</li>
+<li><code>get_frequency()</code>: Infer a pandas-like frequency. More robust than <code>pandas.infer_freq</code>.</li>
+<li><code>get_seasonal_frequency()</code>: Infer the pandas-like seasonal frequency (periodicity) for the time series.</li>
+<li><code>get_trend_frequency()</code>: Infer the pandas-like trend for the time series.</li>
+</ul>
+</section>
+<section id="new-finance-module" class="level3">
+<h3 class="anchored" data-anchor-id="new-finance-module">New Finance Module</h3>
+<p>More coming soon.</p>
+<ul>
+<li><code>augment_ewm()</code>: Exponentially weighted augmentation</li>
+</ul>
+</section>
+<section id="speed-improvements" class="level3">
+<h3 class="anchored" data-anchor-id="speed-improvements">Speed Improvements</h3>
+<section id="polars-engines" class="level4">
+<h4 class="anchored" data-anchor-id="polars-engines">Polars Engines:</h4>
+<ul>
+<li><code>summarize_by_time()</code>: Gains a polars engine.
+<ul>
+<li>3X to 10X speed improvements.</li>
+</ul></li>
+<li><code>augment_lags()</code> and <code>augment_leads()</code>: Gains a polars engine. Speed improvements increase with number of lags/leads.
+<ul>
+<li>6.5X speed improvement with 100 lags.</li>
+</ul></li>
+<li><code>augment_rolling()</code>: Gains a polars engine. 10X speed improvement.</li>
+<li><code>augment_expanding()</code>: Gains a polars engine.</li>
+<li><code>augment_timeseries_signature()</code>: Gains a polars engine. 3X speed improvement.</li>
+<li><code>augment_holiday_signature()</code>: Gains a polars engine.</li>
+</ul>
+</section>
+<section id="parallel-processing-and-vectorized-optimizations" class="level4">
+<h4 class="anchored" data-anchor-id="parallel-processing-and-vectorized-optimizations">Parallel Processing and Vectorized Optimizations:</h4>
+<ul>
+<li><code>pad_by_time()</code>: Complete overhaul. Uses Cartesian Product (Vectorization) to enhance the speed. 1000s of time series can now be padded in seconds.
+<ul>
+<li><strong>Independent review: Time went from over 90 minutes to 13 seconds for a 500X speedup on 10M rows.</strong></li>
+</ul></li>
+<li><code>future_frame()</code>: Complete overhaul. Uses vectorization when possible. Grouped parallel processing. Set <code>threads = -1</code> to use all cores.
+<ul>
+<li><strong>Independent Review: Time went from 11 minutes to 2.5 minutes for a 4.4X speedup on 10M rows</strong></li>
+</ul></li>
+<li><code>ts_features</code>: Uses concurrent futures to parallelize tasks. Set <code>threads = -1</code> to use all cores.</li>
+<li><code>ts_summary</code>: Uses concurrent futures to parallelize tasks. Set <code>threads = -1</code> to use all cores.</li>
+<li><code>anomalize</code>: Uses concurrent futures to parallelize tasks. Set <code>threads = -1</code> to use all cores.</li>
+<li><code>augment_rolling()</code> and <code>augment_rolling_apply()</code>: Uses concurrent futures to parallelize tasks. Set <code>threads = -1</code> to use all cores.</li>
+</ul>
+</section>
+</section>
+<section id="helpful-utilities" class="level3">
+<h3 class="anchored" data-anchor-id="helpful-utilities">Helpful Utilities:</h3>
+<ul>
+<li><code>parallel_apply</code>: Mimics the <code>pandas apply()</code> function with concurrent futures.</li>
+<li><code>progress_apply</code>: Adds a progress bar to pandas apply()</li>
+<li><code>glimpse()</code>: Mimics tidyverse (tibble) glimpse function</li>
+</ul>
+</section>
+<section id="new-data-sets" class="level3">
+<h3 class="anchored" data-anchor-id="new-data-sets">New Data Sets:</h3>
+<ul>
+<li><code>expedia</code>: Expedia hotel searches time series data set</li>
+</ul>
+</section>
+<section id="new-applied-tutorials" class="level3">
+<h3 class="anchored" data-anchor-id="new-applied-tutorials">3 New Applied Tutorials:</h3>
+<ol type="1">
+<li><a href="./tutorials/01_sales_crm.html">Sales Analysis Tutorial</a></li>
+<li><a href="./tutorials/02_finance.html">Finance Analysis Tutorial</a></li>
+<li><a href="./tutorials/03_demand_forecasting.html">Demand Forecasting Tutorial</a></li>
+<li><a href="./tutorials/04_anomaly_detection.html">Anomaly Detection Tutorial</a></li>
+</ol>
+</section>
+<section id="final-deprecations" class="level3">
+<h3 class="anchored" data-anchor-id="final-deprecations">Final Deprecations:</h3>
+<ul>
+<li><code>summarize_by_time()</code>: <code>kind = "period"</code>. This was removed for consistency with <code>pytimetk</code>. “timestamp” is the default.</li>
+<li><code>augment_rolling()</code>: <code>use_independent_variables</code>. This is replaced by <code>augment_rolling_apply()</code>.</li>
+</ul>
+</section>
+</section>
+<section id="pytimetk-0.1.0-2023-10-02" class="level1">
+<h1>pytimetk 0.1.0 (2023-10-02)</h1>
+<section id="about-the-initial-release." class="level3">
+<h3 class="anchored" data-anchor-id="about-the-initial-release.">About the Initial release.</h3>
+<p>This release includes the following features:</p>
+<ol type="1">
+<li>A workhorse plotting function called <code>plot_timeseries()</code> 💪</li>
+<li>Three (3) data wrangling functions that will simplify 90% of time series tasks 🙏</li>
+<li>Five (5) “augmentor” functions: These add hundreds of features to time series to help in predictive tasks 🧠</li>
+<li>Two (2) time series feature summarizes: identify key aspects of your time series 🔍</li>
+<li>Nine (9) pandas series and DatetimeIndex helpers (work more easily with these timestamp data structures) ⏲</li>
+<li>Four (4) date utility functions that fill in missing function gaps in pandas 🐼</li>
+<li>Two (2) Visualization utilities to help you customize your visualizations and make them look MORE professional 📈</li>
+<li>Two (2) Pandas helpers that help clean up and understand pandas data frames with time series 🎇</li>
+<li>Twelve (12) time series datasets that you can practice PyTimeTK time series analysis on 🔢</li>
+</ol>
+</section>
+<section id="the-pytimetk-website-comes-with" class="level3">
+<h3 class="anchored" data-anchor-id="the-pytimetk-website-comes-with">The PyTimeTK website comes with:</h3>
+<ol type="1">
+<li>Two (2) Getting started tutorials</li>
+<li>Five (5) Guides covering common tasks</li>
+<li>Coming Soon: Applied Tutorials in Sales, Finance, Demand Forecasting, Anomaly Detection, and more.</li>
+</ol>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

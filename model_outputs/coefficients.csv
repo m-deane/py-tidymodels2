@@ -1,0 +1,6 @@
+Model_Desc,Feature_Set,term,estimate,std_error,statistic,p_value,conf_low,conf_high
+linear_regression,baseline,feature_1,23.92748354389671,,,,,
+linear_regression,baseline,feature_2,71.13040238033666,,,,,
+linear_regression,baseline,feature_3,71.13358360503223,,,,,
+linear_regression,baseline,feature_4,66.29425513709019,,,,,
+linear_regression,baseline,(Intercept),-1.0821828288556956,,,,,

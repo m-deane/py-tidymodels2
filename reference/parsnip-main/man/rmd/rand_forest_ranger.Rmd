@@ -1,0 +1,107 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("rand_forest", "ranger")`
+
+## Tuning Parameters
+
+```{r}
+#| label: ranger-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("mtry", "trees", "min_n"),
+                 default = c("see below", "500L", "see below"))
+
+param <-
+  rand_forest() |> 
+  set_engine("ranger") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: ranger-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+`mtry` depends on the number of columns. The default in [ranger::ranger()] is `floor(sqrt(ncol(x)))`.
+
+`min_n` depends on the mode. For regression, a value of 5 is the default. For classification, a value of 10 is used. 
+
+## Translation from parsnip to the original package (regression)
+
+```{r}
+#| label: ranger-reg
+rand_forest(
+  mtry = integer(1),
+  trees = integer(1),
+  min_n = integer(1)
+) |>  
+  set_engine("ranger") |> 
+  set_mode("regression") |> 
+  translate()
+```
+
+`min_rows()` and `min_cols()` will adjust the number of neighbors if the chosen value if it is not consistent with the actual data dimensions.
+
+## Translation from parsnip to the original package (classification)
+
+```{r}
+#| label: ranger-cls
+rand_forest(
+  mtry = integer(1),
+  trees = integer(1),
+  min_n = integer(1)
+) |> 
+  set_engine("ranger") |> 
+  set_mode("classification") |> 
+  translate()
+```
+
+Note that a `ranger` probability forest is always fit (unless the `probability` argument is changed by the user via [set_engine()]).
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-tree-split-factors.Rmd
+```
+
+## Other notes
+
+By default, parallel processing is turned off. When tuning, it is more efficient to parallelize over the resamples and tuning parameters. To parallelize the construction of the trees within the `ranger` model, change the `num.threads` argument via [set_engine()]. 
+
+For `ranger` confidence intervals, the intervals are  constructed using the form `estimate +/- z * std_error`. For  classification probabilities, these values can fall outside of  `[0, 1]` and will be coerced to be in this range.
+
+## Case weights
+
+```{r}
+#| child: template-uses-case-weights.Rmd
+```
+
+## Sparse Data
+
+```{r}
+#| child: template-uses-sparse-data.Rmd
+```
+
+While this engine supports sparse data as an input, it doesn't use it any differently than dense data. Hence there it no reason to convert back and forth.
+
+## Saving fitted model objects
+
+```{r}
+#| child: template-butcher.Rmd
+```
+
+
+## Examples 
+
+The "Fitting and Predicting with parsnip" article contains [examples](https://parsnip.tidymodels.org/articles/articles/Examples.html#rand-forest-ranger) for `rand_forest()` with the `"ranger"` engine.
+
+## References
+
+ - Kuhn, M, and K Johnson. 2013. _Applied Predictive Modeling_. Springer.

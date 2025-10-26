@@ -1,0 +1,73 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("poisson_reg", "glmnet")`
+
+## Tuning Parameters
+
+```{r}
+#| label: glmnet-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("penalty", "mixture"),
+                 default = c("see below", "1.0"))
+
+param <-
+poisson_reg() |> 
+  set_engine("glmnet") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: glmnet-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+The `penalty` parameter has no default and requires a single numeric value. For more details about this, and the `glmnet` model in general, see [glmnet-details]. As for `mixture`:
+
+* `mixture = 1` specifies a pure lasso model,
+* `mixture = 0`  specifies a ridge regression model, and
+* `0 < mixture < 1` specifies an elastic net model, interpolating lasso and ridge.
+
+## Translation from parsnip to the original package
+
+`r uses_extension("poisson_reg", "glmnet", "regression")`
+
+```{r}
+#| label: glmnet-csl
+library(poissonreg)
+
+poisson_reg(penalty = double(1), mixture = double(1)) |> 
+  set_engine("glmnet") |> 
+  translate()
+```
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+By default, `glmnet::glmnet()` uses the argument `standardize = TRUE` to center and scale the data. 
+
+
+## Case weights
+
+```{r}
+#| child: template-uses-case-weights.Rmd
+```
+
+## Saving fitted model objects
+
+```{r}
+#| child: template-butcher.Rmd
+```

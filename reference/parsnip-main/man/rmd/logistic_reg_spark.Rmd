@@ -1,0 +1,80 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("logistic_reg", "spark")`
+
+## Tuning Parameters
+
+```{r}
+#| label: spark-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("penalty", "mixture"),
+                 default = c("0.0", "0.0"))
+
+param <-
+  logistic_reg() |> 
+  set_engine("spark") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: spark-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+For `penalty`, the amount of regularization includes both the L1 penalty (i.e., lasso) and the L2 penalty (i.e., ridge or weight decay). As for `mixture`:
+
+* `mixture = 1` specifies a pure lasso model,
+* `mixture = 0`  specifies a ridge regression model, and
+* `0 < mixture < 1` specifies an elastic net model, interpolating lasso and ridge.
+
+## Translation from parsnip to the original package
+
+```{r}
+#| label: spark-csl
+logistic_reg(penalty = double(1), mixture = double(1)) |> 
+  set_engine("spark") |> 
+  translate()
+```
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+
+By default, `ml_logistic_regression()` uses the argument `standardization = TRUE` to center and scale the data. 
+
+## Case weights
+
+```{r}
+#| child: template-uses-case-weights.Rmd
+```
+
+Note that, for spark engines, the `case_weight` argument value should be a character string to specify the column with the numeric case weights. 
+
+## Other details
+
+```{r}
+#| child: template-spark-notes.Rmd
+```
+
+## References
+
+ - Luraschi, J, K Kuo, and E Ruiz. 2019. _Mastering Spark with R_. O'Reilly Media
+ 
+ - Hastie, T, R Tibshirani, and M Wainwright. 2015. _Statistical Learning with Sparsity_. CRC Press.
+ 
+ - Kuhn, M, and K Johnson. 2013. _Applied Predictive Modeling_. Springer.
+

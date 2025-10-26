@@ -1,0 +1,253 @@
+# References: 
+# - https://github.com/rstudio/pins-python/tree/main/docs
+# - https://github.com/machow/quartodoc/blob/main/docs/_quarto.yml
+# - https://github.com/quarto-dev/quarto-web/blob/main/_quarto.yml
+# - https://nixtla.github.io/statsforecast/
+# - https://github.com/nixtla/statsforecast
+# - 
+# Key Commands:
+#   - cd docs
+#   - quartodoc build
+#   - quarto preview
+#   - quarto publish gh-pages
+
+project:
+  type: website
+  output-dir: _site
+
+execute:
+  freeze: auto  # re-render only when source changes
+
+# tell quarto to read the generated sidebar
+metadata-files:
+  - _sidebar.yml
+
+website:
+  title: "pytimetk"
+  description: "Your toolkit for time series in Python."
+  favicon: "favicon.ico"
+  google-analytics: "330861489"
+  open-graph: true
+  twitter-card: true
+  site-url: https://business-science.github.io/pytimetk/
+  repo-url: https://github.com/business-science/pytimetk
+  issue-url: https://github.com/business-science/pytimetk/issues
+  repo-actions: [edit, issue]
+  page-navigation: true
+  search: true
+  navbar:
+    background: primary
+    pinned: true
+    logo: "https://www.business-science.io/img/business-science-logo.png"
+    # logo: "logo-timetk.png"
+    collapse-below: lg
+    # left:
+      # - text: Tutorials
+      #   file: guides/index.qmd
+      # - text: Docs
+      #   file: reference/index.qmd
+    tools:
+      - icon: github
+        href: https://github.com/business-science/pytimetk
+  sidebar: 
+    collapse-level: 1
+    contents: 
+      - text: "PyTimeTK 📈"
+        file: index.qmd
+      - text: "---"
+      - section: "🏁 Getting Started:"
+        contents: getting-started/*
+      - section: "🗺️ Guides:"
+        contents: guides/*
+      - section: "📘 Applied Tutorials:"
+        contents: tutorials/*
+      - section: "🛠️ Production:"
+        contents: production/*
+      - section: "🏎️ Performance:"
+        contents: performance/*
+      - text: "---"
+      - text: 📄 API Reference
+        file: reference/index.qmd
+      - text: "---"
+      - text: ⭐ PyTimeTK on Github
+        file: https://github.com/business-science/pytimetk
+        external: true
+      - text: "---"
+      - text: 🍻 Contributing
+        file: contributing.qmd
+      - text: "---"
+      - text: 📧 Change Log
+        file: changelog-news.qmd
+      - text: "---"
+      - section: "📚 More References:"
+      - text: Business Science
+        file: https://www.business-science.io/index.html
+        external: true
+      - text: Quant Science
+        file: https://www.quantscience.io/
+        external: true
+      - text: Timetk (R Version)
+        file: https://business-science.github.io/timetk/
+        external: true
+
+
+format:
+  html:
+    toc: true
+    theme: 
+      light: [lux, theme-light.scss, theme.scss]
+      dark: [lux, theme-dark.scss, theme.scss]
+    highlight-style: github
+    linestretch: 1.8
+    grid:
+      sidebar-width: 300px
+      body-width: 900px
+      margin-width: 300px
+    include-in-header: 
+      - _includes/head.html
+
+
+quartodoc:
+  package: pytimetk
+  sidebar: _sidebar.yml
+  sections:
+    - title: 🚀 Data Visualization
+      desc: Visualize time series data with one line of code.
+      package: pytimetk
+      contents:
+      - plot_timeseries
+    - title: 🔥 Wrangling Pandas Time Series DataFrames
+      desc: Bend time series data to your will.
+      package: pytimetk
+      contents:
+        - summarize_by_time
+        - apply_by_time
+        - pad_by_time
+        - filter_by_time
+        - future_frame
+    - title: 🔍 Anomaly Detection
+      desc: Detect anomalies in time series data.
+      package: pytimetk
+      contents:
+        - anomalize
+        - plot_anomalies
+        - plot_anomalies_decomp
+        - plot_anomalies_cleaned
+    - title: 🌪️ Correlation Funnel
+      desc: Visualize correlation on any tabular dataset (not just for Time Series).
+      package: pytimetk
+      contents:
+        - binarize
+        - correlate 
+        - plot_correlation_funnel
+    - title: 🏗️ Feature Engineereing
+      desc: Adding Features to Time Series DataFrames (Augmenting)
+      package: pytimetk
+      contents:
+        - augment_timeseries_signature
+        - augment_holiday_signature
+        - augment_lags
+        - augment_leads
+        - augment_diffs
+        - augment_pct_change
+        - augment_rolling
+        - augment_rolling_apply
+        - augment_expanding
+        - augment_expanding_apply
+        - augment_ewm
+        - augment_fourier
+        - augment_hilbert
+        - augment_wavelet
+        - augment_spline
+    - title: 🗃️ Feature Store & Caching (Beta)
+      desc: "Beta: persist and reuse feature engineering artifacts with caching and metadata."
+      package: pytimetk
+      contents:
+        - feature_store
+        - FeatureStore
+        - FeatureStoreAccessor
+        - FeatureSetMetadata
+        - FeatureSetResult
+    - title: 📎 TS Features
+      desc: Python implementation of the R package `tsfeatures`.
+      package: pytimetk
+      contents:
+        - ts_features
+        - ts_summary
+    - title: 📈 Time Series Cross Validation (TSCV)
+      desc: Time series cross validation.
+      package: pytimetk
+      contents:
+        - TimeSeriesCV
+        - TimeSeriesCVSplitter
+    - title: 💹 Finance Module (Momentum Indicators)
+      desc: Momentum indicators for financial time series data.
+      package: pytimetk
+      contents:
+        - augment_macd
+        - augment_ppo
+        - augment_rsi
+        - augment_cmo
+        - augment_roc
+        - augment_adx
+        - augment_stochastic_oscillator
+        - augment_hurst_exponent
+        - augment_qsmomentum
+        - augment_fip_momentum
+    - title: 💹 Finance Module (Volatility, Risk/Reward and Regime Indicators)
+      desc: Volatility, Risk-Reward, and Regime indicators for financial time series data.
+      package: pytimetk
+      contents:
+        - augment_bbands
+        - augment_atr
+        - augment_drawdown
+        - augment_rolling_risk_metrics
+        - augment_ewma_volatility
+        - augment_regime_detection
+    - title: 🐼 Time Series for Pandas Series
+      desc: Time series functions that generate / manipulate Pandas Series.
+      package: pytimetk
+      contents:        
+        - make_future_timeseries
+        - make_weekday_sequence
+        - make_weekend_sequence
+        - get_date_summary
+        - get_frequency_summary
+        - get_diff_summary
+        - get_frequency
+        - get_seasonal_frequency
+        - get_trend_frequency
+        - get_timeseries_signature
+        - get_holiday_signature 
+    - title: 🛠️ Date Utilities
+      desc: Helper functions to make your life easier.
+      package: pytimetk
+      contents:    
+        - floor_date
+        - ceil_date
+        - is_holiday
+        - week_of_month
+        - timeseries_unit_frequency_table
+        - time_scale_template
+    - title: 🛠️ Visualization Utilities
+      desc: Helper functions to make your life easier.
+      package: pytimetk
+      contents:    
+        - theme_timetk
+        - palette_timetk
+    - title: Extra Pandas Helpers (That Help Beyond Just Time Series)
+      package: pytimetk
+      contents:
+      - glimpse
+      - parallel_apply
+      - progress_apply
+      - drop_zero_variance
+      - transform_columns
+      - flatten_multiindex_column_names
+    - title: 💾 13 Datasets
+      package: pytimetk
+      desc: Practice `pytimetk` with 13 complementary time series datasets.
+      contents:
+        - get_available_datasets
+        - load_dataset
+        

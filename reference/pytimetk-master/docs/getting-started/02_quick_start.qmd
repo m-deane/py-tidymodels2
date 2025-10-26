@@ -1,0 +1,97 @@
+---
+title: "Quick Start"
+jupyter: python3
+toc: true
+toc-depth: 3
+number-sections: true
+number-depth: 2
+code-fold: show
+code-tools: 
+    source: false
+    toggle: true
+---
+
+<!-- ::: {.callout-warning collapse="false"}
+## Under Development
+
+This library is currently under development and is not intended for general usage yet. Functionality is experimental until release 0.1.0. 
+::: -->
+
+# Quick Start: A Monthly Sales Analysis
+
+This is a simple exercise to showcase the power of our 2 most popular function:
+
+1. [`summarize_by_time()`](/reference/summarize_by_time.html)
+2. [`plot_timeseries()`](/reference/plot_timeseries.html)
+
+## Import Libraries & Data
+
+First, `import pytimetk as tk`. This gets you access to the most important functions. Use `tk.load_dataset()` to load the "bike_sales_sample" dataset.
+
+::: {.callout-note collapse="false"}
+## About the Bike Sales Sample Dataset
+
+This dataset contains "orderlines" for orders recieved. The `order_date` column contains timestamps. We can use this column to peform sales aggregations (e.g. total revenue).
+:::
+
+```{python}
+import pytimetk as tk
+import pandas as pd
+
+df = tk.load_dataset('bike_sales_sample')
+df['order_date'] = pd.to_datetime(df['order_date'])
+
+df   
+```
+
+## Using `summarize_by_time()` for a Sales Analysis
+
+Your company might be interested in sales patterns for various categories of bicycles. We can obtain a grouped monthly sales aggregation by `category_1` in two lines of code:
+
+1. First use pandas's `groupby()` method to group the DataFrame on `category_1`
+2. Next, use timetk's `summarize_by_time()` method to apply the sum function my month start ("MS") and use `wide_format = 'False'` to return the dataframe in a long format (Note long format is the default). 
+
+The result is the total revenue for Mountain and Road bikes by month. 
+
+```{python}
+summary_category_1_df = df \
+    .groupby("category_1") \
+    .summarize_by_time(
+        date_column  = 'order_date', 
+        value_column = 'total_price',
+        freq         = "MS",
+        agg_func     = 'sum',
+        wide_format  = False
+    )
+
+# First 5 rows shown
+summary_category_1_df.head()
+```
+
+
+
+## Visualizing Sales Patterns
+
+::: {.callout-note collapse="false"}
+## Now available: `plot_timeseries()`.
+
+Plot time series is a quick and easy way to visualize time series and make professional time series plots. 
+:::
+
+With the data summarized by time, we can visualize with `plot_timeseries()`. `pytimetk` functions are `groupby()` aware meaning they understand if your data is grouped to do things by group. This is useful in time series where we often deal with 100s of time series groups. 
+
+```{python}
+summary_category_1_df \
+    .groupby('category_1') \
+    .plot_timeseries(
+        date_column  = 'order_date',
+        value_column = 'total_price',
+        smooth_frac  = 0.8
+    )
+```
+
+# Next steps
+
+Check out the [Data Visualization Guide Next.](/guides/01_visualization.html)
+
+{{< include ../_includes/_footer.qmd >}}

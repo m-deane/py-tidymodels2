@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+inst/doc
+doc
+Meta
+derby.log
+.DS_Store
+logs
+vignettes/derby.log
+vignettes/logs/
+docs
+/doc/
+/Meta/

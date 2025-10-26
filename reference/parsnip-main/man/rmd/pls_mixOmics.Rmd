@@ -1,0 +1,107 @@
+```{r}
+#| child: aaa.Rmd
+#| include: false
+```
+
+`r descr_models("pls", "mixOmics")`
+
+## Tuning Parameters
+
+```{r}
+#| label: mixOmics-param-info
+#| echo: false
+defaults <- 
+  tibble::tibble(parsnip = c("num_comp", "predictor_prop"),
+                 default = c("2L",           "see below"))
+
+param <-
+  pls() |> 
+  set_engine("mixOmics") |> 
+  set_mode("regression") |> 
+  make_parameter_list(defaults)
+```
+
+This model has `r nrow(param)` tuning parameters:
+
+```{r}
+#| label: mixOmics-param-list
+#| echo: false
+#| results: asis
+param$item
+```
+
+
+## Translation from parsnip to the underlying model call  (regression)
+
+`r uses_extension("pls", "mixOmics", "regression")`
+
+```{r}
+#| label: mixOmics-reg
+library(plsmod)
+
+pls(num_comp = integer(1), predictor_prop = double(1)) |>
+  set_engine("mixOmics") |>
+  set_mode("regression") |>
+  translate()
+```
+
+[plsmod::pls_fit()] is a function that: 
+
+ - Determines the number of predictors in the data.
+ - Adjusts `num_comp` if the value is larger than the number of factors.
+ - Determines whether sparsity is required based on the value of `predictor_prop`.
+ - Sets the `keepX` argument of `mixOmics::spls()` for sparse models. 
+
+## Translation from parsnip to the underlying model call  (classification)
+
+`r uses_extension("pls", "mixOmics", "classification")`
+
+```{r}
+#| label: mixOmics-cls
+library(plsmod)
+
+pls(num_comp = integer(1), predictor_prop = double(1)) |>
+  set_engine("mixOmics") |>
+  set_mode("classification") |>
+  translate()
+```
+
+In this case, [plsmod::pls_fit()] has the same role as above but eventually targets `mixOmics::plsda()` or `mixOmics::splsda()`.
+
+## Installing mixOmics
+
+This package is available via the Bioconductor repository and is not accessible via CRAN. You can install using: 
+
+```{r}
+#| eval: false
+  if (!require("remotes", quietly = TRUE)) {
+    install.packages("remotes")
+  }
+  
+  remotes::install_bioc("mixOmics")
+```
+
+## Preprocessing requirements
+
+```{r}
+#| child: template-makes-dummies.Rmd
+```
+
+```{r}
+#| child: template-zv.Rmd
+```
+
+```{r}
+#| child: template-same-scale.Rmd
+```
+
+## Case weights
+
+```{r}
+#| child: template-no-case-weights.Rmd
+```
+
+## References
+
+ - Rohart F and Gautier B and Singh A and Le Cao K-A  (2017). "mixOmics: An R package for 'omics feature selection and multiple data integration." PLoS computational biology, 13(11), e1005752.
+ 
