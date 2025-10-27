@@ -782,30 +782,8 @@ class PreparedStepEwm:
             for stat in self.statistics:
                 feature_name = f"{self.prefix}{col}_{stat}_{self.span}"
 
-                # Try pytimetk first
-                try:
-                    import pytimetk as tk
-
-                    temp_df = pd.DataFrame({col: result[col]})
-                    ewm_df = tk.augment_ewm(
-                        temp_df,
-                        date_column=col,
-                        span=self.span
-                    )
-
-                    # Find matching column
-                    ewm_cols = [c for c in ewm_df.columns
-                               if 'ewm' in c.lower() and stat in c.lower()]
-
-                    if ewm_cols:
-                        result[feature_name] = ewm_df[ewm_cols[0]]
-                    else:
-                        # Manual creation
-                        result[feature_name] = self._compute_ewm(result[col], stat)
-
-                except ImportError:
-                    # Manual creation
-                    result[feature_name] = self._compute_ewm(result[col], stat)
+                # Use pandas EWM directly (more reliable than pytimetk for this use case)
+                result[feature_name] = self._compute_ewm(result[col], stat)
 
         return result
 
