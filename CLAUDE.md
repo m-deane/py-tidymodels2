@@ -133,6 +133,12 @@ The project follows a layered architecture inspired by R's tidymodels:
   - Handles one-hot encoded outcomes
 - `prophet_reg`: prophet engine (Facebook's time series forecaster)
 - `arima_reg`: statsmodels engine (SARIMAX)
+- `recursive_reg`: skforecast engine (Recursive/autoregressive forecasting)
+  - Wraps any sklearn-compatible model for multi-step time series forecasting
+  - Uses lagged features and recursive prediction
+  - Supports specific lag selection (e.g., [1, 7, 14])
+  - Optional differentiation for non-stationary data
+  - Prediction intervals via in-sample residuals
 
 **Parameter Translation:**
 - Tidymodels naming → Engine-specific naming
@@ -173,17 +179,31 @@ The project follows a layered architecture inspired by R's tidymodels:
 **Key Classes:**
 - **Workflow**: Immutable workflow specification
 - **WorkflowFit**: Fitted workflow with predictions
+- **NestedWorkflowFit**: Fitted workflow with per-group models for panel/grouped data
 
 **Key Methods:**
 - `add_formula()`, `add_model()` - Compose workflow
 - `fit()` - Train workflow
+- `fit_nested(data, group_col)` - Fit separate models for each group (panel/grouped modeling)
+- `fit_global(data, group_col)` - Fit single model with group as a feature
 - `predict()` - Make predictions with automatic preprocessing
 - `evaluate()` - Train/test evaluation
-- `extract_outputs()` - Get three-DataFrame outputs
+- `extract_outputs()` - Get three-DataFrame outputs (includes group column for nested models)
+
+**Panel/Grouped Modeling:**
+- **Nested approach** (`fit_nested()`): Fit independent model per group
+  - Best when groups have different patterns (e.g., premium vs budget stores)
+  - Each group gets its own parameters
+  - Returns `NestedWorkflowFit` with unified predict/evaluate interface
+- **Global approach** (`fit_global()`): Fit single model with group as feature
+  - Best when groups share similar patterns
+  - More efficient with limited data per group
+  - Returns standard `WorkflowFit`
+- Works with any model type including `recursive_reg` for per-group forecasting
 
 **Files:**
-- `py_workflows/workflow.py` - Workflow and WorkflowFit classes
-- `tests/test_workflows/` - 26 tests passing
+- `py_workflows/workflow.py` - Workflow, WorkflowFit, and NestedWorkflowFit classes
+- `tests/test_workflows/` - 39 tests passing (26 general + 13 panel models)
 
 ### Layer 5: py-recipes (Feature Engineering)
 **Purpose:** Advanced feature preprocessing and engineering pipeline.
@@ -263,7 +283,89 @@ final_wf = finalize_workflow(workflow, best)
 - `py_tune/tune.py` - All tuning functions and TuneResults class
 - `tests/test_tune/` - 36 tests passing
 
+### Layer 8: py-workflowsets (Multi-Model Comparison)
+**Purpose:** Efficiently compare multiple workflows across different preprocessing strategies and models.
+
+**Key Classes:**
+- **WorkflowSet**: Collection of workflows for comparison
+- **WorkflowSetResults**: Results from evaluating all workflows
+
+**Key Methods:**
+- **WorkflowSet.from_cross()**: Create all combinations of preprocessors × models
+  - Example: 5 formulas × 4 models = 20 workflows
+- **WorkflowSet.from_workflows()**: Create from explicit workflow list
+- **fit_resamples()**: Evaluate all workflows across CV folds
+- **collect_metrics()**: Aggregate metrics across resamples
+- **rank_results()**: Rank workflows by performance
+- **autoplot()**: Automatic visualization of results
+
+**Key Pattern:**
+```python
+# Define multiple preprocessing strategies
+formulas = [
+    "y ~ x1 + x2",
+    "y ~ x1 + x2 + x3",
+    "y ~ x1 + x2 + I(x1*x2)",  # Interaction
+]
+
+# Define multiple model specs
+models = [
+    linear_reg(),
+    linear_reg(penalty=0.1, mixture=1.0),  # Lasso
+]
+
+# Create all combinations (3 × 2 = 6 workflows)
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Evaluate all workflows across CV folds
+folds = vfold_cv(train_data, v=5)
+results = wf_set.fit_resamples(resamples=folds, metrics=metric_set(rmse, mae))
+
+# Analyze results
+top_models = results.rank_results("rmse", n=5)
+results.autoplot("rmse")
+
+# Select and finalize best workflow
+best_wf_id = top_models.iloc[0]["wflow_id"]
+best_wf = wf_set[best_wf_id].fit(train_data)
+```
+
+**Features:**
+- Parallel workflow evaluation for speed
+- Automatic ID generation (e.g., "minimal_linear_reg_1")
+- Consistent result format with `collect_metrics()`
+- Visual comparison with `autoplot()`
+- Access individual workflows: `wf_set["workflow_id"]`
+
+**Files:**
+- `py_workflowsets/workflowset.py` - WorkflowSet and results classes
+- `tests/test_workflowsets/` - Tests for multi-model comparison
+- `examples/11_workflowsets_demo.ipynb` - Demo notebook
+
 ## Critical Implementation Notes
+
+### Formula I() Transformations and Column Validation
+**Problem:** Formulas with patsy's `I()` function (e.g., `I(x1*x2)` for interactions, `I(x1**2)` for polynomials) were failing in `forge()` with "Required columns missing" errors.
+
+**Root Cause:** The `_validate_columns()` function in `forge.py` was checking for transformed column names (like `"I(x1*x2)"`) in the raw input data, when these are columns created BY patsy during transformation. It should only check for base columns (like `"x1"` and `"x2"`).
+
+**Solution:** Rewrote `_validate_columns()` to parse formulas with regex and extract only base variable names from inside `I()` functions:
+```python
+# Example: "y ~ x1 + x2 + I(x1*x2) + I(x1**2)"
+# Validates only: x1, x2 (base columns)
+# Ignores: I(x1*x2), I(x1**2) (transformed columns)
+```
+
+**Supported I() Patterns:**
+- ✅ Interactions: `I(x1*x2)`, `I(x1*x2*x3)`
+- ✅ Polynomials: `I(x1**2)`, `I(x2**3)`
+- ✅ Arithmetic: `I(x1 + x2)`, `I(x1 / x2)`
+- ✅ Multiple I() terms: `I(x1*x2) + I(x1**2)`
+
+**Code References:**
+- `py_hardhat/forge.py:139-211` - `_validate_columns()` with regex parsing
+- `tests/test_hardhat/test_mold_forge.py` - 14/14 tests passing including I() tests
+- `examples/11_workflowsets_demo.ipynb` - Demonstrates I() usage in multi-model comparison
 
 ### Time Series Models and Datetime Handling
 **Problem:** Patsy treats datetime columns as categorical, causing errors in forge() when prediction data has new dates.
@@ -289,6 +391,103 @@ if pd.api.types.is_datetime64_any_dtype(data[predictor]):
 - `py_parsnip/model_spec.py:177` - predict() method with dual-path logic
 - `py_parsnip/engines/prophet_engine.py:44` - fit_raw() implementation
 - `py_parsnip/engines/statsmodels_arima.py:44` - fit_raw() implementation with datetime detection
+
+### Recursive Forecasting with skforecast
+**Purpose:** Multi-step time series forecasting using lagged features and recursive prediction.
+
+**Key Implementation Details:**
+
+1. **DatetimeIndex Frequency Requirement:**
+   skforecast requires explicit frequency on DatetimeIndex. The engine automatically infers frequency:
+   ```python
+   if isinstance(y.index, pd.DatetimeIndex) and y.index.freq is None:
+       freq = pd.infer_freq(y.index)
+       if freq:
+           y.index = pd.DatetimeIndex(y.index, freq=freq)
+       else:
+           # Fallback to most common difference
+           diffs = y.index[1:] - y.index[:-1]
+           most_common_diff = diffs.value_counts().idxmax()
+           y = y.asfreq(most_common_diff)
+   ```
+
+2. **Base Model Mode Setting:**
+   Base models (e.g., rand_forest) created without mode must be set to "regression":
+   ```python
+   if base_model_spec.mode == "unknown":
+       base_model_spec = base_model_spec.set_mode("regression")
+   ```
+
+3. **In-Sample Residuals for Prediction Intervals:**
+   Must store residuals during fit for prediction intervals:
+   ```python
+   forecaster.fit(y=y, exog=exog, store_in_sample_residuals=True)
+   ```
+
+4. **Flexible Lag Specification:**
+   - Integer: `lags=7` uses lags 1-7
+   - List: `lags=[1, 7, 14]` uses specific lags
+   - Supports differentiation parameter for non-stationary data
+
+**Code References:**
+- `py_parsnip/models/recursive_reg.py` - Model specification
+- `py_parsnip/engines/skforecast_recursive.py` - Engine implementation
+- `tests/test_parsnip/test_recursive.py` - 19 tests passing
+- `examples/12_recursive_forecasting_demo.ipynb` - Demo notebook
+
+### Panel/Grouped Models
+**Purpose:** Fit models for datasets with multiple groups/entities (e.g., multiple stores, regions, customers).
+
+**Two Approaches:**
+
+1. **Nested/Per-Group (`fit_nested()`):**
+   - Fits independent model for each group
+   - Best when groups have different patterns
+   - Returns `NestedWorkflowFit` with unified interface
+   ```python
+   nested_fit = workflow.fit_nested(data, group_col="store_id")
+   predictions = nested_fit.predict(test)  # Routes to correct model
+   ```
+
+2. **Global (`fit_global()`):**
+   - Fits single model with group as feature
+   - Best when groups share similar patterns
+   - Returns standard `WorkflowFit`
+   ```python
+   global_fit = workflow.fit_global(data, group_col="store_id")
+   ```
+
+**Key Implementation Details:**
+
+1. **Date-Index Conversion Only for Recursive Models:**
+   Panel methods only set date as index for `recursive_reg` models:
+   ```python
+   is_recursive = self.spec and self.spec.model_type == "recursive_reg"
+   if is_recursive and "date" in group_data.columns:
+       group_data = group_data.set_index("date")
+   ```
+   This ensures regular models can access date column in formulas (e.g., `sales ~ date`).
+
+2. **Group Column in Outputs:**
+   All three DataFrames from `extract_outputs()` include the group column:
+   - Enables easy filtering by group
+   - Supports group-wise metric comparison
+   - Consistent across nested and global approaches
+
+3. **Unified Prediction Interface:**
+   `NestedWorkflowFit.predict()` automatically routes predictions to appropriate group model:
+   ```python
+   for group in test_data[self.group_col].unique():
+       group_data = test_data[test_data[self.group_col] == group]
+       preds = self.group_fits[group].predict(group_data)
+   ```
+
+**Code References:**
+- `py_workflows/workflow.py:fit_nested()` - Nested fitting method
+- `py_workflows/workflow.py:fit_global()` - Global fitting method
+- `py_workflows/workflow.py:NestedWorkflowFit` - Grouped workflow class
+- `tests/test_workflows/test_panel_models.py` - 13 tests passing
+- `examples/13_panel_models_demo.ipynb` - Demo notebook
 
 ### Classification and One-Hot Encoding
 **Problem:** Classification outcomes get one-hot encoded (e.g., "species" → "species[setosa]", "species[versicolor]"). The evaluate() method auto-detects outcome column but gets the encoded name.
@@ -356,15 +555,40 @@ if 'py_tune' in sys.modules:
 from py_tune import tune_grid
 ```
 
+### py_yardstick Metric Functions Return DataFrames
+**Important:** All py_yardstick metric functions return DataFrames with columns `['.metric', 'value']`, NOT scalar values.
+
+**Common Pattern:**
+```python
+from py_yardstick import rmse, mae, r_squared
+
+# These return DataFrames
+rmse_df = rmse(y_true, y_pred)  # Returns DataFrame
+mae_df = mae(y_true, y_pred)    # Returns DataFrame
+
+# Extract scalar values using .iloc[0]["value"]
+rmse_val = rmse(y_true, y_pred).iloc[0]["value"]
+mae_val = mae(y_true, y_pred).iloc[0]["value"]
+r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
+```
+
+**Why:** This design maintains consistency with tidymodels' yardstick package and allows metric_set() to combine multiple metrics into a single DataFrame.
+
+**There are NO _vec versions:** Functions like `rmse_vec()`, `mae_vec()`, `rsq_vec()` do not exist. Always use the base functions and extract values as needed.
+
+**Code References:**
+- `py_yardstick/metrics.py` - All metric functions
+- `examples/11_workflowsets_demo.ipynb:cell-31` - Correct usage pattern
+
 ## Project Status and Planning
 
-**Current Status:** Phase 2 Implementation (In Progress)
+**Current Status:** Phase 3 Implementation (In Progress)
 **Last Updated:** 2025-10-27
-**Total Tests Passing:** 559 tests
+**Total Tests Passing:** 591 tests (32 new tests for recursive and panel models)
 
 **Phase 1 - COMPLETED (188 tests):**
 - ✅ py-hardhat: 14/14 tests - Data preprocessing with mold/forge
-- ✅ py-parsnip: 96/96 tests - 4 models (linear_reg, rand_forest, prophet_reg, arima_reg) with 5 engines
+- ✅ py-parsnip: 96/96 tests - 5 models (linear_reg, rand_forest, prophet_reg, arima_reg, recursive_reg) with 6 engines
 - ✅ py-rsample: 35/35 tests - Time series CV, k-fold CV, period parsing
 - ✅ py-workflows: 26/26 tests - Workflow composition and pipelines
 - ✅ Integration tests: 11/11 tests
@@ -378,6 +602,31 @@ from py_tune import tune_grid
 - ✅ py-tune: 36/36 tests - Hyperparameter tuning with grid search
 - ✅ vfold_cv() added to py-rsample for standard k-fold cross-validation
 
+**Phase 3 - IN PROGRESS:**
+- ✅ py-workflowsets: Multi-model comparison framework
+  - ✅ WorkflowSet.from_cross() - Create workflow combinations
+  - ✅ fit_resamples() - Evaluate across CV folds
+  - ✅ collect_metrics() - Aggregate results
+  - ✅ rank_results() - Performance ranking
+  - ✅ autoplot() - Visualization
+  - ✅ Fixed I() transformation support in forge.py
+  - ✅ Example notebook: 11_workflowsets_demo.ipynb
+- ✅ recursive_reg: Recursive/autoregressive forecasting (19 tests)
+  - ✅ skforecast engine with ForecasterRecursive
+  - ✅ Flexible lag specification (int or list)
+  - ✅ Differentiation support for non-stationary data
+  - ✅ Prediction intervals via in-sample residuals
+  - ✅ Works with any sklearn-compatible base model
+  - ✅ Example notebook: 12_recursive_forecasting_demo.ipynb
+- ✅ Panel/Grouped Models: Per-group and global modeling (13 tests)
+  - ✅ fit_nested() - Separate models per group
+  - ✅ fit_global() - Single model with group as feature
+  - ✅ NestedWorkflowFit - Unified interface for grouped predictions
+  - ✅ Works with all model types including recursive_reg
+  - ✅ Three-DataFrame outputs include group column
+  - ✅ Example notebook: 13_panel_models_demo.ipynb
+- ⏳ Additional model types (boost_tree, svm, etc.)
+
 **Example Notebooks:**
 - 01_hardhat_demo.ipynb - Data preprocessing
 - 02_parsnip_demo.ipynb - Linear regression
@@ -388,10 +637,9 @@ from py_tune import tune_grid
 - 08_workflows_demo.ipynb - Workflow pipelines
 - 09_yardstick_demo.ipynb - Model metrics (17 metrics)
 - 10_tune_demo.ipynb - Hyperparameter tuning
-
-**Pending (Phase 3):**
-- py-workflowsets: Compare multiple workflows
-- Additional model types (boost_tree, svm, etc.)
+- 11_workflowsets_demo.ipynb - Multi-model comparison (20 workflows)
+- 12_recursive_forecasting_demo.ipynb - Recursive/autoregressive forecasting
+- 13_panel_models_demo.ipynb - Panel/grouped models (nested and global)
 
 **Detailed Plan:** See `.claude_plans/projectplan.md` for full roadmap and architecture decisions.
 
@@ -513,6 +761,7 @@ def predict_raw(self, fit, new_data, type):
 - **scikit-learn** (1.7.2): sklearn engine backend
 - **prophet** (1.2.1): Facebook's time series forecaster
 - **statsmodels** (0.14.5): Statistical models (ARIMA)
+- **skforecast** (0.18.0): Recursive forecasting engine
 - **pytest** (8.4.2): Testing framework
 
 ## File Organization
@@ -529,20 +778,52 @@ py-tidymodels/
 │   ├── models/          # Model specification functions
 │   │   ├── linear_reg.py
 │   │   ├── prophet_reg.py
-│   │   └── arima_reg.py
+│   │   ├── arima_reg.py
+│   │   └── rand_forest.py
 │   ├── engines/         # Engine implementations
 │   │   ├── sklearn_linear_reg.py
+│   │   ├── sklearn_random_forest.py
 │   │   ├── prophet_engine.py
 │   │   └── statsmodels_arima.py
 │   └── __init__.py
-├── tests/               # Test suite
+├── py_rsample/          # Layer 3: Resampling
+│   ├── initial_split.py
+│   ├── time_series_cv.py
+│   ├── vfold_cv.py
+│   └── split.py
+├── py_workflows/        # Layer 4: Pipelines
+│   └── workflow.py
+├── py_recipes/          # Layer 5: Feature engineering
+│   ├── recipe.py
+│   └── steps/          # 51 preprocessing steps
+├── py_yardstick/        # Layer 6: Model metrics
+│   └── metrics.py      # 17 evaluation metrics
+├── py_tune/             # Layer 7: Hyperparameter tuning
+│   └── tune.py
+├── py_workflowsets/     # Layer 8: Multi-model comparison
+│   └── workflowset.py
+├── tests/               # Test suite (559 tests)
 │   ├── test_hardhat/
-│   └── test_parsnip/
+│   ├── test_parsnip/
+│   ├── test_rsample/
+│   ├── test_workflows/
+│   ├── test_recipes/
+│   ├── test_yardstick/
+│   ├── test_tune/
+│   └── test_workflowsets/
 ├── examples/            # Jupyter notebooks
 │   ├── 01_hardhat_demo.ipynb
 │   ├── 02_parsnip_demo.ipynb
-│   └── 03_time_series_models.ipynb
+│   ├── 03_time_series_models.ipynb
+│   ├── 04_rand_forest_demo.ipynb
+│   ├── 05_recipes_comprehensive_demo.ipynb
+│   ├── 07_rsample_demo.ipynb
+│   ├── 08_workflows_demo.ipynb
+│   ├── 09_yardstick_demo.ipynb
+│   ├── 10_tune_demo.ipynb
+│   └── 11_workflowsets_demo.ipynb
 ├── .claude_plans/       # Project planning documents
+│   └── projectplan.md
 └── requirements.txt     # Dependencies
 ```
 

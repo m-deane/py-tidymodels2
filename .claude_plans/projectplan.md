@@ -1,8 +1,8 @@
 # py-tidymodels Project Plan
-**Version:** 2.5
+**Version:** 2.8
 **Date:** 2025-10-27
 **Last Updated:** 2025-10-27
-**Status:** Phase 2 FULLY COMPLETED - py-recipes (51 steps, 265 tests), py-yardstick (17 metrics, 59 tests), py-tune (8 functions, 36 tests) & py-workflowsets (20 tests) ALL COMPLETED
+**Status:** Phase 4A COMPLETED - Model Expansion: 15 new models added (5 → 20 models total), 317+ new tests, 6 new demo notebooks. Ready for Phase 4B (Dashboard & MLflow).
 
 ## Progress Summary
 
@@ -12,12 +12,17 @@
 
 **Phase 1 Test Count: 188/188 passing** across all core packages and integration tests
 
-### Current Total Project Test Count: **579 tests passing**
+### Current Total Project Test Count: **900+ tests passing**
 - Phase 1 (hardhat, parsnip, rsample, workflows): 188 tests
 - Phase 2 py-recipes: 265 tests
 - Phase 2 py-yardstick: 59 tests
 - Phase 2 py-tune: 36 tests
 - Phase 2 py-workflowsets: 20 tests
+- Phase 3 py-parsnip recursive_reg: 19 tests
+- Phase 3 py-workflows panel models: 13 tests
+- Phase 3 py-visualize: 47+ test classes
+- Phase 3 py-stacks: 10 test classes
+- Phase 4A py-parsnip new models: 317+ tests
 - Integration tests: 11 tests
 
 ### ✅ COMPLETED (Weeks 1-2): py-hardhat
@@ -1899,153 +1904,946 @@ class WorkflowSetResults:
 
 ---
 
-## Phase 3: Advanced Features (Months 9-11)
+## Phase 3: Advanced Features (Months 9-11) - ✅ FULLY COMPLETED
 
 ### Goal
-Recursive forecasting, ensembles, and grouped/panel models.
+Recursive forecasting, ensembles, grouped/panel models, visualization, and model stacking.
+
+### Progress Summary
+- ✅ Recursive Forecasting: COMPLETED (19 tests)
+- ✅ Panel/Grouped Models: COMPLETED (13 tests)
+- ✅ Visualization (py_visualize): COMPLETED (47+ test classes, 4 functions)
+- ✅ Model Stacking (py_stacks): COMPLETED (10 test classes, 3 classes)
 
 ### Packages to Implement
 
-#### 1. Recursive Forecasting (Weeks 23-25)
+#### 1. Recursive Forecasting (Weeks 23-25) - ✅ COMPLETED
 **Purpose:** Enable ML models for multi-step time series forecasting
 
-**Integration with skforecast:**
+**Status:** Fully implemented with 19 tests passing and comprehensive documentation
+
+**What Was Implemented:**
+- ✅ recursive_reg() model specification (py_parsnip/models/recursive_reg.py)
+- ✅ SkforecastRecursiveEngine with skforecast 0.18.0 integration (py_parsnip/engines/skforecast_recursive.py)
+- ✅ ForecasterRecursive for autoregressive forecasting
+- ✅ Support for multiple lag configurations (int or list)
+- ✅ Differentiation parameter (1st and 2nd order)
+- ✅ Prediction intervals via in-sample residuals
+- ✅ Automatic DatetimeIndex frequency inference
+- ✅ Base model mode auto-detection and setting
+- ✅ Three-DataFrame output structure (outputs, coefficients, stats)
+- ✅ Integration with workflows and evaluate()
+- ✅ Demo notebook (12_recursive_forecasting_demo.ipynb)
+- ✅ 19/19 comprehensive tests passing
+
+**Core Architecture:**
 
 ```python
-def recursive(
-    spec: ModelSpec,
-    lags: int | List[int],
-    horizon: int,
-    exogenous: List[str] | None = None
+def recursive_reg(
+    base_model: ModelSpec,
+    lags: Union[int, List[int]] = 1,
+    differentiation: Optional[int] = None,
+    engine: str = "skforecast",
 ) -> ModelSpec:
-    """Wrap model for recursive forecasting"""
+    """Create recursive forecasting model specification.
+
+    Parameters:
+    -----------
+    base_model : ModelSpec
+        Base sklearn-compatible model (linear_reg, rand_forest, etc.)
+    lags : int or list of int
+        Lags to use as features (e.g., 7 for 7 most recent, or [1,7,14])
+    differentiation : int, optional
+        Order of differencing (1 or 2) for non-stationary series
+    engine : str
+        Forecasting engine (default: "skforecast")
+    """
     return ModelSpec(
-        model_type="recursive",
-        engine="skforecast",
-        args=(
-            ("base_spec", spec),
-            ("lags", lags),
-            ("horizon", horizon),
-            ("exogenous", exogenous or [])
-        )
+        model_type="recursive_reg",
+        engine=engine,
+        mode="regression",
+        args={"base_model": base_model, "lags": lags, "differentiation": differentiation}
     )
 
-@register_engine("recursive", "skforecast")
+@register_engine("recursive_reg", "skforecast")
 class SkforecastRecursiveEngine(Engine):
-    """Recursive forecasting via skforecast"""
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
-        from skforecast.ForecasterAutoreg import ForecasterAutoreg
+    """Recursive forecasting via skforecast 0.18.0 ForecasterRecursive"""
 
-        args = dict(spec.args)
-        base_spec = args["base_spec"]
-        lags = args["lags"]
+    def fit_raw(self, spec: ModelSpec, data: pd.DataFrame, formula: str) -> Dict[str, Any]:
+        """Fit using raw data path (bypasses hardhat for date handling)"""
+        from skforecast.recursive import ForecasterRecursive
 
-        # Fit base model first to get sklearn estimator
-        base_fit = base_spec.fit("y ~ .", molded)
+        # Handle DatetimeIndex frequency requirement
+        if isinstance(y.index, pd.DatetimeIndex) and y.index.freq is None:
+            freq = pd.infer_freq(y.index)
+            if freq:
+                y.index = pd.DatetimeIndex(y.index, freq=freq)
+            else:
+                # Fallback: infer from most common difference
+                diffs = y.index[1:] - y.index[:-1]
+                most_common_diff = diffs.value_counts().idxmax()
+                y = y.asfreq(most_common_diff)
 
-        # Wrap in ForecasterAutoreg
-        forecaster = ForecasterAutoreg(
-            regressor=base_fit.fit_data["model"],
-            lags=lags
+        # Ensure base model has mode set
+        if base_model_spec.mode == "unknown":
+            base_model_spec = base_model_spec.set_mode("regression")
+
+        # Create forecaster
+        forecaster = ForecasterRecursive(
+            regressor=base_estimator,
+            lags=lags,
+            differentiation=differentiation
         )
 
-        forecaster.fit(
-            y=molded.outcomes,
-            exog=molded.predictors if molded.predictors.shape[1] > 0 else None
-        )
+        # Fit with in-sample residuals for prediction intervals
+        forecaster.fit(y=y, exog=exog, store_in_sample_residuals=True)
 
-        return {"forecaster": forecaster, "base_spec": base_spec}
+        return {"forecaster": forecaster, ...}
+
+    def predict_raw(self, fit: ModelFit, new_data: pd.DataFrame, type: str) -> pd.DataFrame:
+        """Generate predictions (numeric or pred_int)"""
+        forecaster = fit.fit_data["forecaster"]
+        steps = len(new_data)
+
+        if type == "numeric":
+            predictions = forecaster.predict(steps=steps, exog=exog)
+            return pd.DataFrame({".pred": predictions.values}, index=predictions.index)
+
+        elif type == "pred_int":
+            predictions = forecaster.predict_interval(steps=steps, exog=exog, alpha=0.05)
+            return pd.DataFrame({
+                ".pred": predictions["pred"].values,
+                ".pred_lower": predictions["lower_bound"].values,
+                ".pred_upper": predictions["upper_bound"].values
+            }, index=predictions.index)
 ```
 
+**Key Features:**
+- Works with any sklearn-compatible base model (linear_reg, rand_forest, etc.)
+- Automatic lag feature creation from time series
+- Multi-step ahead forecasting with recursive strategy
+- Prediction intervals via bootstrapped residuals
+- Handles both stationary and non-stationary series
+- Date-indexed outputs for time series continuity
+
 **Tasks:**
-- [ ] Implement recursive() wrapper
-- [ ] Create SkforecastRecursiveEngine
-- [ ] Add ForecasterMultiSeries for panel data
-- [ ] Add backtesting utilities
-- [ ] Test with RF, XGBoost, LightGBM
-- [ ] Write tests
-- [ ] Document
+- [x] Implement recursive_reg() specification ✅
+- [x] Create SkforecastRecursiveEngine ✅
+- [x] Add fit_raw/predict_raw for date handling ✅
+- [x] Handle DatetimeIndex frequency requirements ✅
+- [x] Support multiple lag specifications ✅
+- [x] Add differentiation parameter ✅
+- [x] Implement prediction intervals ✅
+- [x] Test with linear_reg and rand_forest ✅
+- [x] Write comprehensive tests (19 tests) ✅
+- [x] Create demo notebook ✅
+- [ ] Add ForecasterMultiSeries for panel data - DEFERRED to future
+- [ ] Add backtesting utilities - DEFERRED to future
 
 ---
 
-#### 2. Panel/Grouped Models (Weeks 26-28)
+#### 2. Panel/Grouped Models (Weeks 26-28) - ✅ COMPLETED
 **Purpose:** Fit models to grouped time series data
+
+**Status:** Fully implemented with 13 tests passing and comprehensive documentation
+
+**What Was Implemented:**
+- ✅ fit_nested() method on Workflow class for per-group modeling
+- ✅ NestedWorkflowFit class for managing multiple group models
+- ✅ fit_global() method for single model with group as feature
+- ✅ Unified predict() interface for nested models
+- ✅ Group-aware evaluate() method
+- ✅ extract_outputs() with group column added to all DataFrames
+- ✅ Critical bug fix: date-index conversion only for recursive models
+- ✅ Demo notebook (13_panel_models_demo.ipynb)
+- ✅ 13/13 comprehensive tests passing
 
 **Nested Approach (fit per group):**
 
 ```python
-class NestedWorkflowSet:
-    """Fit workflows separately to each group"""
-    def fit_nested(self, data: pd.DataFrame, group_by: str) -> NestedResults:
-        results = []
-        for group_val in data[group_by].unique():
-            group_data = data[data[group_by] == group_val]
-
-            for wf_id, wf in self.workflows.items():
-                wf_fit = wf.fit(group_data)
-                # ... collect results with group_id
-
-        return NestedResults(results)
-```
-
-**Global Approach (single model):**
-
-```python
-# User specifies group as feature
+# Fit separate model for each group
 wf = (
     workflow()
-    .add_formula("sales ~ date + price + store_id")
-    .add_model(rand_forest().set_engine("sklearn"))
+    .add_formula("sales ~ time")
+    .add_model(linear_reg())
 )
 
-# Fit single model
-wf_fit = wf.fit(data)
+nested_fit = wf.fit_nested(data, group_col="store_id")
+
+# Predictions automatically routed to correct group model
+predictions = nested_fit.predict(test_data)  # test_data must have store_id column
+
+# Evaluate all groups
+nested_fit = nested_fit.evaluate(test_data)
+
+# Extract outputs with group column
+outputs, coefficients, stats = nested_fit.extract_outputs()
+# All DataFrames have "store_id" column for group-wise analysis
+
+@dataclass
+class NestedWorkflowFit:
+    """Fitted workflow with separate models for each group."""
+    workflow: Workflow
+    group_col: str
+    group_fits: dict  # {group_value: WorkflowFit}
+
+    def predict(self, new_data: pd.DataFrame, type: str = "numeric") -> pd.DataFrame:
+        """Predict for all groups in new_data"""
+        # Routes to appropriate group model based on group_col value
+        all_preds = []
+        for group_val in new_data[self.group_col].unique():
+            group_data = new_data[new_data[self.group_col] == group_val]
+            group_fit = self.group_fits[group_val]
+            preds = group_fit.predict(group_data.drop(columns=[self.group_col]))
+            preds[self.group_col] = group_val
+            all_preds.append(preds)
+        return pd.concat(all_preds, ignore_index=True)
+
+    def evaluate(self, test_data: pd.DataFrame, outcome_col: Optional[str] = None):
+        """Evaluate all group models on test data"""
+        for group_val, group_fit in self.group_fits.items():
+            group_test = test_data[test_data[self.group_col] == group_val]
+            self.group_fits[group_val] = group_fit.evaluate(group_test, outcome_col)
+        return self
+
+    def extract_outputs(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Combine outputs from all groups with group column"""
+        all_outputs, all_coeffs, all_stats = [], [], []
+        for group_val, group_fit in self.group_fits.items():
+            outputs, coeffs, stats = group_fit.extract_outputs()
+            outputs[self.group_col] = group_val
+            coeffs[self.group_col] = group_val
+            stats[self.group_col] = group_val
+            all_outputs.append(outputs)
+            all_coeffs.append(coeffs)
+            all_stats.append(stats)
+        return (
+            pd.concat(all_outputs, ignore_index=True),
+            pd.concat(all_coeffs, ignore_index=True),
+            pd.concat(all_stats, ignore_index=True)
+        )
 ```
+
+**Global Approach (single model with group as feature):**
+
+```python
+# User specifies group as feature in formula
+wf = (
+    workflow()
+    .add_formula("sales ~ time + store_id")  # store_id as predictor
+    .add_model(rand_forest().set_mode("regression"))
+)
+
+# Fit single model to all data
+global_fit = wf.fit_global(data, group_col="store_id")
+# fit_global() ensures group column is included as feature
+
+# Normal WorkflowFit prediction
+predictions = global_fit.predict(test_data)
+```
+
+**Critical Bug Fix:**
+Initially, the fit_nested() method was setting the date column as index for ALL models, which caused formulas like `sales ~ date` to fail because the date column was no longer accessible. Fixed by only applying date-index conversion when the model is a recursive_reg:
+
+```python
+# BEFORE (broken):
+group_data = group_data.set_index("date")  # Applied to all models!
+
+# AFTER (fixed):
+is_recursive = self.spec and self.spec.model_type == "recursive_reg"
+if is_recursive and "date" in group_data.columns:
+    group_data = group_data.set_index("date")  # Only for recursive models
+```
+
+**Tasks:**
+- [x] Implement fit_nested() method on Workflow ✅
+- [x] Create NestedWorkflowFit class ✅
+- [x] Implement fit_global() method ✅
+- [x] Add predict() for nested models ✅
+- [x] Add evaluate() for nested models ✅
+- [x] Add extract_outputs() with group column ✅
+- [x] Fix date-index conversion bug ✅
+- [x] Write comprehensive tests (13 tests) ✅
+- [x] Create demo notebook ✅
+- [x] Test with both nested and global approaches ✅
 
 ---
 
-#### 3. py-stacks (Weeks 29-30)
-**Purpose:** Model ensembling via stacking
+#### 3. Visualization (py_visualize) (Weeks 29-30) - ✅ COMPLETED
+**Purpose:** Interactive Plotly visualizations for model analysis
+
+**Status:** Fully implemented with 47+ test classes and comprehensive documentation
+
+**What Was Implemented:**
+
+**1. plot_forecast() - Time Series Forecasting Visualization**
+- Interactive Plotly-based time series plots
+- Train/test split visualization with distinct colors
+- Forecast values with prediction intervals as shaded regions
+- Support for both single models and nested/grouped models
+- Automatic subplot creation for grouped data
+- Date-aware x-axis with automatic formatting
+- Customizable title, height, width, and legend
+
+**2. plot_residuals() - Diagnostic Plots**
+- Four diagnostic plot modes:
+  - "all": 2x2 grid with all diagnostic plots
+  - "fitted": Residuals vs fitted values with LOWESS smoothing
+  - "qq": Q-Q plot for normality check
+  - "time": Residuals vs time (for time series)
+  - "hist": Histogram of residuals with normal curve overlay
+- LOWESS smoothing for trend detection in residuals
+- Shapiro-Wilk test for normality assessment
+- Customizable dimensions and styling
+
+**3. plot_model_comparison() - Multi-Model Comparison**
+- Three visualization modes:
+  - "bar": Grouped bar charts for metric comparison
+  - "heatmap": Heatmap for many models × many metrics
+  - "radar": Radar chart with normalized metrics
+- Automatic metric selection from stats DataFrames
+- Train/test split comparison
+- Interactive tooltips with exact values
+- Support for custom metric lists
+
+**4. plot_tune_results() - Hyperparameter Tuning**
+- Automatic plot type selection based on parameter count:
+  - 1 parameter → Line plot with error bands
+  - 2 parameters → Heatmap
+  - 3+ parameters → Parallel coordinates
+- Scatter plot matrix option for visualizing correlations
+- Highlight top N best configurations
+- Color-coded by metric performance
+- Support for all TuneResults objects
+
+**Core Architecture:**
+
+```python
+# py_visualize/__init__.py
+from .forecast import plot_forecast
+from .residuals import plot_residuals
+from .comparison import plot_model_comparison
+from .tuning import plot_tune_results
+
+__all__ = [
+    "plot_forecast",
+    "plot_residuals",
+    "plot_model_comparison",
+    "plot_tune_results",
+]
+
+# Example usage
+import plotly.graph_objects as go
+
+def plot_forecast(
+    fit,  # WorkflowFit or NestedWorkflowFit
+    prediction_intervals: bool = True,
+    title: Optional[str] = None,
+    height: int = 500,
+    width: Optional[int] = None,
+    show_legend: bool = True
+) -> go.Figure:
+    """Create interactive forecast plot with train/test/forecast."""
+    outputs, _, _ = fit.extract_outputs()
+
+    # Detect nested fit
+    from py_workflows.workflow import NestedWorkflowFit
+    is_nested = isinstance(fit, NestedWorkflowFit)
+
+    if is_nested:
+        # Create subplots for each group
+        return _plot_forecast_nested(...)
+    else:
+        # Single plot
+        return _plot_forecast_single(...)
+
+def plot_residuals(
+    fit,
+    plot_type: str = "all",  # "all", "fitted", "qq", "time", "hist"
+    title: Optional[str] = None,
+    height: int = 600,
+    width: Optional[int] = None
+) -> go.Figure:
+    """Create residual diagnostic plots."""
+    outputs, _, _ = fit.extract_outputs()
+
+    if plot_type == "all":
+        # 2x2 grid with 4 diagnostic plots
+        return _plot_all_diagnostics(...)
+    elif plot_type == "fitted":
+        # Residuals vs fitted with LOWESS
+        return _plot_residuals_fitted(...)
+    # ... other modes
+
+def plot_model_comparison(
+    stats_list: List[pd.DataFrame],
+    model_names: Optional[List[str]] = None,
+    metrics: Optional[List[str]] = None,
+    split: str = "test",
+    plot_type: str = "bar",  # "bar", "heatmap", "radar"
+    ...
+) -> go.Figure:
+    """Compare multiple models by performance metrics."""
+    comparison_df = _prepare_comparison_data(stats_list, model_names, metrics, split)
+
+    if plot_type == "bar":
+        return _plot_bar_comparison(...)
+    elif plot_type == "heatmap":
+        return _plot_heatmap_comparison(...)
+    elif plot_type == "radar":
+        return _plot_radar_comparison(...)
+
+def plot_tune_results(
+    tune_results,  # TuneResults
+    metric: str = "rmse",
+    plot_type: str = "auto",  # "auto", "line", "heatmap", "parallel", "scatter"
+    show_best: Optional[int] = None,
+    ...
+) -> go.Figure:
+    """Visualize hyperparameter tuning results."""
+    results_df = tune_results.results.copy()
+
+    # Auto-select plot type
+    if plot_type == "auto":
+        n_params = len(param_cols)
+        if n_params == 1: plot_type = "line"
+        elif n_params == 2: plot_type = "heatmap"
+        else: plot_type = "parallel"
+
+    # Create appropriate visualization
+    # ...
+```
+
+**Key Features:**
+- All plots are interactive (Plotly)
+- Seamless integration with py-tidymodels three-DataFrame structure
+- Support for nested/grouped models
+- Automatic subplot creation for grouped data
+- Customizable dimensions, colors, and styling
+- Publication-ready visualizations
+
+**Test Coverage:**
+- **47+ test classes** across 4 test files
+- tests/test_visualize/test_plot_forecast.py (11 test classes)
+- tests/test_visualize/test_plot_residuals.py (11 test classes)
+- tests/test_visualize/test_plot_comparison.py (13 test classes)
+- tests/test_visualize/test_plot_tuning.py (12 test classes)
+- Comprehensive edge case handling
+- All imports verified
+
+**Tasks:**
+- [x] Implement plot_forecast() ✅
+- [x] Implement plot_residuals() ✅
+- [x] Implement plot_model_comparison() ✅
+- [x] Implement plot_tune_results() ✅
+- [x] Add support for nested/grouped models ✅
+- [x] Create 2x2 diagnostic grid ✅
+- [x] Add LOWESS smoothing ✅
+- [x] Add Q-Q plots ✅
+- [x] Add multiple comparison modes (bar, heatmap, radar) ✅
+- [x] Add automatic plot type selection ✅
+- [x] Write comprehensive tests (47+ test classes) ✅
+- [x] Create demo notebook (14_visualization_demo.ipynb) ✅
+
+**Demo Notebook:**
+- `examples/14_visualization_demo.ipynb` - Comprehensive demonstrations of all 4 functions
+
+**Architecture:**
+
+```python
+# py_visualize/forecast.py
+def plot_forecast(
+    fit: Union[WorkflowFit, NestedWorkflowFit],
+    test_data: pd.DataFrame = None,
+    prediction_intervals: bool = True,
+    title: str = None
+) -> go.Figure:
+    """Create interactive forecast plot with Plotly"""
+    outputs, _, _ = fit.extract_outputs()
+
+    fig = go.Figure()
+
+    # Add training data
+    train_data = outputs[outputs["split"] == "train"]
+    fig.add_trace(go.Scatter(
+        x=train_data["date"], y=train_data["actuals"],
+        name="Training Data", mode="lines"
+    ))
+
+    # Add predictions
+    fig.add_trace(go.Scatter(
+        x=train_data["date"], y=train_data["fitted"],
+        name="Fitted Values", mode="lines"
+    ))
+
+    # Add test predictions if available
+    if "test" in outputs["split"].values:
+        test_data = outputs[outputs["split"] == "test"]
+        fig.add_trace(go.Scatter(
+            x=test_data["date"], y=test_data["forecast"],
+            name="Forecast", mode="lines"
+        ))
+
+        # Add prediction intervals
+        if prediction_intervals and ".pred_lower" in outputs.columns:
+            fig.add_trace(go.Scatter(
+                x=test_data["date"], y=test_data[".pred_upper"],
+                fill=None, mode="lines", line={"width": 0},
+                showlegend=False
+            ))
+            fig.add_trace(go.Scatter(
+                x=test_data["date"], y=test_data[".pred_lower"],
+                fill="tonexty", mode="lines", line={"width": 0},
+                name="95% Prediction Interval"
+            ))
+
+    fig.update_layout(title=title or "Forecast Plot", xaxis_title="Date", yaxis_title="Value")
+    return fig
+
+# py_visualize/residuals.py
+def plot_residuals(
+    fit: Union[WorkflowFit, NestedWorkflowFit],
+    plot_type: str = "all"
+) -> go.Figure:
+    """Create residual diagnostic plots"""
+    outputs, _, _ = fit.extract_outputs()
+    residuals = outputs[outputs["split"] == "train"]["residuals"]
+    fitted = outputs[outputs["split"] == "train"]["fitted"]
+
+    if plot_type == "all":
+        # Create 2x2 subplot with all diagnostics
+        from plotly.subplots import make_subplots
+        fig = make_subplots(rows=2, cols=2, subplot_titles=(
+            "Residuals vs Fitted", "Q-Q Plot",
+            "Residuals vs Time", "Histogram"
+        ))
+        # ... add all four plots
+        return fig
+    elif plot_type == "fitted":
+        # Just residuals vs fitted
+        pass
+    # ... other options
+
+# py_visualize/comparison.py
+def plot_model_comparison(
+    stats_list: List[pd.DataFrame],
+    model_names: List[str],
+    metrics: List[str] = ["rmse", "mae", "r_squared"]
+) -> go.Figure:
+    """Compare multiple models by metrics"""
+    # Bar chart grouped by model and split
+    fig = go.Figure()
+    for metric in metrics:
+        # Add bars for each model
+        pass
+    return fig
+
+# py_visualize/tuning.py
+def plot_tune_results(
+    tune_results: TuneResults,
+    metric: str = "rmse",
+    plot_type: str = "line"
+) -> go.Figure:
+    """Visualize hyperparameter tuning results"""
+    # Extract tuning results
+    results_df = tune_results.show_best(n=100)
+
+    if plot_type == "line":
+        # Line plot for single parameter
+        pass
+    elif plot_type == "heatmap":
+        # Heatmap for 2 parameters
+        pass
+    elif plot_type == "parallel":
+        # Parallel coordinates for 3+ parameters
+        pass
+
+    return fig
+```
+
+**Tasks:**
+- [ ] Create py_visualize package structure
+- [ ] Implement plot_forecast() with Plotly
+- [ ] Implement plot_residuals() with all diagnostics
+- [ ] Implement plot_model_comparison() for metrics
+- [ ] Implement plot_tune_results() for hyperparameters
+- [ ] Write comprehensive tests (40+ tests)
+- [ ] Create demo notebook (14_visualization_demo.ipynb)
+- [ ] Add integration with extract_outputs() structure
+- [ ] Support for both single and nested workflow fits
+
+**Success Criteria:**
+- ⏸️ All plots are interactive with Plotly
+- ⏸️ Automatic handling of date-indexed data
+- ⏸️ Support for both WorkflowFit and NestedWorkflowFit
+- ⏸️ Clear, publication-ready defaults
+- ⏸️ Easy customization options
+- ⏸️ Integration with three-DataFrame output structure
+
+---
+
+#### 4. py-stacks (Weeks 31-32) - ✅ COMPLETED
+**Purpose:** Model ensembling via meta-learning (stacking)
 
 **Replaces modeltime.ensemble!**
 
+**Status:** Fully implemented with 10 test classes and comprehensive documentation
+
+**What Was Implemented:**
+
+**Core Classes:**
+
+1. **stacks()** - Factory function to create empty ensemble
+2. **Stacks** - Container class with `add_candidates()` and `blend_predictions()`
+3. **BlendedStack** - Fitted ensemble with `get_model_weights()`, `get_metrics()`, and `compare_to_candidates()`
+
+**Key Architecture:**
+
 ```python
-def stacks():
-    """Create stacking ensemble"""
-    return Stacks()
+# py_stacks/__init__.py
+from .stacks import stacks, Stacks, BlendedStack
 
+__all__ = ["stacks", "Stacks", "BlendedStack"]
+
+# py_stacks/stacks.py
+@dataclass
 class Stacks:
-    def add_candidates(self, workflow_set_results):
-        """Add base models"""
-        pass
+    """Model stacking/ensembling container."""
+    candidates: List[pd.DataFrame] = field(default_factory=list)
+    candidate_names: List[str] = field(default_factory=list)
+    meta_learner: Optional[Any] = None
+    blend_fit: Optional["BlendedStack"] = None
 
-    def blend_predictions(self, penalty: float = 0.01):
-        """Fit meta-learner"""
-        pass
+    def add_candidates(
+        self,
+        results,  # WorkflowSetResults or DataFrame
+        name: Optional[str] = None
+    ) -> "Stacks":
+        """Add base model predictions as candidates.
+
+        Accepts either:
+        - WorkflowSetResults (calls collect_predictions())
+        - DataFrame with .pred and actual columns
+
+        Auto-generates name if not provided.
+        Returns self for method chaining.
+        """
+        try:
+            predictions = results.collect_predictions()
+        except AttributeError:
+            predictions = results  # Already a DataFrame
+
+        if name is None:
+            name = f"candidates_{len(self.candidates) + 1}"
+
+        self.candidates.append(predictions)
+        self.candidate_names.append(name)
+        return self
+
+    def blend_predictions(
+        self,
+        penalty: float = 0.01,
+        mixture: float = 1.0,
+        non_negative: bool = True,
+        metric: Optional[Any] = None
+    ) -> "BlendedStack":
+        """Fit meta-learner with elastic net regularization.
+
+        Parameters:
+        -----------
+        penalty : float
+            Regularization strength (alpha in sklearn)
+        mixture : float
+            Elastic net mixing (1.0=Lasso, 0.0=Ridge)
+        non_negative : bool
+            Constrain weights to be non-negative (interpretability)
+        metric : optional
+            Metric to optimize (default: RMSE)
+
+        Returns:
+        --------
+        BlendedStack with fitted meta-learner
+        """
+        if len(self.candidates) == 0:
+            raise ValueError("No candidates added. Use add_candidates() first.")
+
+        # Prepare meta-features and target
+        meta_X, meta_y, feature_names = self._prepare_meta_features()
+
+        # Fit meta-learner
+        from sklearn.linear_model import ElasticNet
+
+        meta_learner = ElasticNet(
+            alpha=penalty,
+            l1_ratio=mixture,
+            positive=non_negative,
+            fit_intercept=True,
+            max_iter=10000,
+            random_state=42
+        )
+
+        meta_learner.fit(meta_X, meta_y)
+
+        self.meta_learner = meta_learner
+        self.blend_fit = BlendedStack(
+            stacks=self,
+            meta_learner=meta_learner,
+            feature_names=feature_names
+        )
+
+        return self.blend_fit
+
+    def _prepare_meta_features(self) -> Tuple[pd.DataFrame, pd.Series, List[str]]:
+        """Prepare meta-features from candidate predictions.
+
+        Returns:
+        --------
+        meta_X : DataFrame
+            Meta-features (one column per base model prediction)
+        meta_y : Series
+            Actual values (target for meta-learner)
+        feature_names : list of str
+            Names of features (model identifiers)
+        """
+        meta_features = []
+        feature_names = []
+
+        for i, (candidate_df, candidate_name) in enumerate(zip(self.candidates, self.candidate_names)):
+            # Handle .config column for multiple models
+            if ".config" in candidate_df.columns:
+                configs = candidate_df[".config"].unique()
+                for config in configs:
+                    config_preds = candidate_df[candidate_df[".config"] == config]
+                    meta_features.append(config_preds[".pred"].values)
+                    feature_names.append(f"{candidate_name}_{config}")
+            else:
+                meta_features.append(candidate_df[".pred"].values)
+                feature_names.append(candidate_name)
+
+        # Stack into DataFrame
+        meta_X = pd.DataFrame(
+            np.column_stack(meta_features),
+            columns=feature_names
+        )
+
+        # Extract actual values
+        if "actual" in self.candidates[0].columns:
+            meta_y = pd.Series(self.candidates[0]["actual"].values)
+        elif "actuals" in self.candidates[0].columns:
+            meta_y = pd.Series(self.candidates[0]["actuals"].values)
+        else:
+            possible_cols = [col for col in self.candidates[0].columns
+                           if col not in [".pred", ".config", "split"]]
+            if len(possible_cols) > 0:
+                meta_y = pd.Series(self.candidates[0][possible_cols[0]].values)
+            else:
+                raise ValueError("Could not find actual values column")
+
+        return meta_X, meta_y, feature_names
+
+
+@dataclass
+class BlendedStack:
+    """Fitted stacked ensemble."""
+    stacks: Stacks
+    meta_learner: Any
+    feature_names: List[str]
+
+    def get_model_weights(self) -> pd.DataFrame:
+        """Extract and interpret meta-learner weights.
+
+        Returns:
+        --------
+        DataFrame with columns:
+        - model: Model name
+        - weight: Meta-learner coefficient
+        - contribution_pct: Percentage contribution to ensemble
+
+        Sorted by weight (descending by absolute value).
+        """
+        weights = pd.DataFrame({
+            "model": self.feature_names,
+            "weight": self.meta_learner.coef_
+        })
+
+        # Add intercept
+        intercept_row = pd.DataFrame({
+            "model": ["(Intercept)"],
+            "weight": [self.meta_learner.intercept_]
+        })
+
+        weights = pd.concat([weights, intercept_row], ignore_index=True)
+
+        # Sort by absolute weight (excluding intercept)
+        weights = weights.iloc[:-1].sort_values("weight", ascending=False, key=abs)
+        weights = pd.concat([weights, intercept_row], ignore_index=True)
+
+        # Add contribution percentages
+        total_weight = weights.iloc[:-1]["weight"].abs().sum()
+        if total_weight > 0:
+            weights.loc[weights.index[:-1], "contribution_pct"] = (
+                weights.iloc[:-1]["weight"].abs() / total_weight * 100
+            )
+        else:
+            weights.loc[weights.index[:-1], "contribution_pct"] = 0.0
+
+        weights.loc[weights.index[-1], "contribution_pct"] = np.nan
+
+        return weights
+
+    def get_metrics(self) -> pd.DataFrame:
+        """Calculate ensemble performance metrics.
+
+        Returns:
+        --------
+        DataFrame with columns:
+        - metric: Metric name (rmse, mae, r_squared)
+        - value: Metric value
+
+        Metrics calculated on training/CV data.
+        """
+        meta_X, meta_y, _ = self.stacks._prepare_meta_features()
+        ensemble_preds = self.meta_learner.predict(meta_X)
+
+        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+        metrics = pd.DataFrame({
+            "metric": ["rmse", "mae", "r_squared"],
+            "value": [
+                np.sqrt(mean_squared_error(meta_y, ensemble_preds)),
+                mean_absolute_error(meta_y, ensemble_preds),
+                r2_score(meta_y, ensemble_preds)
+            ]
+        })
+
+        return metrics
+
+    def compare_to_candidates(self) -> pd.DataFrame:
+        """Compare ensemble performance to individual base models.
+
+        Returns:
+        --------
+        DataFrame with columns:
+        - model: Model name (Ensemble + all candidates)
+        - rmse, mae, r_squared: Performance metrics
+
+        Sorted by RMSE (ascending).
+        """
+        meta_X, meta_y, feature_names = self.stacks._prepare_meta_features()
+
+        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+        all_metrics = []
+
+        # Ensemble metrics
+        ensemble_preds = self.meta_learner.predict(meta_X)
+        all_metrics.append({
+            "model": "Ensemble",
+            "rmse": np.sqrt(mean_squared_error(meta_y, ensemble_preds)),
+            "mae": mean_absolute_error(meta_y, ensemble_preds),
+            "r_squared": r2_score(meta_y, ensemble_preds)
+        })
+
+        # Individual candidate metrics
+        for i, feature_name in enumerate(feature_names):
+            candidate_preds = meta_X.iloc[:, i]
+            all_metrics.append({
+                "model": feature_name,
+                "rmse": np.sqrt(mean_squared_error(meta_y, candidate_preds)),
+                "mae": mean_absolute_error(meta_y, candidate_preds),
+                "r_squared": r2_score(meta_y, candidate_preds)
+            })
+
+        comparison = pd.DataFrame(all_metrics)
+        comparison = comparison.sort_values("rmse")
+
+        return comparison
+
+# Example usage:
+ensemble = (
+    stacks()
+    .add_candidates(pred1, name="linear")
+    .add_candidates(pred2, name="ridge")
+    .add_candidates(pred3, name="random_forest")
+    .blend_predictions(penalty=0.01, non_negative=True)
+)
+
+# Get model weights with contribution percentages
+weights = ensemble.get_model_weights()
+print(weights)
+
+# Compare ensemble to individual models
+comparison = ensemble.compare_to_candidates()
+print(comparison)
 ```
 
----
+**Key Features:**
+- Elastic net meta-learning with sklearn
+- Non-negative constraint for interpretability
+- Method chaining support throughout
+- Automatic meta-feature preparation
+- Model weight extraction with contribution percentages
+- Ensemble vs candidates comparison
+- Handles both single and multiple configurations per candidate
 
-#### 4. Visualization (Weeks 31-32)
-**Purpose:** Interactive Plotly visualizations
+**Test Coverage:**
+- **10 test classes** with 30+ test methods
+- tests/test_stacks/test_stacks.py
+- Test coverage includes:
+  - Creating stacks objects
+  - Adding candidates (single and multiple)
+  - Blending predictions with different penalty values
+  - Getting model weights and contribution percentages
+  - Getting ensemble metrics (RMSE, MAE, R²)
+  - Comparing ensemble to individual candidates
+  - Edge cases (single candidate, many candidates, perfect predictions)
 
-**Required Plots:**
-- [ ] `plot_forecast()` - Time series with intervals
-- [ ] `plot_residuals()` - Diagnostic plots
-- [ ] `plot_model_comparison()` - Metric comparison
-- [ ] `plot_tune_results()` - Hyperparameter plots
+**Tasks:**
+- [x] Create py_stacks package structure ✅
+- [x] Implement Stacks class with add_candidates() ✅
+- [x] Implement blend_predictions() with elastic net meta-learner ✅
+- [x] Implement BlendedStack class for fitted ensembles ✅
+- [x] Add get_model_weights() for interpretability ✅
+- [x] Add get_metrics() for ensemble evaluation ✅
+- [x] Add compare_to_candidates() for model comparison ✅
+- [x] Write comprehensive tests (10 test classes) ✅
+- [x] Create demo notebook (15_stacks_demo.ipynb) ✅
+- [x] Test with multiple base model types ✅
+- [x] Add contribution percentages to weights ✅
+- [x] Handle .config column for multiple models per candidate ✅
+
+**Success Criteria:**
+- ✅ Can ensemble 5+ base models
+- ✅ Meta-learner finds optimal non-negative weights
+- ✅ Ensemble performance quantified via get_metrics()
+- ✅ Comparison to individual models via compare_to_candidates()
+- ✅ Clear interpretation of model contributions (weights + percentages)
+- ✅ Method chaining throughout API
+- ✅ All imports verified
+
+**Demo Notebook:**
+- `examples/15_stacks_demo.ipynb` - Comprehensive model stacking workflow with 5 base models
 
 ---
 
 ### Phase 3 Documentation
 
 **Documentation Deliverables:**
-- [ ] Tutorial: `05_recursive_forecasting.ipynb`
-- [ ] Tutorial: `06_panel_data_modeling.ipynb`
-- [ ] Tutorial: `07_model_ensembling.ipynb`
-- [ ] Tutorial: `08_visualization.ipynb`
-- [ ] Demos for each feature
-- [ ] Update requirements.txt
+- [x] Tutorial: `12_recursive_forecasting_demo.ipynb` ✅
+- [x] Tutorial: `13_panel_models_demo.ipynb` ✅
+- [x] Tutorial: `15_stacks_demo.ipynb` ✅
+- [x] Tutorial: `14_visualization_demo.ipynb` ✅
+- [x] Demos for each feature ✅
+- [ ] Update requirements.txt - Pending
+
+**Phase 3 Summary:**
+All 4 Phase 3 features have been fully implemented, tested, and documented:
+1. Recursive forecasting with skforecast integration (19 tests)
+2. Panel/grouped models with nested and global approaches (13 tests)
+3. Interactive visualization with Plotly (47+ test classes, 4 functions)
+4. Model stacking with elastic net meta-learning (10 test classes, 3 classes)
+
+Total demo notebooks: 4 comprehensive tutorials
 
 ---
 
@@ -2054,11 +2852,55 @@ class Stacks:
 ### Goal
 Production-ready with dashboard and MLflow integration.
 
-### Features
+### Phase 4A: Model Expansion (COMPLETED ✅)
+
+**Completed: 15 new models added, bringing total from 5 → 20 models**
+
+#### ✅ Baseline Models (2 models)
+- [x] null_model (mean/median baseline)
+- [x] naive_reg (naive, seasonal_naive, drift forecasting)
+
+#### ✅ Gradient Boosting (3 engines for boost_tree)
+- [x] XGBoost engine
+- [x] LightGBM engine
+- [x] CatBoost engine
+
+#### ✅ sklearn Regression Models (5 models)
+- [x] decision_tree (DecisionTreeRegressor)
+- [x] nearest_neighbor (KNeighborsRegressor)
+- [x] svm_rbf (RBF kernel SVM)
+- [x] svm_linear (Linear SVM)
+- [x] mlp (Multi-layer Perceptron)
+
+#### ✅ Time Series Models (2 models)
+- [x] exp_smoothing (Exponential Smoothing / ETS)
+- [x] seasonal_reg (STL decomposition)
+
+#### ✅ Hybrid Time Series Models (2 models)
+- [x] arima_boost (ARIMA + XGBoost)
+- [x] prophet_boost (Prophet + XGBoost)
+
+#### ✅ Advanced Regression (3 models)
+- [x] mars (Multivariate Adaptive Regression Splines)
+- [x] poisson_reg (Poisson GLM for count data)
+- [x] gen_additive_mod (Generalized Additive Models)
+
+#### ✅ Documentation & Testing
+- [x] 317+ new tests (100% passing)
+- [x] 6 new demo notebooks (16-21)
+- [x] Updated README with all 20 models
+- [x] Comprehensive implementation summary (.claude_research/PHASE_4A_IMPLEMENTATION_SUMMARY.md)
+
+**Phase 4A Achievements:**
+- Total models: 5 → 20 (300% increase)
+- Total tests: 657 → 900+ tests
+- Total engines: 6 → 10 engine types
+- Total notebooks: 15 → 21 demos
+- Lines of code added: ~15,500 lines
+
+### Phase 4B: Dashboard & MLflow (NEXT)
 
 #### 1. Additional Engines
-- [ ] LightGBM engine
-- [ ] CatBoost engine
 - [ ] pmdarima (auto_arima) engine
 
 #### 2. Interactive Dashboard (Dash + Plotly)
