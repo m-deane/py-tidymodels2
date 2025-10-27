@@ -31,16 +31,18 @@ python -m ipykernel install --user --name=py-tidymodels2
 # Activate venv first
 source py-tidymodels2/bin/activate
 
-# All tests
+# All tests (559 tests passing as of 2025-10-27)
 python -m pytest tests/ -v
 
 # Specific test modules
 python -m pytest tests/test_hardhat/test_mold_forge.py -v
 python -m pytest tests/test_parsnip/test_linear_reg.py -v
-python -m pytest tests/test_parsnip/test_prophet_reg.py -v
+python -m pytest tests/test_recipes/test_recipe.py -v
+python -m pytest tests/test_yardstick/test_metrics.py -v
+python -m pytest tests/test_tune/test_tune.py -v
 
 # With coverage
-python -m pytest tests/ --cov=py_hardhat --cov=py_parsnip --cov-report=html
+python -m pytest tests/ --cov=py_hardhat --cov=py_parsnip --cov=py_recipes --cov=py_yardstick --cov=py_tune --cov-report=html
 ```
 
 ### Running Examples
@@ -56,7 +58,9 @@ jupyter notebook
 # - 02_parsnip_demo.ipynb - Linear regression with sklearn
 # - 03_time_series_models.ipynb - Prophet and ARIMA models
 # - 04_rand_forest_demo.ipynb - Random Forest (regression & classification)
-# - 05_time_series_forecasting_demo.ipynb - Time series forecasting with all models
+# - 05_recipes_comprehensive_demo.ipynb - Feature engineering with recipes (51 steps)
+# - 09_yardstick_demo.ipynb - Model evaluation metrics (17 metrics)
+# - 10_tune_demo.ipynb - Hyperparameter tuning with grid search
 ```
 
 ## Architecture Overview
@@ -142,13 +146,122 @@ The project follows a layered architecture inspired by R's tidymodels:
 - `py_parsnip/engines/` - Engine implementations
 - `tests/test_parsnip/` - 22+ tests passing
 
-### Layer 3: py-rsample (Resampling) - PENDING
-**Purpose:** Time series cross-validation and resampling.
+### Layer 3: py-rsample (Resampling)
+**Purpose:** Train/test splitting and cross-validation for time series and general data.
 
-**Planned:** Rolling/expanding window CV, period parsing ("1 year", "3 months")
+**Key Functions:**
+- **initial_time_split()**: Chronological train/test split with period parsing
+- **time_series_cv()**: Rolling/expanding window cross-validation
+- **vfold_cv()**: Standard k-fold cross-validation with stratification support
 
-### Layer 4: py-workflows (Pipelines) - PENDING
+**Features:**
+- Period parsing: "2 years", "6 months", etc.
+- Explicit date ranges (absolute, relative, mixed)
+- Stratified sampling for classification
+- Repeated CV support
+
+**Files:**
+- `py_rsample/initial_split.py` - Initial time-based splits
+- `py_rsample/time_series_cv.py` - Time series CV
+- `py_rsample/vfold_cv.py` - K-fold CV
+- `py_rsample/split.py` - Split and RSplit classes
+- `tests/test_rsample/` - 35+ tests passing
+
+### Layer 4: py-workflows (Pipelines)
 **Purpose:** Compose preprocessing + model + postprocessing into unified workflow.
+
+**Key Classes:**
+- **Workflow**: Immutable workflow specification
+- **WorkflowFit**: Fitted workflow with predictions
+
+**Key Methods:**
+- `add_formula()`, `add_model()` - Compose workflow
+- `fit()` - Train workflow
+- `predict()` - Make predictions with automatic preprocessing
+- `evaluate()` - Train/test evaluation
+- `extract_outputs()` - Get three-DataFrame outputs
+
+**Files:**
+- `py_workflows/workflow.py` - Workflow and WorkflowFit classes
+- `tests/test_workflows/` - 26 tests passing
+
+### Layer 5: py-recipes (Feature Engineering)
+**Purpose:** Advanced feature preprocessing and engineering pipeline.
+
+**Key Components:**
+- **Recipe**: Immutable specification of preprocessing steps
+- **51 preprocessing steps** across 8 categories:
+  - Imputation (median, mean, mode, KNN, bag, linear)
+  - Normalization (normalize, range, center, scale)
+  - Encoding (dummy, one-hot, target, ordinal, bin, date)
+  - Feature engineering (polynomial, interactions, splines, PCA, log, sqrt, BoxCox, YeoJohnson)
+  - Filtering (correlation, variance, missing, outliers, zero-variance)
+  - Row operations (sample, filter, slice, arrange, shuffle)
+  - Transformations (mutate, discretize)
+  - Selectors (all_predictors, all_outcomes, all_numeric, all_nominal, has_role, has_type)
+
+**Key Pattern:**
+```python
+recipe = (recipe(data, "y ~ x1 + x2")
+    .step_impute_median(all_numeric())
+    .step_normalize(all_numeric())
+    .step_dummy(all_nominal()))
+prepped = recipe.prep()
+processed = prepped.bake(new_data)
+```
+
+**Files:**
+- `py_recipes/recipe.py` - Recipe class and core methods
+- `py_recipes/steps/` - 51 step implementations
+- `tests/test_recipes/` - 265 tests passing
+
+### Layer 6: py-yardstick (Model Metrics)
+**Purpose:** Comprehensive model evaluation metrics.
+
+**17 Metrics Implemented:**
+- **Regression**: RMSE, MAE, MAPE, SMAPE, R², adjusted R², RSE
+- **Classification**: Accuracy, Precision, Recall, F1, Specificity, Balanced Accuracy, MCC, AUC-ROC, Log Loss, Brier Score
+
+**Key Functions:**
+- Individual metrics: `rmse()`, `mae()`, `r_squared()`, etc.
+- **metric_set()**: Combine multiple metrics
+- Supports both 2-column (truth, estimate) and full DataFrame inputs
+
+**Files:**
+- `py_yardstick/metrics.py` - All 17 metrics + metric_set()
+- `tests/test_yardstick/` - 59 tests passing
+
+### Layer 7: py-tune (Hyperparameter Tuning)
+**Purpose:** Grid search and hyperparameter optimization.
+
+**Key Functions:**
+- **tune()**: Mark parameters for tuning with `tune("param_name")`
+- **grid_regular()**: Create evenly-spaced parameter grids
+- **grid_random()**: Random parameter sampling
+- **tune_grid()**: Grid search with cross-validation
+- **fit_resamples()**: Evaluate without tuning
+- **TuneResults**: Result analysis with `show_best()`, `select_best()`, `select_by_one_std_err()`
+- **finalize_workflow()**: Apply best parameters to workflow
+
+**Key Pattern:**
+```python
+spec = linear_reg(penalty=tune(), mixture=tune())
+grid = grid_regular({"penalty": {"range": (0.001, 1.0), "trans": "log"},
+                     "mixture": {"range": (0, 1)}}, levels=5)
+results = tune_grid(workflow, resamples, grid=grid, metrics=metric_set(rmse, r_squared))
+best = results.select_best("rmse", maximize=False)
+final_wf = finalize_workflow(workflow, best)
+```
+
+**Data Format Handling:**
+- TuneResults methods handle **both long-format** (metric/value columns) and **wide-format** (metrics as columns)
+- Automatically detects format by checking for 'metric' column
+- Long format: returned by `tune_grid()` and `fit_resamples()`
+- Wide format: used in some test mocks
+
+**Files:**
+- `py_tune/tune.py` - All tuning functions and TuneResults class
+- `tests/test_tune/` - 36 tests passing
 
 ## Critical Implementation Notes
 
@@ -225,35 +338,60 @@ rmse = np.sqrt(np.mean((test['y'].values - preds['.pred'].values)**2))
 
 **Why:** Test data retains original DataFrame index, prediction DataFrames have RangeIndex(0, n).
 
+### Jupyter Kernel Module Caching
+**Problem:** After updating py_tune or other modules, Jupyter notebooks may still use the old cached version, causing errors like "KeyError: 'Column not found: rmse'" even though the code is fixed.
+
+**Solution:** Restart the Jupyter kernel to reload updated modules:
+1. In Jupyter: **Kernel** → **Restart** (or **Restart & Clear Output**)
+2. Re-run all cells from the beginning
+
+**Why:** Python modules are cached in memory when first imported. The package is installed in editable mode (`pip install -e .`), so code changes ARE reflected, but Jupyter's kernel caches the imported modules until restarted.
+
+**Alternative:** Force module reload without restarting:
+```python
+import sys
+if 'py_tune' in sys.modules:
+    del sys.modules['py_tune']
+# Then re-import
+from py_tune import tune_grid
+```
+
 ## Project Status and Planning
 
-**Current Status:** Phase 1 Implementation (In Progress)
+**Current Status:** Phase 2 Implementation (In Progress)
+**Last Updated:** 2025-10-27
+**Total Tests Passing:** 559 tests
 
-**Completed:**
-- ✅ py-hardhat: 14/14 tests passing, fully functional
-- ✅ py-parsnip: 96/96 tests passing, 4 models implemented with 5 engines:
-  - linear_reg (sklearn engine + statsmodels engine)
-  - rand_forest (sklearn engine - regression & classification)
-  - prophet_reg (prophet engine)
-  - arima_reg (statsmodels engine)
+**Phase 1 - COMPLETED (188 tests):**
+- ✅ py-hardhat: 14/14 tests - Data preprocessing with mold/forge
+- ✅ py-parsnip: 96/96 tests - 4 models (linear_reg, rand_forest, prophet_reg, arima_reg) with 5 engines
+- ✅ py-rsample: 35/35 tests - Time series CV, k-fold CV, period parsing
+- ✅ py-workflows: 26/26 tests - Workflow composition and pipelines
+- ✅ Integration tests: 11/11 tests
 - ✅ Dual-path architecture for time series models
-- ✅ Comprehensive three-DataFrame outputs for all models
+- ✅ Comprehensive three-DataFrame outputs
 - ✅ evaluate() method for train/test comparison
-- ✅ Full statistical inference for statsmodels OLS (p-values, CI, diagnostics)
-- ✅ Example notebooks demonstrating all functionality:
-  - 01_hardhat_demo.ipynb
-  - 02_parsnip_demo.ipynb
-  - 03_time_series_models.ipynb
-  - 04_rand_forest_demo.ipynb
-  - 05_time_series_forecasting_demo.ipynb
 
-**In Progress:**
-- py-rsample: Time series cross-validation (next step)
+**Phase 2 - COMPLETED (371 tests):**
+- ✅ py-recipes: 265/265 tests - 51 preprocessing steps across 8 categories
+- ✅ py-yardstick: 59/59 tests - 17 evaluation metrics (regression + classification)
+- ✅ py-tune: 36/36 tests - Hyperparameter tuning with grid search
+- ✅ vfold_cv() added to py-rsample for standard k-fold cross-validation
+
+**Example Notebooks:**
+- 01_hardhat_demo.ipynb - Data preprocessing
+- 02_parsnip_demo.ipynb - Linear regression
+- 03_time_series_models.ipynb - Prophet and ARIMA
+- 04_rand_forest_demo.ipynb - Random Forest
+- 05_recipes_comprehensive_demo.ipynb - Feature engineering (51 steps)
+- 07_rsample_demo.ipynb - Resampling and CV
+- 08_workflows_demo.ipynb - Workflow pipelines
+- 09_yardstick_demo.ipynb - Model metrics (17 metrics)
+- 10_tune_demo.ipynb - Hyperparameter tuning
+
+**Pending (Phase 3):**
+- py-workflowsets: Compare multiple workflows
 - Additional model types (boost_tree, svm, etc.)
-
-**Pending:**
-- py-rsample: Time series cross-validation
-- py-workflows: Pipeline composition
 
 **Detailed Plan:** See `.claude_plans/projectplan.md` for full roadmap and architecture decisions.
 

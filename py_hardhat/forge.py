@@ -138,29 +138,66 @@ def _validate_factor_levels(data: pd.DataFrame, blueprint: Blueprint) -> None:
 
 def _validate_columns(data: pd.DataFrame, blueprint: Blueprint) -> None:
     """
-    Validate that required columns are present in new_data.
+    Validate that required BASE columns are present in new_data.
+
+    Only checks for columns that should exist in raw data, not transformed
+    columns created by patsy (like I(x1 * x2) or polynomial terms).
 
     Raises:
-        ValueError: If required columns are missing
+        ValueError: If required base columns are missing
     """
-    # Get all columns referenced in the formula (excluding outcome)
+    # Extract base column names from the formula
+    # These are the actual columns that must exist in the input data
     required_cols = set()
-    for role, cols in blueprint.roles.items():
-        if role != "outcome":  # Don't require outcome for prediction
-            # Extract original column names (before encoding)
-            for col in cols:
-                # Strip encoding artifacts like [T.B] from patsy
-                base_col = col.split("[")[0]
-                if base_col != "Intercept":
-                    required_cols.add(base_col)
 
-    # Get outcome columns to exclude from factor_levels check
+    if hasattr(blueprint, 'formula') and blueprint.formula:
+        import re
+
+        # Get predictor side of formula
+        formula = blueprint.formula
+        if '~' in formula:
+            predictor_side = formula.split('~')[1]
+        else:
+            predictor_side = formula
+
+        # Remove all function calls (I(), C(), Q(), T(), etc.) to extract base variables
+        # Strategy: find all variable names that are NOT inside function calls
+
+        # First, remove string literals if any
+        predictor_clean = re.sub(r'["\'].*?["\']', '', predictor_side)
+
+        # Remove function calls but keep their arguments
+        # Match I(...), C(...), Q(...), T(...), etc. and replace with their contents
+        # This extracts variables from inside the functions
+        pattern = r'\b[A-Z]\s*\((.*?)\)'
+
+        def extract_vars_from_expr(expr):
+            """Extract variable names from an expression"""
+            # Find all word-like identifiers that could be column names
+            vars = re.findall(r'\b([a-z_][a-z0-9_]*)\b', expr, re.IGNORECASE)
+            return [v for v in vars if v not in ['I', 'C', 'Q', 'T', 'and', 'or', 'not']]
+
+        # Extract from function arguments
+        for match in re.finditer(pattern, predictor_clean):
+            func_args = match.group(1)
+            vars = extract_vars_from_expr(func_args)
+            required_cols.update(vars)
+
+        # Extract from non-function parts
+        without_funcs = re.sub(pattern, '', predictor_clean)
+        vars = extract_vars_from_expr(without_funcs)
+        required_cols.update(vars)
+
+        # Remove special symbols and common non-column terms
+        required_cols = {col for col in required_cols
+                        if col and col not in ['.', '1', '0']}
+
+    # Also check factor_levels keys (these are always base columns from raw data)
     outcome_cols = set()
     for col in blueprint.roles.get("outcome", []):
         base_col = col.split("[")[0]
         outcome_cols.add(base_col)
 
-    # Also check factor_levels keys (excluding outcome variables)
     for factor_col in blueprint.factor_levels.keys():
         if factor_col not in outcome_cols:
             required_cols.add(factor_col)
@@ -169,7 +206,7 @@ def _validate_columns(data: pd.DataFrame, blueprint: Blueprint) -> None:
     missing_cols = required_cols - set(data.columns)
     if missing_cols:
         raise ValueError(
-            f"Required columns missing from new_data: {missing_cols}. "
+            f"Required base columns missing from new_data: {missing_cols}. "
             f"Available columns: {list(data.columns)}"
         )
 

@@ -164,7 +164,7 @@ class TestForgeBasic:
         test = pd.DataFrame({"x1": [15, 25]})
 
         # Should raise error for missing column
-        with pytest.raises(ValueError, match="Required columns missing"):
+        with pytest.raises(ValueError, match="Required base columns missing"):
             forge(test, molded.blueprint, outcomes=False)
 
 
