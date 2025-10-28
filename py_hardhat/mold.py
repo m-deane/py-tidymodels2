@@ -17,8 +17,100 @@ from typing import Optional, Dict, Any, List
 import pandas as pd
 import patsy
 from patsy import dmatrices, dmatrix
+import re
 
 from py_hardhat.blueprint import Blueprint, MoldedData
+
+
+def _expand_dot_formula(formula: str, data: pd.DataFrame) -> str:
+    """
+    Expand '.' wildcard in formula to explicit column names.
+
+    The '.' in R-style formulas means "all columns except the outcome".
+    Patsy 1.0.1 doesn't support this syntax and raises a SyntaxError when
+    it tries to parse '.' as Python code. This function preprocesses the
+    formula to expand '.' into explicit column names before passing to patsy.
+
+    Args:
+        formula: Formula string (e.g., "y ~ .")
+        data: DataFrame with columns to expand
+
+    Returns:
+        Expanded formula string (e.g., "y ~ x1 + x2 + x3")
+
+    Example:
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4], 'y': [5, 6]})
+        >>> _expand_dot_formula('y ~ .', df)
+        'y ~ A + B'
+
+    Notes:
+        - Column names that aren't valid Python identifiers are wrapped with Q()
+        - Handles formulas like "y ~ ." and "y ~ . - x1"
+        - Does not expand '.' if it's not present in the RHS
+    """
+    # Check if formula contains the tilde separator
+    if '~' not in formula:
+        return formula
+
+    # Split into LHS (outcome) and RHS (predictors)
+    lhs, rhs = formula.split('~', 1)
+    lhs = lhs.strip()
+    rhs = rhs.strip()
+
+    # If RHS doesn't contain '.', return as-is
+    if '.' not in rhs:
+        return formula
+
+    # Extract outcome column name(s) from LHS
+    # Handle simple cases like "y" or complex cases like "y1 + y2"
+    # For wrapped names like 'Q("my var")', extract the actual column name
+    outcome_cols = []
+    for part in lhs.split('+'):
+        part = part.strip()
+        # Check if it's a Q() wrapped name
+        q_match = re.match(r'Q\(["\'](.+?)["\']\)', part)
+        if q_match:
+            outcome_cols.append(q_match.group(1))
+        else:
+            outcome_cols.append(part)
+
+    # Get all columns except outcomes
+    predictor_cols = [col for col in data.columns if col not in outcome_cols]
+
+    # Quote column names that aren't valid Python identifiers
+    def quote_if_needed(name: str) -> str:
+        """Wrap column name in Q() if it's not a valid Python identifier"""
+        if name.isidentifier():
+            return name
+        else:
+            # Escape any quotes in the name
+            escaped_name = name.replace('"', '\\"')
+            return f'Q("{escaped_name}")'
+
+    quoted_predictors = [quote_if_needed(col) for col in predictor_cols]
+
+    # Handle different cases of '.' usage
+    if rhs.strip() == '.':
+        # Simple case: "y ~ ."
+        expanded_rhs = ' + '.join(quoted_predictors)
+    elif rhs.strip().startswith('.'):
+        # Cases like ". - x1" or ". + I(x^2)"
+        # Replace leading '.' with the column list
+        rest_of_formula = rhs[1:].strip()
+        if quoted_predictors:
+            expanded_rhs = ' + '.join(quoted_predictors) + (' ' + rest_of_formula if rest_of_formula else '')
+        else:
+            expanded_rhs = rest_of_formula.lstrip('+').strip()
+    else:
+        # Complex case: "x1 + . + log(x2)" (rare but possible)
+        # Simple replacement
+        expanded_rhs = rhs.replace('.', ' + '.join(quoted_predictors) if quoted_predictors else '')
+
+    # Clean up any double operators or extra spaces
+    expanded_rhs = re.sub(r'\+\s*\+', '+', expanded_rhs)
+    expanded_rhs = re.sub(r'\s+', ' ', expanded_rhs).strip()
+
+    return f'{lhs} ~ {expanded_rhs}'
 
 
 def mold(
@@ -59,11 +151,15 @@ def mold(
         ValueError: If formula is invalid or references missing columns
     """
 
+    # Expand '.' wildcard in formula if present
+    # Patsy doesn't support '.' notation, so we expand it manually
+    expanded_formula = _expand_dot_formula(formula, data)
+
     # Parse formula and create design matrices using patsy
     try:
         # Create design matrices and capture design info
         y_mat, X_mat = dmatrices(
-            formula,
+            expanded_formula,
             data,
             return_type="dataframe",
             NA_action="raise",  # Fail on missing values - user should handle this
@@ -74,7 +170,10 @@ def mold(
         outcome_design_info = y_mat.design_info
 
     except Exception as e:
-        raise ValueError(f"Failed to parse formula '{formula}': {str(e)}") from e
+        raise ValueError(
+            f"Failed to parse formula '{formula}': {str(e)}\n"
+            f"(Expanded to: '{expanded_formula}')"
+        ) from e
 
     # Handle intercept option
     if not intercept and "Intercept" in X_mat.columns:

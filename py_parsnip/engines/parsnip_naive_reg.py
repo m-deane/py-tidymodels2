@@ -124,7 +124,7 @@ class ParsnipNaiveEngine(Engine):
         Returns:
             DataFrame with predictions
         """
-        model = fit.fit_output["model"]
+        model = fit.fit_data["model"]
         method = model["method"]
         train_values = model["train_values"]
         seasonal_period = model["seasonal_period"]
@@ -178,7 +178,7 @@ class ParsnipNaiveEngine(Engine):
         """
         from py_yardstick import rmse, mae, mape, r_squared
 
-        fit_output = fit.fit_output
+        fit_output = fit.fit_data
         fitted = fit_output["fitted"]
         residuals = fit_output["residuals"]
         outcomes = fit_output["outcomes"]
@@ -189,16 +189,45 @@ class ParsnipNaiveEngine(Engine):
         else:
             actuals = outcomes
 
-        # Create outputs DataFrame
-        outputs = pd.DataFrame({
+        # ====================
+        # 1. OUTPUTS DataFrame
+        # ====================
+        outputs_list = []
+
+        # Training data
+        train_df = pd.DataFrame({
             "actuals": actuals,
             "fitted": fitted,
             "forecast": fitted,
             "residuals": residuals,
             "split": "train",
         })
+        outputs_list.append(train_df)
 
-        # Coefficients DataFrame (empty - no coefficients)
+        # Test data (if evaluated)
+        if "test_predictions" in fit.evaluation_data:
+            test_data = fit.evaluation_data["test_data"]
+            test_preds = fit.evaluation_data["test_predictions"]
+            outcome_col = fit.evaluation_data["outcome_col"]
+
+            test_actuals = test_data[outcome_col].values
+            test_predictions = test_preds[".pred"].values
+            test_residuals = test_actuals - test_predictions
+
+            test_df = pd.DataFrame({
+                "actuals": test_actuals,
+                "fitted": test_predictions,
+                "forecast": test_predictions,
+                "residuals": test_residuals,
+                "split": "test",
+            })
+            outputs_list.append(test_df)
+
+        outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
+
+        # ====================
+        # 2. COEFFICIENTS DataFrame
+        # ====================
         coefficients = pd.DataFrame({
             "variable": ["method"],
             "coefficient": [method],
@@ -208,24 +237,57 @@ class ParsnipNaiveEngine(Engine):
             "ci_0.975": [np.nan],
         })
 
-        # Stats DataFrame
+        # ====================
+        # 3. STATS DataFrame
+        # ====================
+        stats_rows = []
+
+        # Training metrics
         # Remove NaN residuals for metrics calculation
         valid_mask = ~np.isnan(residuals)
         valid_actuals = actuals[valid_mask]
         valid_fitted = fitted[valid_mask]
 
         if len(valid_actuals) > 0:
-            rmse_val = rmse(valid_actuals, valid_fitted)
-            mae_val = mae(valid_actuals, valid_fitted)
-            mape_val = mape(valid_actuals, valid_fitted)
-            r2_val = r_squared(valid_actuals, valid_fitted)
+            # Yardstick functions return DataFrames, extract scalar values
+            rmse_val = rmse(valid_actuals, valid_fitted)['value'].iloc[0]
+            mae_val = mae(valid_actuals, valid_fitted)['value'].iloc[0]
+            mape_val = mape(valid_actuals, valid_fitted)['value'].iloc[0]
+            r2_val = r_squared(valid_actuals, valid_fitted)['value'].iloc[0]
         else:
             rmse_val = mae_val = mape_val = r2_val = np.nan
 
-        stats = pd.DataFrame({
-            "metric": ["rmse", "mae", "mape", "r_squared", "method"],
-            "value": [rmse_val, mae_val, mape_val, r2_val, method],
-            "split": ["train"] * 5,
-        })
+        stats_rows.extend([
+            {"metric": "rmse", "value": rmse_val, "split": "train"},
+            {"metric": "mae", "value": mae_val, "split": "train"},
+            {"metric": "mape", "value": mape_val, "split": "train"},
+            {"metric": "r_squared", "value": r2_val, "split": "train"},
+            {"metric": "method", "value": method, "split": "train"},
+        ])
+
+        # Test metrics (if evaluated)
+        if "test_predictions" in fit.evaluation_data:
+            test_data = fit.evaluation_data["test_data"]
+            test_preds = fit.evaluation_data["test_predictions"]
+            outcome_col = fit.evaluation_data["outcome_col"]
+
+            test_actuals = test_data[outcome_col].values
+            test_predictions = test_preds[".pred"].values
+
+            # Calculate test metrics
+            # Yardstick functions return DataFrames, extract scalar values
+            test_rmse = rmse(test_actuals, test_predictions)['value'].iloc[0]
+            test_mae = mae(test_actuals, test_predictions)['value'].iloc[0]
+            test_mape = mape(test_actuals, test_predictions)['value'].iloc[0]
+            test_r2 = r_squared(test_actuals, test_predictions)['value'].iloc[0]
+
+            stats_rows.extend([
+                {"metric": "rmse", "value": test_rmse, "split": "test"},
+                {"metric": "mae", "value": test_mae, "split": "test"},
+                {"metric": "mape", "value": test_mape, "split": "test"},
+                {"metric": "r_squared", "value": test_r2, "split": "test"},
+            ])
+
+        stats = pd.DataFrame(stats_rows)
 
         return outputs, coefficients, stats

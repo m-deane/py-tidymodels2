@@ -600,6 +600,33 @@ class Recipe:
         from py_recipes.steps.filters import StepFilterMissing
         return self.add_step(StepFilterMissing(columns=columns, threshold=threshold))
 
+    def step_naomit(
+        self,
+        columns: Optional[List[str]] = None
+    ) -> "Recipe":
+        """
+        Remove rows with missing values.
+
+        Filters out rows containing NA/NaN values in specified columns.
+        Commonly used after creating lag features which introduce NaN at
+        the beginning of time series.
+
+        Args:
+            columns: Columns to check for NAs (None = check all columns)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> # Remove rows with any NA values
+            >>> recipe().step_lag(['value'], lags=[1, 7]).step_naomit()
+            >>>
+            >>> # Remove rows with NA in specific lag columns
+            >>> recipe().step_naomit(columns=['value_lag_1', 'value_lag_7'])
+        """
+        from py_recipes.steps.naomit import StepNaOmit
+        return self.add_step(StepNaOmit(columns=columns))
+
     # ========== Extended Categorical Steps ==========
 
     def step_other(

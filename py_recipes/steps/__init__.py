@@ -61,6 +61,10 @@ from py_recipes.steps.filters import (
     StepFilterMissing,
     PreparedStepFilterMissing,
 )
+from py_recipes.steps.naomit import (
+    StepNaOmit,
+    PreparedStepNaOmit,
+)
 from py_recipes.steps.categorical_extended import (
     StepOther,
     PreparedStepOther,
@@ -184,6 +188,8 @@ __all__ = [
     "PreparedStepLinComb",
     "StepFilterMissing",
     "PreparedStepFilterMissing",
+    "StepNaOmit",
+    "PreparedStepNaOmit",
     # Extended categorical steps
     "StepOther",
     "PreparedStepOther",

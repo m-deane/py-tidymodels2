@@ -75,9 +75,9 @@ class CatBoostBoostTreeEngine(Engine):
 
         # Map parameters
         if "trees" in args:
-            model_args["iterations"] = args["trees"]
+            model_args["iterations"] = int(args["trees"])
         if "tree_depth" in args:
-            model_args["depth"] = args["tree_depth"]
+            model_args["depth"] = int(args["tree_depth"])
         if "learn_rate" in args:
             model_args["learning_rate"] = args["learn_rate"]
         if "mtry" in args:
@@ -86,12 +86,12 @@ class CatBoostBoostTreeEngine(Engine):
             n_features = X.shape[1]
             if mtry > 1:
                 # Assume it's an integer count, convert to fraction
-                model_args["rsm"] = min(mtry / n_features, 1.0)
+                model_args["rsm"] = min(int(mtry) / n_features, 1.0)
             else:
                 # Already a fraction
                 model_args["rsm"] = mtry
         if "min_n" in args:
-            model_args["min_data_in_leaf"] = args["min_n"]
+            model_args["min_data_in_leaf"] = int(args["min_n"])
         if "sample_size" in args:
             model_args["subsample"] = args["sample_size"]
 
@@ -99,7 +99,7 @@ class CatBoostBoostTreeEngine(Engine):
         eval_set = None
         fit_params = {}
         if "stop_iter" in args:
-            model_args["early_stopping_rounds"] = args["stop_iter"]
+            model_args["early_stopping_rounds"] = int(args["stop_iter"])
             # For early stopping, we need a validation set
             # Use last 20% of training data as validation
             split_idx = int(0.8 * len(X))

@@ -97,6 +97,22 @@ class SklearnRandForestEngine(Engine):
             model_args["min_samples_split"] = 2
         # max_features default handled by sklearn
 
+        # Convert integer parameters to int (sklearn requirement)
+        if "n_estimators" in model_args:
+            # Ensure n_estimators is at least 1
+            model_args["n_estimators"] = max(1, int(model_args["n_estimators"]))
+        if "min_samples_split" in model_args:
+            # Sklearn requires min_samples_split >= 2 (or float in (0, 1) as fraction)
+            # If we receive a small float < 1, treat it as if normalized and clamp to minimum
+            val = model_args["min_samples_split"]
+            if isinstance(val, float) and 0 < val < 1:
+                # Appears to be normalized [0,1] or fraction - sklearn interprets as fraction
+                # But we want absolute counts, so ensure >= 2
+                model_args["min_samples_split"] = 2
+            else:
+                # Convert to int and ensure >= 2
+                model_args["min_samples_split"] = max(2, int(val))
+
         # Add random_state for reproducibility
         model_args["random_state"] = 42
 

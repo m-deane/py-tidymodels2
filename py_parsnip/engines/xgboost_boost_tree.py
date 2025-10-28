@@ -79,11 +79,11 @@ class XGBoostBoostTreeEngine(Engine):
         model_args = {}
         args = spec.args
 
-        # Map parameters
+        # Map parameters (convert integers to ensure they're not floats)
         if "trees" in args:
-            model_args["n_estimators"] = args["trees"]
+            model_args["n_estimators"] = int(args["trees"])
         if "tree_depth" in args:
-            model_args["max_depth"] = args["tree_depth"]
+            model_args["max_depth"] = int(args["tree_depth"])
         if "learn_rate" in args:
             model_args["learning_rate"] = args["learn_rate"]
         if "mtry" in args:
@@ -92,12 +92,12 @@ class XGBoostBoostTreeEngine(Engine):
             n_features = X.shape[1]
             if mtry > 1:
                 # Assume it's an integer count, convert to fraction
-                model_args["colsample_bytree"] = min(mtry / n_features, 1.0)
+                model_args["colsample_bytree"] = min(int(mtry) / n_features, 1.0)
             else:
                 # Already a fraction
                 model_args["colsample_bytree"] = mtry
         if "min_n" in args:
-            model_args["min_child_weight"] = args["min_n"]
+            model_args["min_child_weight"] = int(args["min_n"])
         if "loss_reduction" in args:
             model_args["gamma"] = args["loss_reduction"]
         if "sample_size" in args:
@@ -107,7 +107,7 @@ class XGBoostBoostTreeEngine(Engine):
         eval_set = None
         fit_params = {}
         if "stop_iter" in args:
-            model_args["early_stopping_rounds"] = args["stop_iter"]
+            model_args["early_stopping_rounds"] = int(args["stop_iter"])
             # For early stopping, we need a validation set
             # Use last 20% of training data as validation
             split_idx = int(0.8 * len(X))

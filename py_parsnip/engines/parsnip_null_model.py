@@ -93,7 +93,7 @@ class ParsnipNullEngine(Engine):
         Returns:
             DataFrame with predictions
         """
-        baseline_value = fit.fit_output["model"]["baseline_value"]
+        baseline_value = fit.fit_data["model"]["baseline_value"]
 
         # Get number of predictions
         n = len(molded.predictors)
@@ -116,7 +116,7 @@ class ParsnipNullEngine(Engine):
         """
         from py_yardstick import rmse, mae, mape, r_squared
 
-        fit_output = fit.fit_output
+        fit_output = fit.fit_data
         fitted = fit_output["fitted"]
         residuals = fit_output["residuals"]
         outcomes = fit_output["outcomes"]
@@ -127,16 +127,45 @@ class ParsnipNullEngine(Engine):
         else:
             actuals = outcomes
 
-        # Create outputs DataFrame
-        outputs = pd.DataFrame({
+        # ====================
+        # 1. OUTPUTS DataFrame
+        # ====================
+        outputs_list = []
+
+        # Training data
+        train_df = pd.DataFrame({
             "actuals": actuals,
             "fitted": fitted,
             "forecast": fitted,  # Same as fitted for null model
             "residuals": residuals,
             "split": "train",
         })
+        outputs_list.append(train_df)
 
-        # Coefficients DataFrame (empty - no coefficients)
+        # Test data (if evaluated)
+        if "test_predictions" in fit.evaluation_data:
+            test_data = fit.evaluation_data["test_data"]
+            test_preds = fit.evaluation_data["test_predictions"]
+            outcome_col = fit.evaluation_data["outcome_col"]
+
+            test_actuals = test_data[outcome_col].values
+            test_predictions = test_preds[".pred"].values
+            test_residuals = test_actuals - test_predictions
+
+            test_df = pd.DataFrame({
+                "actuals": test_actuals,
+                "fitted": test_predictions,
+                "forecast": test_predictions,
+                "residuals": test_residuals,
+                "split": "test",
+            })
+            outputs_list.append(test_df)
+
+        outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
+
+        # ====================
+        # 2. COEFFICIENTS DataFrame
+        # ====================
         coefficients = pd.DataFrame({
             "variable": ["(Intercept)"],
             "coefficient": [baseline_value],
@@ -146,26 +175,63 @@ class ParsnipNullEngine(Engine):
             "ci_0.975": [np.nan],
         })
 
-        # Stats DataFrame
+        # ====================
+        # 3. STATS DataFrame
+        # ====================
+        stats_rows = []
+
+        # Training metrics
         if fit.spec.mode == "regression":
             # Calculate regression metrics
-            rmse_val = rmse(actuals, fitted)
-            mae_val = mae(actuals, fitted)
-            mape_val = mape(actuals, fitted)
-            r2_val = r_squared(actuals, fitted)
+            # Yardstick functions return DataFrames, extract scalar values
+            rmse_val = rmse(actuals, fitted)['value'].iloc[0]
+            mae_val = mae(actuals, fitted)['value'].iloc[0]
+            mape_val = mape(actuals, fitted)['value'].iloc[0]
+            r2_val = r_squared(actuals, fitted)['value'].iloc[0]
 
-            stats = pd.DataFrame({
-                "metric": ["rmse", "mae", "mape", "r_squared", "baseline_value"],
-                "value": [rmse_val, mae_val, mape_val, r2_val, baseline_value],
-                "split": ["train"] * 5,
-            })
+            stats_rows.extend([
+                {"metric": "rmse", "value": rmse_val, "split": "train"},
+                {"metric": "mae", "value": mae_val, "split": "train"},
+                {"metric": "mape", "value": mape_val, "split": "train"},
+                {"metric": "r_squared", "value": r2_val, "split": "train"},
+                {"metric": "baseline_value", "value": baseline_value, "split": "train"},
+            ])
         else:
             # Classification - compute accuracy
             accuracy = np.mean(actuals == fitted)
-            stats = pd.DataFrame({
-                "metric": ["accuracy", "baseline_class"],
-                "value": [accuracy, baseline_value],
-                "split": ["train", "train"],
-            })
+            stats_rows.extend([
+                {"metric": "accuracy", "value": accuracy, "split": "train"},
+                {"metric": "baseline_class", "value": baseline_value, "split": "train"},
+            ])
+
+        # Test metrics (if evaluated)
+        if "test_predictions" in fit.evaluation_data:
+            test_data = fit.evaluation_data["test_data"]
+            test_preds = fit.evaluation_data["test_predictions"]
+            outcome_col = fit.evaluation_data["outcome_col"]
+
+            test_actuals = test_data[outcome_col].values
+            test_predictions = test_preds[".pred"].values
+
+            if fit.spec.mode == "regression":
+                # Calculate test regression metrics
+                # Yardstick functions return DataFrames, extract scalar values
+                test_rmse = rmse(test_actuals, test_predictions)['value'].iloc[0]
+                test_mae = mae(test_actuals, test_predictions)['value'].iloc[0]
+                test_mape = mape(test_actuals, test_predictions)['value'].iloc[0]
+                test_r2 = r_squared(test_actuals, test_predictions)['value'].iloc[0]
+
+                stats_rows.extend([
+                    {"metric": "rmse", "value": test_rmse, "split": "test"},
+                    {"metric": "mae", "value": test_mae, "split": "test"},
+                    {"metric": "mape", "value": test_mape, "split": "test"},
+                    {"metric": "r_squared", "value": test_r2, "split": "test"},
+                ])
+            else:
+                # Classification - compute test accuracy
+                test_accuracy = np.mean(test_actuals == test_predictions)
+                stats_rows.append({"metric": "accuracy", "value": test_accuracy, "split": "test"})
+
+        stats = pd.DataFrame(stats_rows)
 
         return outputs, coefficients, stats

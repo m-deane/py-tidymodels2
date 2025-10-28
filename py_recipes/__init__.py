@@ -53,6 +53,12 @@ from py_recipes.steps import (
     StepMutate,
 )
 
+# Import time series steps
+from py_recipes.steps.timeseries import (
+    StepLag,
+    StepDate,
+)
+
 # Import selectors
 from py_recipes.selectors import (
     # Type selectors
@@ -91,6 +97,8 @@ __all__ = [
     "StepImputeMean",
     "StepImputeMedian",
     "StepMutate",
+    "StepLag",
+    "StepDate",
     # Selectors
     "all_numeric",
     "all_nominal",

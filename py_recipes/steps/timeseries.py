@@ -330,10 +330,12 @@ class StepDate:
     Attributes:
         column: Datetime column to extract features from
         features: List of features to extract (year, month, day, dayofweek, quarter, etc.)
+        keep_original_date: Whether to keep the original date column (default: False)
     """
 
     column: str
     features: List[str] = None
+    keep_original_date: bool = False
 
     def __post_init__(self):
         if self.features is None:
@@ -355,7 +357,8 @@ class StepDate:
 
         return PreparedStepDate(
             column=self.column,
-            features=self.features
+            features=self.features,
+            keep_original_date=self.keep_original_date
         )
 
 
@@ -367,10 +370,12 @@ class PreparedStepDate:
     Attributes:
         column: Source datetime column
         features: Features to extract
+        keep_original_date: Whether to keep the original date column
     """
 
     column: str
     features: List[str]
+    keep_original_date: bool = False
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -428,5 +433,9 @@ class PreparedStepDate:
                 result[feature_col_name] = dt.is_year_start.astype(int)
             elif feature == "is_year_end":
                 result[feature_col_name] = dt.is_year_end.astype(int)
+
+        # Remove original date column unless explicitly kept
+        if not self.keep_original_date and self.column in result.columns:
+            result = result.drop(columns=[self.column])
 
         return result

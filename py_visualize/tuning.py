@@ -72,17 +72,74 @@ def plot_tune_results(
     >>> fig.show()
     """
     # Get tuning results DataFrame
-    results_df = tune_results.results.copy()
+    results_df = tune_results.metrics.copy()
 
-    # Identify parameter columns (start with tuned parameters)
-    param_cols = [col for col in results_df.columns if col not in ["metric", "value", "split", ".config"]]
+    # Check if data is in long format (has 'metric' column) or wide format
+    if 'metric' in results_df.columns:
+        # Long format: filter for the specified metric
+        if metric not in results_df["metric"].values:
+            available_metrics = results_df["metric"].unique()
+            raise ValueError(f"Metric '{metric}' not found. Available metrics: {list(available_metrics)}")
 
-    # Filter by metric
-    if metric not in results_df["metric"].values:
-        available_metrics = results_df["metric"].unique()
-        raise ValueError(f"Metric '{metric}' not found. Available metrics: {list(available_metrics)}")
+        metric_data = results_df[results_df["metric"] == metric].copy()
 
-    metric_data = results_df[results_df["metric"] == metric].copy()
+        # Check if we need to merge with grid to get parameters
+        if tune_results.grid is not None and len(tune_results.grid.columns) > 0:
+            grid_param_cols = [col for col in tune_results.grid.columns if col != '.config']
+
+            # Check if parameters are already in metric_data
+            params_in_data = all(col in metric_data.columns for col in grid_param_cols)
+
+            if not params_in_data and '.config' in metric_data.columns:
+                # Merge with grid to get parameter values
+                metric_data = metric_data.merge(tune_results.grid, on='.config', how='left')
+
+            param_cols = grid_param_cols
+        else:
+            # No grid - identify parameter columns from metric_data
+            param_cols = [col for col in metric_data.columns if col not in ["metric", "value", "split", ".config", ".resample"]]
+    else:
+        # Wide format: metric is already a column
+        if metric not in results_df.columns:
+            # Available metrics = all columns except config and parameter columns
+            available_metrics = [col for col in results_df.columns
+                                if col not in [".config", ".resample"]
+                                and col not in tune_results.grid.columns]
+            raise ValueError(f"Metric '{metric}' not found. Available metrics: {available_metrics}")
+
+        # Get parameter columns from grid
+        # First check if grid exists and has data
+        if tune_results.grid is None or len(tune_results.grid.columns) == 0:
+            # No grid - try to infer parameters from results_df
+            # Parameters are columns that are not metrics and not config/resample
+            metric_cols = [metric]  # At minimum, the requested metric
+            param_cols = [col for col in results_df.columns
+                         if col not in metric_cols + [".config", ".resample"]]
+            metric_data = results_df.copy()
+            metric_data['value'] = metric_data[metric]
+        else:
+            grid_param_cols = [col for col in tune_results.grid.columns if col != '.config']
+
+            # Check if we need to merge grid to get parameters
+            # If parameters are already in results_df, no merge needed
+            params_in_results = all(col in results_df.columns for col in grid_param_cols)
+
+            if params_in_results:
+                # Parameters already in results_df
+                metric_data = results_df.copy()
+            elif '.config' in results_df.columns:
+                # Merge with grid to get parameter values
+                metric_data = results_df.merge(tune_results.grid, on='.config', how='left')
+            else:
+                # Merge on index (assume same order)
+                metric_data = results_df.copy()
+                for col in grid_param_cols:
+                    metric_data[col] = tune_results.grid[col].values
+
+            # Rename metric column to 'value' for consistency with helper functions
+            metric_data['value'] = metric_data[metric]
+            # Identify parameter columns
+            param_cols = grid_param_cols
 
     # Determine plot type automatically if needed
     if plot_type == "auto":

@@ -69,6 +69,7 @@ def grid_regular(param_info: Dict[str, Dict[str, Any]], levels: int = 3) -> pd.D
     Args:
         param_info: Dictionary mapping parameter names to their specifications
                    Each spec should have 'range' or 'values' key
+                   Optionally include 'type': 'int' to convert to integers
         levels: Number of levels for each parameter (default: 3)
 
     Returns:
@@ -77,10 +78,14 @@ def grid_regular(param_info: Dict[str, Dict[str, Any]], levels: int = 3) -> pd.D
     Examples:
         >>> param_info = {
         ...     'penalty': {'range': (0.001, 1.0), 'trans': 'log'},
-        ...     'mixture': {'range': (0, 1)}
+        ...     'mixture': {'range': (0, 1)},
+        ...     'trees': {'range': (50, 200), 'type': 'int'}
         ... }
         >>> grid = grid_regular(param_info, levels=3)
     """
+    # Parameters that should be integers (for automatic detection)
+    INT_PARAMS = {'trees', 'tree_depth', 'min_n', 'stop_iter', 'mtry', 'neighbors', 'epochs'}
+
     param_values = {}
 
     for param_name, spec in param_info.items():
@@ -91,6 +96,7 @@ def grid_regular(param_info: Dict[str, Dict[str, Any]], levels: int = 3) -> pd.D
             # Generate values from range
             min_val, max_val = spec['range']
             trans = spec.get('trans', 'identity')
+            param_type = spec.get('type', 'auto')
 
             if trans == 'log':
                 # Log transformation for penalty-like parameters
@@ -98,6 +104,10 @@ def grid_regular(param_info: Dict[str, Dict[str, Any]], levels: int = 3) -> pd.D
             else:
                 # Linear spacing
                 values = np.linspace(min_val, max_val, levels)
+
+            # Convert to integers if specified or auto-detected
+            if param_type == 'int' or (param_type == 'auto' and param_name in INT_PARAMS):
+                values = np.round(values).astype(int)
 
             param_values[param_name] = values
         else:
@@ -361,27 +371,31 @@ def fit_resamples(
             # Predict on test set
             predictions = wf_fit.predict(test_data)
 
-            # Calculate metrics if provided
-            if metrics is not None:
-                # Get outcome column (assume first formula term is outcome)
-                if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, str):
-                    outcome = workflow.preprocessor.split('~')[0].strip()
-                    truth = test_data[outcome]
-                    estimate = predictions['.pred']
+            # Calculate metrics
+            # Get outcome column (assume first formula term is outcome)
+            if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, str):
+                outcome = workflow.preprocessor.split('~')[0].strip()
+                truth = test_data[outcome]
+                estimate = predictions['.pred']
 
-                    # Compute metrics
-                    if callable(metrics):
-                        metric_results = metrics(truth, estimate)
-                    else:
-                        # List of metric functions
-                        from py_yardstick import metric_set
-                        metric_fn = metric_set(*metrics)
-                        metric_results = metric_fn(truth, estimate)
+                # Compute metrics
+                if metrics is None:
+                    # Use default regression metrics
+                    from py_yardstick import metric_set, rmse, mae, r_squared
+                    metric_fn = metric_set(rmse, mae, r_squared)
+                    metric_results = metric_fn(truth, estimate)
+                elif callable(metrics):
+                    metric_results = metrics(truth, estimate)
+                else:
+                    # List of metric functions
+                    from py_yardstick import metric_set
+                    metric_fn = metric_set(*metrics)
+                    metric_results = metric_fn(truth, estimate)
 
-                    # Add fold identifier
-                    metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
-                    metric_results['.config'] = "config_001"
-                    all_metrics.append(metric_results)
+                # Add fold identifier
+                metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
+                metric_results['.config'] = "config_001"
+                all_metrics.append(metric_results)
 
             # Save predictions if requested
             if save_pred:
@@ -396,8 +410,16 @@ def fit_resamples(
             continue
 
     # Combine results
-    metrics_df = pd.concat(all_metrics, ignore_index=True) if all_metrics else pd.DataFrame()
-    predictions_df = pd.concat(all_predictions, ignore_index=True) if all_predictions else pd.DataFrame()
+    if all_metrics:
+        metrics_df = pd.concat(all_metrics, ignore_index=True)
+    else:
+        # Return empty DataFrame with expected schema
+        metrics_df = pd.DataFrame(columns=['metric', 'value', '.resample', '.config'])
+
+    if all_predictions:
+        predictions_df = pd.concat(all_predictions, ignore_index=True)
+    else:
+        predictions_df = pd.DataFrame()
 
     # Create grid with single configuration
     grid = pd.DataFrame({'.config': ['config_001']})
@@ -487,22 +509,27 @@ def tune_grid(
                 predictions = wf_fit.predict(test_data)
 
                 # Calculate metrics
-                if metrics is not None:
-                    if hasattr(current_wf, 'preprocessor') and isinstance(current_wf.preprocessor, str):
-                        outcome = current_wf.preprocessor.split('~')[0].strip()
-                        truth = test_data[outcome]
-                        estimate = predictions['.pred']
+                if hasattr(current_wf, 'preprocessor') and isinstance(current_wf.preprocessor, str):
+                    outcome = current_wf.preprocessor.split('~')[0].strip()
+                    truth = test_data[outcome]
+                    estimate = predictions['.pred']
 
-                        if callable(metrics):
-                            metric_results = metrics(truth, estimate)
-                        else:
-                            from py_yardstick import metric_set
-                            metric_fn = metric_set(*metrics)
-                            metric_results = metric_fn(truth, estimate)
+                    # Compute metrics
+                    if metrics is None:
+                        # Use default regression metrics
+                        from py_yardstick import metric_set, rmse, mae, r_squared
+                        metric_fn = metric_set(rmse, mae, r_squared)
+                        metric_results = metric_fn(truth, estimate)
+                    elif callable(metrics):
+                        metric_results = metrics(truth, estimate)
+                    else:
+                        from py_yardstick import metric_set
+                        metric_fn = metric_set(*metrics)
+                        metric_results = metric_fn(truth, estimate)
 
-                        metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
-                        metric_results['.config'] = config_name
-                        all_metrics.append(metric_results)
+                    metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
+                    metric_results['.config'] = config_name
+                    all_metrics.append(metric_results)
 
                 # Save predictions
                 if save_pred:
@@ -516,8 +543,16 @@ def tune_grid(
                 continue
 
     # Combine results
-    metrics_df = pd.concat(all_metrics, ignore_index=True) if all_metrics else pd.DataFrame()
-    predictions_df = pd.concat(all_predictions, ignore_index=True) if all_predictions else pd.DataFrame()
+    if all_metrics:
+        metrics_df = pd.concat(all_metrics, ignore_index=True)
+    else:
+        # Return empty DataFrame with expected schema
+        metrics_df = pd.DataFrame(columns=['metric', 'value', '.resample', '.config'])
+
+    if all_predictions:
+        predictions_df = pd.concat(all_predictions, ignore_index=True)
+    else:
+        predictions_df = pd.DataFrame()
 
     return TuneResults(
         metrics=metrics_df,
