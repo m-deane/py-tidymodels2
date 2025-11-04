@@ -15,6 +15,7 @@ from typing import Dict, Any, Optional, Literal
 import pandas as pd
 
 from py_hardhat import MoldedData
+from py_parsnip.utils import _infer_date_column
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class ModelSpec:
         engine: Backend to use (e.g., "sklearn", "statsmodels")
         mode: "regression" or "classification"
         args: Dict of model arguments (e.g., {"penalty": 0.1})
+        date_col: Optional date column name for time series models
 
     Example:
         >>> spec = ModelSpec(
@@ -46,6 +48,7 @@ class ModelSpec:
     engine: str = "sklearn"
     mode: Literal["regression", "classification", "unknown"] = "unknown"
     args: Dict[str, Any] = field(default_factory=dict)
+    date_col: Optional[str] = None
 
     def set_engine(self, engine: str, **engine_args) -> "ModelSpec":
         """
@@ -88,16 +91,30 @@ class ModelSpec:
             >>> spec = linear_reg()
             >>> spec = spec.set_args(penalty=0.1, mixture=0.5)
         """
+        # Extract date_col if provided in kwargs
+        date_col = kwargs.pop('date_col', None)
         new_args = {**self.args, **kwargs}
+
+        # Update date_col if provided, otherwise keep existing
+        if date_col is not None:
+            return replace(self, args=new_args, date_col=date_col)
         return replace(self, args=new_args)
 
-    def fit(self, data: pd.DataFrame, formula: Optional[str] = None) -> "ModelFit":
+    def fit(
+        self,
+        data: pd.DataFrame,
+        formula: Optional[str] = None,
+        original_training_data: Optional[pd.DataFrame] = None,
+        date_col: Optional[str] = None
+    ) -> "ModelFit":
         """
         Fit the model to data.
 
         Args:
             data: Training data DataFrame
             formula: Optional formula (e.g., "y ~ x1 + x2")
+            original_training_data: Original unpreprocessed training data (for raw datetime/categorical values)
+            date_col: Optional date column name (for time series models)
 
         Returns:
             ModelFit containing fitted model and metadata
@@ -114,8 +131,28 @@ class ModelSpec:
 
         # Check if engine has custom fit_raw method (for models like Prophet)
         if hasattr(engine, "fit_raw"):
+            import inspect
+
+            # Check if fit_raw accepts date_col parameter
+            fit_raw_signature = inspect.signature(engine.fit_raw)
+            accepts_date_col = 'date_col' in fit_raw_signature.parameters
+
+            # Build kwargs for fit_raw
+            fit_raw_kwargs = {}
+            if original_training_data is not None:
+                fit_raw_kwargs['original_training_data'] = original_training_data
+
+            # Only infer and pass date_col if engine supports it
+            if accepts_date_col:
+                # Infer date column using priority-based detection
+                # Priority: fit date_col param > spec.date_col > auto-detect
+                inferred_date = _infer_date_column(data, self.date_col, date_col)
+                fit_raw_kwargs['date_col'] = inferred_date
+
             # Engine handles data directly without molding
-            fit_data, blueprint = engine.fit_raw(self, data, formula)
+            fit_data, blueprint = engine.fit_raw(
+                self, data, formula, **fit_raw_kwargs
+            )
         else:
             # Standard molding path
             if formula is not None:
@@ -129,7 +166,19 @@ class ModelSpec:
                         "Either provide a formula or pass MoldedData directly"
                     )
 
-            fit_data = engine.fit(self, molded)
+            # Pass original_training_data to engine.fit() for datetime column extraction
+            # If not provided, use data itself (direct fit() calls have original data)
+            # Check if engine.fit() accepts original_training_data parameter
+            import inspect
+            fit_signature = inspect.signature(engine.fit)
+            accepts_original_data = 'original_training_data' in fit_signature.parameters
+
+            if accepts_original_data:
+                # Use original_training_data if provided, otherwise use data itself
+                orig_data = original_training_data if original_training_data is not None else data
+                fit_data = engine.fit(self, molded, original_training_data=orig_data)
+            else:
+                fit_data = engine.fit(self, molded)
             blueprint = molded.blueprint
 
         # Create ModelFit
@@ -232,6 +281,7 @@ class ModelFit:
         self,
         test_data: pd.DataFrame,
         outcome_col: Optional[str] = None,
+        original_test_data: Optional[pd.DataFrame] = None,
     ) -> "ModelFit":
         """
         Evaluate model on test data with actuals.
@@ -240,8 +290,9 @@ class ModelFit:
         via extract_outputs(). It enables comprehensive train/test metrics.
 
         Args:
-            test_data: Test data DataFrame with actuals
+            test_data: Test data DataFrame with actuals (may be preprocessed)
             outcome_col: Name of outcome column (auto-detected if None)
+            original_test_data: Original test data before preprocessing (for raw values)
 
         Returns:
             Self (for method chaining)
@@ -285,10 +336,15 @@ class ModelFit:
         # Make predictions on test data
         predictions = self.predict(test_data, type=pred_type)
 
-        # Store evaluation results
+        # Store evaluation results (including original test data for raw values)
         self.evaluation_data["test_data"] = test_data
         self.evaluation_data["test_predictions"] = predictions
         self.evaluation_data["outcome_col"] = outcome_col
+        # Store original test data for engines that need raw datetime/categorical values
+        # If not provided, use test_data itself (direct evaluate() calls have original data)
+        self.evaluation_data["original_test_data"] = (
+            original_test_data if original_test_data is not None else test_data
+        )
 
         return self
 

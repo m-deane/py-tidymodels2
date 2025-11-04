@@ -343,3 +343,148 @@ class TestTransformationEdgeCases:
 
         # Should transform successfully
         assert not np.array_equal(transformed['x'].values, data['x'].values)
+
+
+class TestStepInverse:
+    """Test step_inverse functionality"""
+
+    @pytest.fixture
+    def nonzero_data(self):
+        """Create data with non-zero values"""
+        return pd.DataFrame({
+            'x1': [1, 2, 3, 4, 5],
+            'x2': [10, 20, 30, 40, 50],
+            'x3': [0.5, 1.5, 2.5, 3.5, 4.5]
+        })
+
+    @pytest.fixture
+    def data_with_zeros(self):
+        """Create data with some zero values"""
+        return pd.DataFrame({
+            'x1': [0, 1, 2, 3, 4],
+            'x2': [5, 10, 15, 20, 25]
+        })
+
+    def test_inverse_basic(self, nonzero_data):
+        """Test basic inverse transformation"""
+        rec = recipe().step_inverse()
+        rec_fit = rec.prep(nonzero_data)
+        transformed = rec_fit.bake(nonzero_data)
+
+        # Check transformation applied: 1/x
+        expected_x1 = 1.0 / nonzero_data['x1']
+        np.testing.assert_array_almost_equal(transformed['x1'].values, expected_x1.values)
+
+    def test_inverse_specific_columns(self, nonzero_data):
+        """Test inverse on specific columns"""
+        rec = recipe().step_inverse(columns=['x1', 'x2'])
+        rec_fit = rec.prep(nonzero_data)
+        transformed = rec_fit.bake(nonzero_data)
+
+        # x1 and x2 should be transformed
+        expected_x1 = 1.0 / nonzero_data['x1']
+        np.testing.assert_array_almost_equal(transformed['x1'].values, expected_x1.values)
+
+        # x3 should be unchanged
+        np.testing.assert_array_equal(transformed['x3'].values, nonzero_data['x3'].values)
+
+    def test_inverse_offset(self, data_with_zeros):
+        """Test inverse with offset to handle zeros"""
+        rec = recipe().step_inverse(offset=1.0)
+        rec_fit = rec.prep(data_with_zeros)
+        transformed = rec_fit.bake(data_with_zeros)
+
+        # Check transformation: 1 / (x + offset)
+        expected_x1 = 1.0 / (data_with_zeros['x1'] + 1.0)
+        np.testing.assert_array_almost_equal(transformed['x1'].values, expected_x1.values)
+
+    def test_inverse_preserves_ordering(self, nonzero_data):
+        """Test that inverse reverses ordering"""
+        rec = recipe().step_inverse(columns=['x1'])
+        rec_fit = rec.prep(nonzero_data)
+        transformed = rec_fit.bake(nonzero_data)
+
+        # For positive numbers, 1/x should be decreasing when x is increasing
+        # x1 is [1, 2, 3, 4, 5], so 1/x1 should be [1, 0.5, 0.33, 0.25, 0.2]
+        assert transformed['x1'].iloc[0] > transformed['x1'].iloc[1]
+        assert transformed['x1'].iloc[1] > transformed['x1'].iloc[2]
+
+    def test_inverse_new_data(self, nonzero_data):
+        """Test applying inverse to new data"""
+        train = nonzero_data[:3]
+        test = nonzero_data[3:]
+
+        rec = recipe().step_inverse()
+        rec_fit = rec.prep(train)
+        test_transformed = rec_fit.bake(test)
+
+        assert len(test_transformed) == len(test)
+        expected = 1.0 / test['x1']
+        np.testing.assert_array_almost_equal(test_transformed['x1'].values, expected.values)
+
+    def test_inverse_preserves_shape(self, nonzero_data):
+        """Test inverse preserves data shape"""
+        rec = recipe().step_inverse()
+        rec_fit = rec.prep(nonzero_data)
+        transformed = rec_fit.bake(nonzero_data)
+
+        assert transformed.shape == nonzero_data.shape
+        assert list(transformed.columns) == list(nonzero_data.columns)
+
+    def test_inverse_small_values(self):
+        """Test inverse with very small values"""
+        data = pd.DataFrame({
+            'x': [0.001, 0.01, 0.1, 1, 10]
+        })
+
+        rec = recipe().step_inverse()
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # Small values should become large
+        expected = 1.0 / data['x']
+        np.testing.assert_array_almost_equal(transformed['x'].values, expected.values)
+
+    def test_inverse_large_values(self):
+        """Test inverse with large values"""
+        data = pd.DataFrame({
+            'x': [100, 1000, 10000]
+        })
+
+        rec = recipe().step_inverse()
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # Large values should become small
+        expected = 1.0 / data['x']
+        np.testing.assert_array_almost_equal(transformed['x'].values, expected.values)
+
+    def test_inverse_with_offset_zero(self, data_with_zeros):
+        """Test that offset prevents division by zero"""
+        rec = recipe().step_inverse(offset=0.1)
+        rec_fit = rec.prep(data_with_zeros)
+        transformed = rec_fit.bake(data_with_zeros)
+
+        # Should not have any inf values
+        assert not np.isinf(transformed['x1']).any()
+        assert not np.isinf(transformed['x2']).any()
+
+    def test_inverse_roundtrip(self, nonzero_data):
+        """Test that applying inverse twice gives back original (approximately)"""
+        rec = recipe().step_inverse(columns=['x1'])
+        rec_fit = rec.prep(nonzero_data)
+
+        # Apply inverse
+        transformed = rec_fit.bake(nonzero_data)
+
+        # Apply inverse again
+        rec2 = recipe().step_inverse(columns=['x1'])
+        rec2_fit = rec2.prep(transformed)
+        double_transformed = rec2_fit.bake(transformed)
+
+        # Should get back to original values (approximately)
+        np.testing.assert_array_almost_equal(
+            double_transformed['x1'].values,
+            nonzero_data['x1'].values,
+            decimal=10
+        )

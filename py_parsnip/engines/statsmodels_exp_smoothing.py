@@ -16,6 +16,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
+from py_parsnip.utils.time_series_utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("exp_smoothing", "statsmodels")
@@ -45,7 +46,7 @@ class StatsmodelsExpSmoothingEngine(Engine):
     }
 
     def fit_raw(
-        self, spec: ModelSpec, data: pd.DataFrame, formula: str
+        self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str
     ) -> tuple[Dict[str, Any], Any]:
         """
         Fit Exponential Smoothing model using raw data (bypasses hardhat molding).
@@ -54,6 +55,7 @@ class StatsmodelsExpSmoothingEngine(Engine):
             spec: ModelSpec with Exponential Smoothing configuration
             data: Training data DataFrame
             formula: Formula string (e.g., "sales ~ date" or "sales ~ 1")
+            date_col: Name of date column or '__index__' for DatetimeIndex
 
         Returns:
             Tuple of (fit_data dict, blueprint)
@@ -64,13 +66,8 @@ class StatsmodelsExpSmoothingEngine(Engine):
         """
         from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
-        # Parse formula
-        parts = formula.split("~")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid formula: {formula}")
-
-        outcome_name = parts[0].strip()
-        predictor_part = parts[1].strip()
+        # Parse formula to extract outcome (exog_vars will be empty for ETS)
+        outcome_name, exog_vars = _parse_ts_formula(formula, date_col)
 
         # Validate outcome exists
         if outcome_name not in data.columns:
@@ -80,17 +77,17 @@ class StatsmodelsExpSmoothingEngine(Engine):
         y = data[outcome_name]
 
         # Handle time index
-        date_col = None
-        if predictor_part != "1":
-            # Parse predictors (should just be date column)
-            predictor_names = [p.strip() for p in predictor_part.split("+")]
-
-            # Find datetime column to use as index
-            for p in predictor_names:
-                if p in data.columns and pd.api.types.is_datetime64_any_dtype(data[p]):
-                    date_col = p
-                    y = data.set_index(date_col)[outcome_name]
-                    break
+        if date_col == '__index__':
+            # Data is already indexed by datetime
+            if not isinstance(data.index, pd.DatetimeIndex):
+                raise ValueError(
+                    f"date_col is '__index__' but data does not have DatetimeIndex. "
+                    f"Got index type: {type(data.index).__name__}"
+                )
+            y = data[outcome_name]
+        elif date_col is not None:
+            # Set datetime column as index
+            y = data.set_index(date_col)[outcome_name]
 
         # Get parameters
         args = spec.args
@@ -144,21 +141,12 @@ class StatsmodelsExpSmoothingEngine(Engine):
         residuals = fitted_model.resid.values if hasattr(fitted_model, 'resid') else actuals - fitted_values
 
         # Extract dates
-        dates = None
-        if date_col is not None:
+        if date_col == '__index__':
+            dates = data.index.values
+        elif date_col is not None:
             dates = data[date_col].values
-        elif 'date' in data.columns:
-            dates = data['date'].values
         else:
-            # Try to find any datetime column
-            for col in data.columns:
-                if pd.api.types.is_datetime64_any_dtype(data[col]):
-                    dates = data[col].values
-                    date_col = col
-                    break
-
-        # If still no dates, use index
-        if dates is None:
+            # Fallback to integer index
             dates = np.arange(len(y))
 
         # Create blueprint

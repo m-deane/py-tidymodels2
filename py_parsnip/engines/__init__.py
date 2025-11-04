@@ -6,6 +6,8 @@ from py_parsnip.engines import sklearn_rand_forest  # noqa: F401
 from py_parsnip.engines import statsmodels_linear_reg  # noqa: F401
 from py_parsnip.engines import prophet_engine  # noqa: F401
 from py_parsnip.engines import statsmodels_arima  # noqa: F401
+from py_parsnip.engines import pmdarima_auto_arima  # noqa: F401
+from py_parsnip.engines import statsmodels_varmax  # noqa: F401
 from py_parsnip.engines import statsmodels_exp_smoothing  # noqa: F401
 from py_parsnip.engines import statsmodels_seasonal_reg  # noqa: F401
 from py_parsnip.engines import skforecast_recursive  # noqa: F401
@@ -24,3 +26,5 @@ from py_parsnip.engines import sklearn_nearest_neighbor  # noqa: F401
 from py_parsnip.engines import sklearn_svm_rbf  # noqa: F401
 from py_parsnip.engines import sklearn_svm_linear  # noqa: F401
 from py_parsnip.engines import sklearn_mlp  # noqa: F401
+from py_parsnip.engines import sklearn_pls  # noqa: F401
+from py_parsnip.engines import sklearn_bag_tree  # noqa: F401

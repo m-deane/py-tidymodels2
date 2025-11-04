@@ -8,13 +8,14 @@ Prophet requires specific column names:
 This engine handles the conversion from hardhat's molded format to Prophet's format.
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("prophet_reg", "prophet")
@@ -41,14 +42,16 @@ class ProphetEngine(Engine):
         """Not used for Prophet - use predict_raw() instead"""
         raise NotImplementedError("Prophet uses predict_raw() instead of predict()")
 
-    def fit_raw(self, spec: ModelSpec, data: pd.DataFrame, formula: str) -> tuple[Dict[str, Any], Any]:
+    def fit_raw(self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str, original_training_data: Optional[pd.DataFrame] = None) -> tuple[Dict[str, Any], Any]:
         """
         Fit Prophet model using raw data (bypasses hardhat molding).
 
         Args:
             spec: ModelSpec with Prophet configuration
-            data: Training data DataFrame
-            formula: Formula string (e.g., "sales ~ date")
+            data: Training data DataFrame (may be preprocessed)
+            formula: Formula string (e.g., "sales ~ date" or "sales ~ lag1 + lag2 + date")
+            date_col: Name of date column or '__index__' for DatetimeIndex
+            original_training_data: Original unpreprocessed training data (for raw datetime values)
 
         Returns:
             Tuple of (fit_data dict, blueprint)
@@ -56,33 +59,59 @@ class ProphetEngine(Engine):
         Note:
             Prophet requires datetime column and doesn't work well with patsy's
             categorical treatment of dates. We bypass hardhat molding here.
+
+            Exogenous Regressors:
+            Prophet supports adding external regressors via model.add_regressor().
+            Formula format: "outcome ~ exog1 + exog2 + date"
+            The date column is automatically excluded from regressors.
         """
         from prophet import Prophet
 
-        # Parse formula to extract outcome and predictor
-        # Formula format: "outcome ~ predictor"
-        parts = formula.split("~")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid formula: {formula}")
+        # Parse formula to extract outcome and exogenous variables
+        outcome_name, exog_vars = _parse_ts_formula(formula, date_col)
 
-        outcome_name = parts[0].strip()
-        predictor_name = parts[1].strip()
-
-        # Validate columns exist
+        # Validate outcome exists
         if outcome_name not in data.columns:
             raise ValueError(f"Outcome '{outcome_name}' not found in data")
-        if predictor_name not in data.columns:
-            raise ValueError(f"Predictor '{predictor_name}' not found in data")
 
-        # Create Prophet-format DataFrame
+        # Get date values (handle __index__ case)
+        if date_col == '__index__':
+            if not isinstance(data.index, pd.DatetimeIndex):
+                raise ValueError("date_col is '__index__' but data does not have DatetimeIndex")
+            date_values = data.index
+        else:
+            # Validate date column exists
+            if date_col not in data.columns:
+                raise ValueError(f"Date column '{date_col}' not found in data")
+
+            # Get dates from original training data if available (to avoid normalized values)
+            if original_training_data is not None and date_col in original_training_data.columns:
+                date_values = original_training_data[date_col]
+            else:
+                date_values = data[date_col]
+
+        # Create Prophet-format DataFrame with ds and y
         prophet_df = pd.DataFrame({
-            "ds": data[predictor_name],
+            "ds": date_values,
             "y": data[outcome_name],
         })
+
+        # Add exogenous variables to prophet_df
+        exog_vars_used = []
+        if exog_vars:
+            for var in exog_vars:
+                if var not in data.columns:
+                    raise ValueError(f"Exogenous variable '{var}' not found in data")
+                prophet_df[var] = data[var].values
+                exog_vars_used.append(var)
 
         # Create Prophet model with args
         args = spec.args.copy()
         model = Prophet(**args)
+
+        # Add external regressors to model
+        for var in exog_vars_used:
+            model.add_regressor(var)
 
         # Fit model (Prophet captures stdout, we suppress warnings)
         import logging
@@ -91,14 +120,14 @@ class ProphetEngine(Engine):
         model.fit(prophet_df)
 
         # Get fitted values on training data
-        fitted_forecast = model.predict(prophet_df[['ds']])
+        fitted_forecast = model.predict(prophet_df[['ds'] + exog_vars_used])
         fitted = fitted_forecast['yhat'].values
 
         # Calculate residuals
         actuals = prophet_df['y'].values
         residuals = actuals - fitted
 
-        # Extract dates
+        # Extract dates (use raw datetime values, not normalized)
         dates = prophet_df['ds'].values
 
         # Create a simple blueprint for prediction
@@ -106,15 +135,17 @@ class ProphetEngine(Engine):
         blueprint = {
             "formula": formula,
             "outcome_name": outcome_name,
-            "predictor_name": predictor_name,
+            "date_col": date_col,
+            "exog_vars": exog_vars_used,
         }
 
         # Return fitted model and metadata
         fit_data = {
             "model": model,
             "n_obs": len(prophet_df),
-            "predictor_name": predictor_name,
+            "date_col": date_col,
             "outcome_name": outcome_name,
+            "exog_vars": exog_vars_used,
             "prophet_df": prophet_df,
             "y_train": actuals,
             "fitted": fitted,
@@ -135,7 +166,7 @@ class ProphetEngine(Engine):
 
         Args:
             fit: ModelFit with fitted Prophet model
-            new_data: Raw DataFrame with predictor column
+            new_data: Raw DataFrame with date column and exogenous variables (if used)
             type: Prediction type
                 - "numeric": Point predictions (yhat)
                 - "conf_int": Prediction intervals (yhat, yhat_lower, yhat_upper)
@@ -146,6 +177,9 @@ class ProphetEngine(Engine):
         Note:
             Prophet always returns prediction intervals, so we can provide
             both point predictions and confidence intervals.
+
+            If exogenous regressors were used during fit, they must be present
+            in new_data for prediction.
         """
         if type not in ("numeric", "conf_int"):
             raise ValueError(
@@ -153,28 +187,43 @@ class ProphetEngine(Engine):
             )
 
         model = fit.fit_data["model"]
-        predictor_name = fit.fit_data["predictor_name"]
+        date_col = fit.fit_data["date_col"]
+        exog_vars = fit.fit_data.get("exog_vars", [])
 
-        # Extract predictor column
-        if predictor_name not in new_data.columns:
-            raise ValueError(
-                f"Predictor '{predictor_name}' not found in new data. "
-                f"Available columns: {list(new_data.columns)}"
-            )
+        # Get date values (handle __index__ case)
+        if date_col == '__index__':
+            if not isinstance(new_data.index, pd.DatetimeIndex):
+                raise ValueError("date_col is '__index__' but new_data does not have DatetimeIndex")
+            date_values = new_data.index
+        else:
+            # Extract date column
+            if date_col not in new_data.columns:
+                raise ValueError(
+                    f"Date column '{date_col}' not found in new data. "
+                    f"Available columns: {list(new_data.columns)}"
+                )
+            date_values = new_data[date_col]
 
         # Create future DataFrame for Prophet
-        future = pd.DataFrame({"ds": new_data[predictor_name]})
+        future = pd.DataFrame({"ds": date_values})
+
+        # Add exogenous variables if they were used during fit
+        if exog_vars:
+            for var in exog_vars:
+                if var not in new_data.columns:
+                    raise ValueError(
+                        f"Exogenous variable '{var}' was used during fit but not found in new_data. "
+                        f"Available columns: {list(new_data.columns)}"
+                    )
+                future[var] = new_data[var].values
 
         # Make predictions
         forecast = model.predict(future)
 
-        # Get date column from new_data for indexing
-        date_index = new_data[predictor_name]
-
         # Return based on type
         if type == "numeric":
             # Return point predictions only, indexed by date
-            result = pd.DataFrame({".pred": forecast["yhat"].values}, index=date_index)
+            result = pd.DataFrame({".pred": forecast["yhat"].values}, index=date_values)
             return result
         else:  # conf_int
             # Return point predictions + intervals, indexed by date
@@ -182,7 +231,7 @@ class ProphetEngine(Engine):
                 ".pred": forecast["yhat"].values,
                 ".pred_lower": forecast["yhat_lower"].values,
                 ".pred_upper": forecast["yhat_upper"].values,
-            }, index=date_index)
+            }, index=date_values)
             return result
 
     def _calculate_metrics(self, actuals: np.ndarray, predictions: np.ndarray) -> Dict[str, float]:
@@ -310,12 +359,29 @@ class ProphetEngine(Engine):
             test_data = fit.evaluation_data["test_data"]
             test_preds = fit.evaluation_data["test_predictions"]
             outcome_col = fit.evaluation_data["outcome_col"]
-            predictor_name = fit.fit_data["predictor_name"]
+            date_col = fit.fit_data["date_col"]
 
             test_actuals = test_data[outcome_col].values
             test_predictions = test_preds[".pred"].values
             test_residuals = test_actuals - test_predictions
-            test_dates = test_data[predictor_name].values if predictor_name in test_data.columns else np.arange(len(test_actuals))
+
+            # Get original test data if available (for raw datetime values)
+            # This prevents normalized/preprocessed date values from appearing in outputs
+            original_test_data = fit.evaluation_data.get("original_test_data")
+
+            # Handle __index__ case
+            if date_col == '__index__':
+                if original_test_data is not None and isinstance(original_test_data.index, pd.DatetimeIndex):
+                    test_dates = original_test_data.index.values
+                elif isinstance(test_data.index, pd.DatetimeIndex):
+                    test_dates = test_data.index.values
+                else:
+                    test_dates = np.arange(len(test_actuals))
+            else:
+                if original_test_data is not None and date_col in original_test_data.columns:
+                    test_dates = original_test_data[date_col].values
+                else:
+                    test_dates = test_data[date_col].values if date_col in test_data.columns else np.arange(len(test_actuals))
 
             # Create forecast: actuals where they exist, fitted where they don't
             forecast_test = pd.Series(test_actuals).combine_first(pd.Series(test_predictions)).values

@@ -25,6 +25,9 @@ class StepCenter:
         """
         Calculate means from training data.
 
+        Note: Datetime columns are automatically excluded from centering.
+        Use step_date() or step_timeseries_signature() to extract time features instead.
+
         Args:
             data: Training data
             training: Whether this is training data
@@ -36,6 +39,12 @@ class StepCenter:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
             cols = [col for col in self.columns if col in data.columns]
+
+        # Exclude datetime columns from centering
+        # Datetime columns should be processed by step_date() or similar instead
+        datetime_cols = [c for c in data.columns
+                        if pd.api.types.is_datetime64_any_dtype(data[c])]
+        cols = [c for c in cols if c not in datetime_cols]
 
         # Calculate means
         means = {col: data[col].mean() for col in cols}
@@ -90,6 +99,9 @@ class StepScale:
         """
         Calculate standard deviations from training data.
 
+        Note: Datetime columns are automatically excluded from scaling.
+        Use step_date() or step_timeseries_signature() to extract time features instead.
+
         Args:
             data: Training data
             training: Whether this is training data
@@ -101,6 +113,12 @@ class StepScale:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
             cols = [col for col in self.columns if col in data.columns]
+
+        # Exclude datetime columns from scaling
+        # Datetime columns should be processed by step_date() or similar instead
+        datetime_cols = [c for c in data.columns
+                        if pd.api.types.is_datetime64_any_dtype(data[c])]
+        cols = [c for c in cols if c not in datetime_cols]
 
         # Calculate standard deviations
         stds = {col: data[col].std() for col in cols}
@@ -159,6 +177,9 @@ class StepRange:
         """
         Calculate min/max values from training data.
 
+        Note: Datetime columns are automatically excluded from range scaling.
+        Use step_date() or step_timeseries_signature() to extract time features instead.
+
         Args:
             data: Training data
             training: Whether this is training data
@@ -170,6 +191,12 @@ class StepRange:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
             cols = [col for col in self.columns if col in data.columns]
+
+        # Exclude datetime columns from range scaling
+        # Datetime columns should be processed by step_date() or similar instead
+        datetime_cols = [c for c in data.columns
+                        if pd.api.types.is_datetime64_any_dtype(data[c])]
+        cols = [c for c in cols if c not in datetime_cols]
 
         # Calculate min/max for each column
         mins = {col: data[col].min() for col in cols}

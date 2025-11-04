@@ -17,6 +17,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("prophet_boost", "hybrid_prophet_xgboost")
@@ -55,7 +56,7 @@ class HybridProphetBoostEngine(Engine):
     }
 
     def fit_raw(
-        self, spec: ModelSpec, data: pd.DataFrame, formula: str
+        self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str = None
     ) -> tuple[Dict[str, Any], Any]:
         """
         Fit hybrid Prophet + XGBoost model using raw data.
@@ -70,6 +71,7 @@ class HybridProphetBoostEngine(Engine):
             spec: ModelSpec with hybrid configuration
             data: Training data DataFrame
             formula: Formula string (e.g., "sales ~ date")
+            date_col: Name of date column, or '__index__' for DatetimeIndex
 
         Returns:
             Tuple of (fit_data dict, blueprint)
@@ -77,27 +79,44 @@ class HybridProphetBoostEngine(Engine):
         from prophet import Prophet
         from xgboost import XGBRegressor
 
-        # Parse formula to extract outcome and predictor
-        parts = formula.split("~")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid formula: {formula}")
+        # Infer date column from data
+        inferred_date_col = _infer_date_column(
+            data,
+            spec_date_col=spec.args.get("date_col") if spec.args else None,
+            fit_date_col=date_col
+        )
 
-        outcome_name = parts[0].strip()
-        predictor_name = parts[1].strip()
+        # Parse formula to get outcome (predictor is the date column)
+        # Note: prophet_boost doesn't use exogenous variables, only date
+        outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
-        # Validate columns exist
+        # Validate outcome exists
         if outcome_name not in data.columns:
             raise ValueError(f"Outcome '{outcome_name}' not found in data")
-        if predictor_name not in data.columns:
-            raise ValueError(f"Predictor '{predictor_name}' not found in data")
+
+        # Prophet_boost ignores exogenous variables (they're not supported)
+        # Just validate there are none or warn
+        if exog_vars:
+            import warnings
+            warnings.warn(
+                f"prophet_boost does not support exogenous variables. "
+                f"Variables {exog_vars} will be ignored.",
+                UserWarning
+            )
 
         # ==================
         # STAGE 1: Fit Prophet
         # ==================
+        # Get date series
+        if inferred_date_col == '__index__':
+            date_series = data.index
+        else:
+            date_series = data[inferred_date_col]
+
         # Create Prophet-format DataFrame
         prophet_df = pd.DataFrame(
             {
-                "ds": data[predictor_name],
+                "ds": date_series,
                 "y": data[outcome_name],
             }
         )
@@ -179,7 +198,7 @@ class HybridProphetBoostEngine(Engine):
         blueprint = {
             "formula": formula,
             "outcome_name": outcome_name,
-            "predictor_name": predictor_name,
+            "date_col": inferred_date_col,
             "prophet_params": prophet_params,
             "xgb_params": xgb_params,
             "date_min": dates.min(),  # Store for future predictions
@@ -190,7 +209,7 @@ class HybridProphetBoostEngine(Engine):
             "prophet_model": prophet_model,
             "xgb_model": xgb_model,
             "n_obs": len(prophet_df),
-            "predictor_name": predictor_name,
+            "date_col": inferred_date_col,
             "outcome_name": outcome_name,
             "prophet_df": prophet_df,
             "y_train": actuals,
@@ -247,21 +266,25 @@ class HybridProphetBoostEngine(Engine):
 
         prophet_model = fit.fit_data["prophet_model"]
         xgb_model = fit.fit_data["xgb_model"]
-        predictor_name = fit.fit_data["predictor_name"]
+        date_col = fit.fit_data["date_col"]
         date_min = fit.fit_data["date_min"]
 
-        # Extract predictor column
-        if predictor_name not in new_data.columns:
-            raise ValueError(
-                f"Predictor '{predictor_name}' not found in new data. "
-                f"Available columns: {list(new_data.columns)}"
-            )
+        # Get date series from new_data
+        if date_col == '__index__':
+            date_series = new_data.index
+        else:
+            if date_col not in new_data.columns:
+                raise ValueError(
+                    f"Date column '{date_col}' not found in new data. "
+                    f"Available columns: {list(new_data.columns)}"
+                )
+            date_series = new_data[date_col]
 
         # ==================
         # Prophet predictions
         # ==================
         # Create future DataFrame for Prophet
-        future = pd.DataFrame({"ds": new_data[predictor_name]})
+        future = pd.DataFrame({"ds": date_series})
 
         # Make Prophet predictions
         prophet_forecast = prophet_model.predict(future)
@@ -271,8 +294,14 @@ class HybridProphetBoostEngine(Engine):
         # XGBoost predictions
         # ==================
         # Create time-based features (days since training start)
-        dates = pd.to_datetime(new_data[predictor_name])
-        days_since_start = (dates - date_min).dt.days.values.reshape(-1, 1)
+        dates = pd.to_datetime(date_series)
+        time_diff = dates - date_min
+        # TimedeltaIndex or Timedelta - convert to days
+        if isinstance(time_diff, pd.TimedeltaIndex):
+            days_since_start = time_diff.days
+        else:
+            days_since_start = time_diff.dt.days
+        days_since_start = np.array(days_since_start).reshape(-1, 1)
 
         # Get XGBoost predictions
         xgb_pred = xgb_model.predict(days_since_start)
@@ -282,11 +311,8 @@ class HybridProphetBoostEngine(Engine):
         # ==================
         final_forecast = prophet_pred + xgb_pred
 
-        # Get date index from new_data
-        date_index = new_data[predictor_name]
-
-        # Return predictions
-        result = pd.DataFrame({".pred": final_forecast}, index=date_index)
+        # Return predictions with date index
+        result = pd.DataFrame({".pred": final_forecast}, index=date_series)
         return result
 
     def _calculate_metrics(
@@ -398,16 +424,19 @@ class HybridProphetBoostEngine(Engine):
             test_data = fit.evaluation_data["test_data"]
             test_preds = fit.evaluation_data["test_predictions"]
             outcome_col = fit.evaluation_data["outcome_col"]
-            predictor_name = fit.fit_data["predictor_name"]
+            date_col = fit.fit_data["date_col"]
 
             test_actuals = test_data[outcome_col].values
             test_predictions = test_preds[".pred"].values
             test_residuals = test_actuals - test_predictions
-            test_dates = (
-                test_data[predictor_name].values
-                if predictor_name in test_data.columns
-                else np.arange(len(test_actuals))
-            )
+
+            # Get test dates
+            if date_col == '__index__':
+                test_dates = test_data.index.values
+            elif date_col in test_data.columns:
+                test_dates = test_data[date_col].values
+            else:
+                test_dates = np.arange(len(test_actuals))
 
             forecast_test = pd.Series(test_actuals).combine_first(
                 pd.Series(test_predictions)

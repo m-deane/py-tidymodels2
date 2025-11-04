@@ -12,6 +12,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("arima_reg", "statsmodels")
@@ -40,7 +41,7 @@ class StatsmodelsARIMAEngine(Engine):
     }
 
     def fit_raw(
-        self, spec: ModelSpec, data: pd.DataFrame, formula: str
+        self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str = None
     ) -> tuple[Dict[str, Any], Any]:
         """
         Fit ARIMA model using raw data (bypasses hardhat molding).
@@ -49,6 +50,7 @@ class StatsmodelsARIMAEngine(Engine):
             spec: ModelSpec with ARIMA configuration
             data: Training data DataFrame
             formula: Formula string (e.g., "sales ~ date" or "sales ~ 1")
+            date_col: Inferred date column name from ModelSpec (can be '__index__' for DatetimeIndex)
 
         Returns:
             Tuple of (fit_data dict, blueprint)
@@ -60,58 +62,40 @@ class StatsmodelsARIMAEngine(Engine):
         """
         from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-        # Parse formula
-        parts = formula.split("~")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid formula: {formula}")
+        # Use provided date_col if given (already inferred by ModelSpec),
+        # otherwise infer it here
+        if date_col is None:
+            inferred_date_col = _infer_date_column(
+                data,
+                spec_date_col=None,
+                fit_date_col=None
+            )
+        else:
+            # date_col was already inferred by ModelSpec, use it directly
+            inferred_date_col = date_col
 
-        outcome_name = parts[0].strip()
-        predictor_part = parts[1].strip()
+        # Parse formula to extract outcome and exogenous variables
+        outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
         # Validate outcome exists
         if outcome_name not in data.columns:
             raise ValueError(f"Outcome '{outcome_name}' not found in data")
 
-        # Get outcome series
-        y = data[outcome_name]
-
-        # Handle time index and exogenous variables
-        date_col = None
-        if predictor_part == "1":
-            # No exogenous variables (pure ARIMA)
-            exog = None
-            predictor_names = []
-        else:
-            # Parse predictors
-            predictor_names = [p.strip() for p in predictor_part.split("+")]
-            # Validate predictors exist
-            missing = [p for p in predictor_names if p not in data.columns]
-            if missing:
-                raise ValueError(f"Predictors {missing} not found in data")
-
-            # Check if any predictor is a datetime column (should be used as index)
-            datetime_predictors = []
-            regular_predictors = []
-            for p in predictor_names:
-                if pd.api.types.is_datetime64_any_dtype(data[p]):
-                    datetime_predictors.append(p)
-                else:
-                    regular_predictors.append(p)
-
-            # If there's a datetime predictor, use it as the index
-            if datetime_predictors:
-                date_col = datetime_predictors[0]  # Use first datetime column
-                # Set the index for the outcome series
-                y = data.set_index(date_col)[outcome_name]
-
-                # Only use regular (non-datetime) predictors as exogenous variables
-                if regular_predictors:
-                    exog = data.set_index(date_col)[regular_predictors]
-                else:
-                    exog = None
+        # Handle DatetimeIndex vs regular date column
+        if inferred_date_col == '__index__':
+            # Use existing DatetimeIndex
+            y = data[outcome_name]
+            if exog_vars:
+                exog = data[exog_vars]
             else:
-                # No datetime columns, all are exogenous variables
-                exog = data[predictor_names]
+                exog = None
+        else:
+            # Set date column as index
+            y = data.set_index(inferred_date_col)[outcome_name]
+            if exog_vars:
+                exog = data.set_index(inferred_date_col)[exog_vars]
+            else:
+                exog = None
 
         # Build order and seasonal_order tuples
         args = spec.args
@@ -149,26 +133,18 @@ class StatsmodelsARIMAEngine(Engine):
         actuals = y.values if isinstance(y, pd.Series) else y
         residuals = fitted_model.resid.values
 
-        # Extract dates - use date_col if set, otherwise try to find one
-        dates = None
-        if date_col is not None:
-            dates = data[date_col].values
-        elif 'date' in data.columns:
-            dates = data['date'].values
+        # Extract dates for outputs DataFrame
+        if inferred_date_col == '__index__':
+            dates = data.index.values
         else:
-            # Try to find any datetime column
-            for col in data.columns:
-                if pd.api.types.is_datetime64_any_dtype(data[col]):
-                    dates = data[col].values
-                    date_col = col
-                    break
+            dates = data[inferred_date_col].values
 
         # Create blueprint
         blueprint = {
             "formula": formula,
             "outcome_name": outcome_name,
-            "predictor_names": predictor_names,
-            "date_col": date_col,  # Store the date column name
+            "exog_vars": exog_vars,  # Store exogenous variables (excluding date)
+            "date_col": inferred_date_col,  # Store '__index__' or column name
             "order": order,
             "seasonal_order": seasonal_order,
         }
@@ -177,7 +153,8 @@ class StatsmodelsARIMAEngine(Engine):
         fit_data = {
             "model": fitted_model,
             "outcome_name": outcome_name,
-            "predictor_names": predictor_names,
+            "exog_vars": exog_vars,  # Store for prediction validation
+            "date_col": inferred_date_col,  # Store for prediction
             "order": order,
             "seasonal_order": seasonal_order,
             "n_obs": len(y),
@@ -217,10 +194,10 @@ class StatsmodelsARIMAEngine(Engine):
                 - "conf_int": Forecasts with prediction intervals
 
         Returns:
-            DataFrame with predictions
+            DataFrame with predictions indexed by date
 
         Note:
-            For pure ARIMA (no exog), new_data just needs length.
+            For pure ARIMA (no exog), new_data just needs length and date.
             For ARIMAX, new_data must contain exogenous variables.
         """
         if type not in ("numeric", "conf_int"):
@@ -229,32 +206,37 @@ class StatsmodelsARIMAEngine(Engine):
             )
 
         model = fit.fit_data["model"]
-        predictor_names = fit.fit_data["predictor_names"]
+        exog_vars = fit.fit_data.get("exog_vars", [])
+        fit_date_col = fit.fit_data.get("date_col")
 
-        # Get date column from blueprint (if present)
-        date_col = fit.blueprint.get("date_col") if isinstance(fit.blueprint, dict) else None
-
-        # Filter out date column from predictor names (it's the index, not an exog var)
-        exog_predictor_names = [p for p in predictor_names if p != date_col] if date_col else predictor_names
+        # Infer date column from new_data (prioritize fit_date_col for consistency)
+        inferred_date_col = _infer_date_column(
+            new_data,
+            spec_date_col=None,
+            fit_date_col=fit_date_col
+        )
 
         # Determine forecast horizon
         n_periods = len(new_data)
 
-        # Get exogenous variables if present
-        if exog_predictor_names:
-            # Validate exog columns exist
-            missing = [p for p in exog_predictor_names if p not in new_data.columns]
+        # Get exogenous variables if used during training
+        if exog_vars:
+            # Validate exog columns exist in new_data
+            missing = [v for v in exog_vars if v not in new_data.columns]
             if missing:
                 raise ValueError(
                     f"Exogenous variables {missing} not found in new_data. "
-                    f"Required: {exog_predictor_names}"
+                    f"Required: {exog_vars}"
                 )
-            exog = new_data[exog_predictor_names]
+            exog = new_data[exog_vars]
         else:
             exog = None
 
-        # Get date index from new_data if available
-        date_index = new_data[date_col] if date_col and date_col in new_data.columns else None
+        # Extract date index for prediction DataFrame
+        if inferred_date_col == '__index__':
+            date_index = new_data.index
+        else:
+            date_index = new_data[inferred_date_col]
 
         # Make predictions
         if type == "numeric":
@@ -409,15 +391,14 @@ class StatsmodelsARIMAEngine(Engine):
             test_predictions = test_preds[".pred"].values
             test_residuals = test_actuals - test_predictions
 
-            # Try to get dates from test data
-            test_dates = None
-            if dates is not None:
-                # Try to find date column in test data
-                for col in test_data.columns:
-                    if pd.api.types.is_datetime64_any_dtype(test_data[col]):
-                        test_dates = test_data[col].values
-                        break
-            if test_dates is None:
+            # Extract test dates using date_col from fit_data
+            date_col = fit.fit_data.get("date_col")
+            if date_col == '__index__':
+                test_dates = test_data.index.values
+            elif date_col and date_col in test_data.columns:
+                test_dates = test_data[date_col].values
+            else:
+                # Fallback to sequence if no date column found
                 test_dates = np.arange(len(test_actuals))
 
             # Create forecast: actuals where they exist, fitted where they don't

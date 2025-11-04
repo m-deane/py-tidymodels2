@@ -230,3 +230,115 @@ class PreparedStepCut:
                 )
 
         return result
+
+
+@dataclass
+class StepPercentile:
+    """
+    Convert numeric columns to percentile ranks.
+
+    Transforms continuous variables to their percentile ranks (0-100 scale),
+    useful for normalizing distributions and creating rank-based features.
+
+    Attributes:
+        columns: Columns to convert (None = all numeric)
+        num_breaks: Number of percentile bins (default: 100 for 0-100 scale)
+        as_integer: Return integer percentiles (default: True)
+    """
+
+    columns: Optional[List[str]] = None
+    num_breaks: int = 100
+    as_integer: bool = True
+
+    def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepPercentile":
+        """
+        Calculate percentile breakpoints from training data.
+
+        Args:
+            data: Training data
+            training: Whether this is training data
+
+        Returns:
+            PreparedStepPercentile with percentile breakpoints
+        """
+        if self.columns is None:
+            cols = data.select_dtypes(include=[np.number]).columns.tolist()
+        else:
+            cols = [col for col in self.columns if col in data.columns]
+
+        # Calculate percentile breakpoints for each column
+        percentile_breaks = {}
+
+        for col in cols:
+            col_data = data[col].dropna()
+
+            # Calculate percentile breakpoints
+            percentiles = np.linspace(0, 100, self.num_breaks + 1)
+            breaks = np.percentile(col_data, percentiles)
+
+            # Ensure unique breaks
+            breaks = np.unique(breaks)
+
+            percentile_breaks[col] = breaks
+
+        return PreparedStepPercentile(
+            columns=cols,
+            percentile_breaks=percentile_breaks,
+            num_breaks=self.num_breaks,
+            as_integer=self.as_integer
+        )
+
+
+@dataclass
+class PreparedStepPercentile:
+    """
+    Fitted percentile conversion step.
+
+    Attributes:
+        columns: Columns to convert
+        percentile_breaks: Dict of column -> percentile breakpoints
+        num_breaks: Number of percentile bins
+        as_integer: Return integer percentiles
+    """
+
+    columns: List[str]
+    percentile_breaks: dict
+    num_breaks: int
+    as_integer: bool
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert values to percentile ranks.
+
+        Args:
+            data: Data to transform
+
+        Returns:
+            DataFrame with percentile-transformed columns
+        """
+        result = data.copy()
+
+        for col in self.columns:
+            if col in result.columns and col in self.percentile_breaks:
+                breaks = self.percentile_breaks[col]
+
+                # Use searchsorted to find percentile rank
+                # This gives us the bin index for each value
+                ranks = np.searchsorted(breaks, result[col].values, side='right')
+
+                # Convert to percentile (0-100 scale or 0-num_breaks scale)
+                n_bins = len(breaks) - 1
+                if n_bins > 0:
+                    percentiles = (ranks / n_bins) * self.num_breaks
+                else:
+                    percentiles = np.zeros_like(ranks, dtype=float)
+
+                # Handle values outside the range
+                percentiles = np.clip(percentiles, 0, self.num_breaks)
+
+                if self.as_integer:
+                    result[col] = percentiles.astype(int)
+                else:
+                    result[col] = percentiles
+
+        return result

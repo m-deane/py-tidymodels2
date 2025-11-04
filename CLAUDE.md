@@ -169,11 +169,12 @@ The project follows a layered architecture inspired by R's tidymodels:
 - `mars()` - Multivariate Adaptive Regression Splines
 - `mlp()` - Multi-layer perceptron neural network
 
-**Time Series Models (4):**
-- `arima_reg()` - ARIMA/SARIMAX (statsmodels)
+**Time Series Models (5):**
+- `arima_reg()` - ARIMA/SARIMAX (statsmodels, auto_arima engines)
 - `prophet_reg()` - Facebook Prophet
 - `exp_smoothing()` - Exponential smoothing / ETS
 - `seasonal_reg()` - STL decomposition models
+- `varmax_reg()` - Multivariate VARMAX (statsmodels) - requires 2+ outcome variables
 
 **Hybrid Time Series (2):**
 - `arima_boost()` - ARIMA + XGBoost
@@ -565,6 +566,82 @@ Engines must implement:
 
 If using raw path, standard methods should raise NotImplementedError.
 
+### Multivariate Time Series (VARMAX)
+**Purpose:** Model multiple correlated time series simultaneously.
+
+**Key Requirements:**
+- VARMAX requires **at least 2 outcome variables** in the formula:
+  ```python
+  # CORRECT - Multiple outcomes
+  spec = varmax_reg()
+  fit = spec.fit(data, formula="y1 + y2 ~ date")          # Bivariate
+  fit = spec.fit(data, formula="y1 + y2 + y3 ~ date")     # Trivariate
+
+  # ERROR - Single outcome
+  fit = spec.fit(data, formula="y ~ date")  # Raises ValueError
+  ```
+
+**Multi-Outcome Predictions:**
+- Predictions include separate columns for each outcome:
+  ```python
+  predictions = fit.predict(forecast_data, type="numeric")
+  # Returns: .pred_y1, .pred_y2 columns
+
+  predictions = fit.predict(forecast_data, type="conf_int")
+  # Returns: .pred_y1, .pred_y1_lower, .pred_y1_upper
+  #          .pred_y2, .pred_y2_lower, .pred_y2_upper
+  ```
+
+**Three-DataFrame Outputs:**
+- **outputs**: Has `outcome_variable` column to distinguish between y1, y2, etc.
+  - Each outcome has separate rows with its own actuals, fitted, residuals
+  - Total rows = n_observations × n_outcomes
+- **coefficients**: AR/MA parameters for all outcome variables
+- **stats**: Includes `n_outcomes` metric showing number of outcome variables
+
+**Code References:**
+- `py_parsnip/models/varmax_reg.py` - Model specification
+- `py_parsnip/engines/statsmodels_varmax.py` - VARMAX engine
+- `tests/test_parsnip/test_varmax_reg.py` - 62 tests covering bivariate/trivariate models
+
+### Auto ARIMA Engine
+**Purpose:** Automatically select optimal ARIMA parameters via search.
+
+**Parameter Interpretation:**
+- In manual ARIMA: parameters are **exact** values
+  ```python
+  arima_reg(non_seasonal_ar=2).set_engine("statsmodels")
+  # Fits ARIMA with p=2 (exactly)
+  ```
+- In auto_arima: parameters become **MAX constraints**
+  ```python
+  arima_reg(non_seasonal_ar=2).set_engine("auto_arima")
+  # Searches for best p in range [0, 2] (max_p=2)
+  ```
+
+**Parameter Mapping:**
+```python
+# Non-seasonal
+non_seasonal_ar → max_p (default: 5)
+non_seasonal_differences → max_d (default: 2)
+non_seasonal_ma → max_q (default: 5)
+
+# Seasonal
+seasonal_ar → max_P (default: 2)
+seasonal_differences → max_D (default: 1)
+seasonal_ma → max_Q (default: 2)
+seasonal_period → m (exact value, not a maximum)
+```
+
+**Automatic Selection:**
+- Uses AIC/BIC to compare models within constraints
+- Returns optimal order in `fit.fit_data["order"]` as tuple `(p, d, q)`
+- Returns seasonal order in `fit.fit_data["seasonal_order"]` as `(P, D, Q, m)`
+
+**Code References:**
+- `py_parsnip/engines/pmdarima_auto_arima.py` - auto_arima engine
+- `tests/test_parsnip/test_auto_arima.py` - 57 tests covering search constraints
+
 ### Notebook Index Mismatch Issues
 **Problem:** When comparing pandas Series from test data with prediction DataFrames, index mismatch causes ValueError.
 
@@ -731,11 +808,11 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 
 ## Project Status and Planning
 
-**Current Status:** Phase 4A Complete, All 900+ Tests Passing
-**Last Updated:** 2025-10-28 (MSTL fixes in Notebook 19)
-**Total Tests Passing:** 900+ tests across all packages
-**Total Models:** 20 production-ready models
-**Total Engines:** 26+ engine implementations
+**Current Status:** Phase 5 Complete, All 1019+ Tests Passing
+**Last Updated:** 2025-10-31 (Phase 5: VARMAX and auto_arima engine)
+**Total Tests Passing:** 1019+ tests across all packages (900+ from Phases 1-4A, 119 from Phase 5)
+**Total Models:** 22 production-ready models (20 base + 2 Phase 5 additions)
+**Total Engines:** 28+ engine implementations
 
 **Phase 1 - COMPLETED (Foundation):**
 - ✅ py-hardhat: 14 tests - Data preprocessing with mold/forge
@@ -816,6 +893,26 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 - Notebook 21: pyearth dependency incompatible with Python 3.10 - blocking MARS model demos
 
 See `PHASE_4A_NOTEBOOK_TESTING_REPORT.md` and `NOTEBOOK_TESTING_REPORT.md` for detailed testing results.
+
+**Phase 5 - COMPLETED (Multivariate Time Series & Auto ARIMA):**
+- ✅ **varmax_reg()**: Multivariate VARMAX for multiple outcome variables (62 tests)
+  - Requires 2+ outcome variables (e.g., `y1 + y2 ~ date`)
+  - Vector Autoregression with Moving Average and Exogenous variables
+  - Handles cross-correlations between multiple time series
+  - Supports exogenous predictors
+  - Prediction intervals for all outcome variables
+  - Three-DataFrame outputs include `outcome_variable` column
+  - Tests: `tests/test_parsnip/test_varmax_reg.py` - 62 passing
+
+- ✅ **auto_arima engine**: Automatic ARIMA order selection via pmdarima (57 tests)
+  - Set via `arima_reg().set_engine("auto_arima")`
+  - Automatically finds optimal (p,d,q) and seasonal (P,D,Q,m) parameters
+  - Parameters become MAX constraints (e.g., `non_seasonal_ar=2` → `max_p=2`)
+  - Supports seasonal and non-seasonal ARIMA
+  - Works with exogenous variables
+  - Tests: `tests/test_parsnip/test_auto_arima.py` - 57 passing
+
+**Total Phase 5 Tests:** 119 (62 VARMAX + 57 auto_arima)
 
 **Example Notebooks:**
 - 01_hardhat_demo.ipynb - Data preprocessing

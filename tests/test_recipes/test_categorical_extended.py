@@ -340,6 +340,152 @@ class TestStepInteger:
         assert transformed['color'].min() >= 0
 
 
+class TestStepUnknown:
+    """Test step_unknown functionality"""
+
+    @pytest.fixture
+    def categorical_data_with_na(self):
+        """Create categorical data with missing values"""
+        return pd.DataFrame({
+            'color': ['red', 'blue', None, 'red', None, 'green'],
+            'size': ['small', 'large', 'medium', None, 'small', None],
+            'category': ['A', 'B', 'C', 'A', 'B', 'C']  # No missing
+        })
+
+    def test_unknown_basic(self, categorical_data_with_na):
+        """Test basic unknown level assignment"""
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(categorical_data_with_na)
+        transformed = rec_fit.bake(categorical_data_with_na)
+
+        # Missing values should be replaced with '_unknown_'
+        assert '_unknown_' in transformed['color'].values
+        assert '_unknown_' in transformed['size'].values
+
+        # No NaN should remain in categorical columns
+        assert not transformed['color'].isna().any()
+        assert not transformed['size'].isna().any()
+
+    def test_unknown_specific_columns(self, categorical_data_with_na):
+        """Test unknown on specific columns"""
+        rec = recipe().step_unknown(columns=['color'])
+        rec_fit = rec.prep(categorical_data_with_na)
+        transformed = rec_fit.bake(categorical_data_with_na)
+
+        # color should have '_unknown_'
+        assert '_unknown_' in transformed['color'].values
+        assert not transformed['color'].isna().any()
+
+        # size should still have NaN (not specified)
+        assert transformed['size'].isna().any()
+        assert '_unknown_' not in transformed['size'].values
+
+    def test_unknown_custom_label(self, categorical_data_with_na):
+        """Test unknown with custom label"""
+        rec = recipe().step_unknown(unknown_label='MISSING')
+        rec_fit = rec.prep(categorical_data_with_na)
+        transformed = rec_fit.bake(categorical_data_with_na)
+
+        # Should use custom label
+        assert 'MISSING' in transformed['color'].values
+        assert 'MISSING' in transformed['size'].values
+        assert '_unknown_' not in transformed['color'].values
+
+    def test_unknown_no_missing(self):
+        """Test unknown when no missing values exist"""
+        data = pd.DataFrame({
+            'category': ['A', 'B', 'C', 'A', 'B'],
+            'group': ['X', 'Y', 'Z', 'X', 'Y']
+        })
+
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # No unknown category should be added
+        assert '_unknown_' not in transformed['category'].values
+        assert '_unknown_' not in transformed['group'].values
+
+        # Data should be unchanged
+        assert transformed.equals(data)
+
+    def test_unknown_all_missing(self):
+        """Test unknown when all values are missing"""
+        data = pd.DataFrame({
+            'category': [None, None, None, None]
+        })
+
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # All values should be '_unknown_'
+        assert all(transformed['category'] == '_unknown_')
+        assert not transformed['category'].isna().any()
+
+    def test_unknown_new_data(self, categorical_data_with_na):
+        """Test applying unknown to new data"""
+        train = categorical_data_with_na[:3]
+        test = pd.DataFrame({
+            'color': ['red', None, 'yellow'],
+            'size': [None, 'xlarge', 'small'],
+            'category': ['A', 'B', 'C']
+        })
+
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(train)
+        test_transformed = rec_fit.bake(test)
+
+        # Missing values in test should be replaced
+        assert '_unknown_' in test_transformed['color'].values
+        assert '_unknown_' in test_transformed['size'].values
+        assert not test_transformed['color'].isna().any()
+        assert not test_transformed['size'].isna().any()
+
+    def test_unknown_preserves_known_values(self, categorical_data_with_na):
+        """Test that known values are preserved"""
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(categorical_data_with_na)
+        transformed = rec_fit.bake(categorical_data_with_na)
+
+        # Known values should be unchanged
+        assert 'red' in transformed['color'].values
+        assert 'blue' in transformed['color'].values
+        assert 'green' in transformed['color'].values
+        assert 'small' in transformed['size'].values
+        assert 'medium' in transformed['size'].values
+        assert 'large' in transformed['size'].values
+
+    def test_unknown_preserves_shape(self, categorical_data_with_na):
+        """Test unknown preserves data shape"""
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(categorical_data_with_na)
+        transformed = rec_fit.bake(categorical_data_with_na)
+
+        assert transformed.shape == categorical_data_with_na.shape
+        assert list(transformed.columns) == list(categorical_data_with_na.columns)
+
+    def test_unknown_with_numeric(self):
+        """Test unknown step ignores numeric columns"""
+        data = pd.DataFrame({
+            'category': ['A', None, 'B'],
+            'numeric': [1, 2, 3],
+            'float_col': [1.5, np.nan, 3.5]
+        })
+
+        rec = recipe().step_unknown()
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # Categorical should have '_unknown_'
+        assert '_unknown_' in transformed['category'].values
+
+        # Numeric columns should be unchanged
+        np.testing.assert_array_equal(transformed['numeric'].values, data['numeric'].values)
+        # Float NaN should remain (not categorical)
+        assert pd.isna(transformed['float_col'].iloc[1])
+
+
 class TestCategoricalPipeline:
     """Test combinations of categorical steps"""
 
@@ -390,6 +536,30 @@ class TestCategoricalPipeline:
         # At minimum, known categories should be encoded correctly
         assert not pd.isna(test_transformed.loc[0, 'category'])  # 'A' was in training
         assert not pd.isna(test_transformed.loc[1, 'category'])  # 'B' was in training
+
+    def test_unknown_then_integer(self):
+        """Test unknown handling followed by integer encoding"""
+        data = pd.DataFrame({
+            'category': ['A', None, 'B', 'C', None, 'A']
+        })
+
+        rec = (
+            recipe()
+            .step_unknown(columns=['category'])
+            .step_integer(columns=['category'])
+        )
+
+        rec_fit = rec.prep(data)
+        transformed = rec_fit.bake(data)
+
+        # Should be integer encoded
+        assert transformed['category'].dtype in [np.int32, np.int64]
+
+        # No NaN should remain
+        assert not transformed['category'].isna().any()
+
+        # All values should be encoded (including the '_unknown_' category)
+        assert len(transformed) == len(data)
 
     def test_indicate_na_with_imputation(self):
         """Test NA indicator with subsequent imputation"""

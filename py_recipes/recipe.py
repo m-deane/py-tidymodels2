@@ -11,6 +11,24 @@ import pandas as pd
 import numpy as np
 
 
+def _get_datetime_columns(data: pd.DataFrame) -> List[str]:
+    """
+    Get list of datetime columns in dataframe.
+
+    Used internally to exclude datetime columns from normalization/scaling
+    operations, as these should be handled by specialized time feature
+    extraction steps instead.
+
+    Args:
+        data: DataFrame to check for datetime columns
+
+    Returns:
+        List of column names with datetime dtype
+    """
+    return [c for c in data.columns
+            if pd.api.types.is_datetime64_any_dtype(data[c])]
+
+
 class RecipeStep(Protocol):
     """
     Protocol for recipe steps.
@@ -472,6 +490,24 @@ class Recipe:
         from py_recipes.steps.transformations import StepYeoJohnson
         return self.add_step(StepYeoJohnson(columns=columns, lambdas=lambdas))
 
+    def step_inverse(
+        self,
+        columns: Optional[List[str]] = None,
+        offset: float = 0.0
+    ) -> "Recipe":
+        """
+        Apply inverse transformation (1/x).
+
+        Args:
+            columns: Columns to transform (None = all numeric)
+            offset: Value added before inversion to avoid division by zero (default: 0)
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.transformations import StepInverse
+        return self.add_step(StepInverse(columns=columns, offset=offset))
+
     # ========== Scaling Steps ==========
 
     def step_center(
@@ -666,6 +702,24 @@ class Recipe:
         """
         from py_recipes.steps.categorical_extended import StepNovel
         return self.add_step(StepNovel(columns=columns, novel_label=novel_label))
+
+    def step_unknown(
+        self,
+        columns: Optional[List[str]] = None,
+        unknown_label: str = "_unknown_"
+    ) -> "Recipe":
+        """
+        Assign missing categorical values to "unknown" level.
+
+        Args:
+            columns: Categorical columns (None = all categorical)
+            unknown_label: Label for missing values
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.categorical_extended import StepUnknown
+        return self.add_step(StepUnknown(columns=columns, unknown_label=unknown_label))
 
     def step_indicate_na(
         self,
@@ -930,6 +984,26 @@ class Recipe:
         """
         from py_recipes.steps.discretization import StepCut
         return self.add_step(StepCut(columns=columns, breaks=breaks, labels=labels, include_lowest=include_lowest))
+
+    def step_percentile(
+        self,
+        columns: Optional[List[str]] = None,
+        num_breaks: int = 100,
+        as_integer: bool = True
+    ) -> "Recipe":
+        """
+        Convert numeric columns to percentile ranks.
+
+        Args:
+            columns: Columns to convert (None = all numeric)
+            num_breaks: Number of percentile bins (default: 100 for 0-100 scale)
+            as_integer: Return integer percentiles (default: True)
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.discretization import StepPercentile
+        return self.add_step(StepPercentile(columns=columns, num_breaks=num_breaks, as_integer=as_integer))
 
     # ========== Advanced Dimensionality Reduction Steps ==========
 

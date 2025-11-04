@@ -127,6 +127,10 @@ from py_recipes.steps.feature_selection_advanced import (
     StepRfe,
     PreparedStepRfe,
 )
+from py_recipes.steps.financial_oscillators import (
+    StepOscillators,
+    PreparedStepOscillators,
+)
 
 __all__ = [
     # Basic steps
@@ -245,4 +249,7 @@ __all__ = [
     "PreparedStepBoruta",
     "StepRfe",
     "PreparedStepRfe",
+    # Financial indicator steps
+    "StepOscillators",
+    "PreparedStepOscillators",
 ]

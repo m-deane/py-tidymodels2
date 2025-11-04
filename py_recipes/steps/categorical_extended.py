@@ -256,6 +256,79 @@ class PreparedStepIndicateNa:
 
 
 @dataclass
+class StepUnknown:
+    """
+    Assign missing categorical values to "unknown" level.
+
+    Creates a dedicated factor level for missing categorical data,
+    allowing models that can't handle NA to work with incomplete data.
+    Essential preprocessing for categorical variables with missingness.
+
+    Attributes:
+        columns: Categorical columns to process (None = all categorical)
+        unknown_label: Label for missing values (default: "_unknown_")
+    """
+
+    columns: Optional[List[str]] = None
+    unknown_label: str = "_unknown_"
+
+    def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepUnknown":
+        """
+        Identify categorical columns with missing values.
+
+        Args:
+            data: Training data
+            training: Whether this is training data
+
+        Returns:
+            PreparedStepUnknown ready to handle missing values
+        """
+        if self.columns is None:
+            # Auto-detect categorical columns
+            cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
+        else:
+            cols = [col for col in self.columns if col in data.columns]
+
+        return PreparedStepUnknown(
+            columns=cols,
+            unknown_label=self.unknown_label
+        )
+
+
+@dataclass
+class PreparedStepUnknown:
+    """
+    Fitted unknown level handler.
+
+    Attributes:
+        columns: Columns to transform
+        unknown_label: Label for missing values
+    """
+
+    columns: List[str]
+    unknown_label: str
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Replace missing values with unknown label.
+
+        Args:
+            data: Data to transform
+
+        Returns:
+            DataFrame with NA replaced by unknown label
+        """
+        result = data.copy()
+
+        for col in self.columns:
+            if col in result.columns:
+                # Replace NA with unknown_label
+                result[col] = result[col].fillna(self.unknown_label)
+
+        return result
+
+
+@dataclass
 class StepInteger:
     """
     Integer encode categorical variables.

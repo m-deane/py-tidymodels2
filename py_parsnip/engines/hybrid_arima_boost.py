@@ -17,6 +17,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("arima_boost", "hybrid_arima_xgboost")
@@ -56,7 +57,7 @@ class HybridARIMABoostEngine(Engine):
     }
 
     def fit_raw(
-        self, spec: ModelSpec, data: pd.DataFrame, formula: str
+        self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str = None
     ) -> tuple[Dict[str, Any], Any]:
         """
         Fit hybrid ARIMA + XGBoost model using raw data.
@@ -71,6 +72,7 @@ class HybridARIMABoostEngine(Engine):
             spec: ModelSpec with hybrid configuration
             data: Training data DataFrame
             formula: Formula string (e.g., "sales ~ date" or "sales ~ date + x1 + x2")
+            date_col: Name of date column, or '__index__' for DatetimeIndex
 
         Returns:
             Tuple of (fit_data dict, blueprint)
@@ -78,57 +80,46 @@ class HybridARIMABoostEngine(Engine):
         from statsmodels.tsa.statespace.sarimax import SARIMAX
         from xgboost import XGBRegressor
 
-        # Parse formula
-        parts = formula.split("~")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid formula: {formula}")
+        # Infer date column from data
+        inferred_date_col = _infer_date_column(
+            data,
+            spec_date_col=spec.args.get("date_col") if spec.args else None,
+            fit_date_col=date_col
+        )
 
-        outcome_name = parts[0].strip()
-        predictor_part = parts[1].strip()
+        # Parse formula to get outcome and exogenous variables
+        outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
         # Validate outcome exists
         if outcome_name not in data.columns:
             raise ValueError(f"Outcome '{outcome_name}' not found in data")
 
-        # Get outcome series
-        y = data[outcome_name]
-
-        # Handle time index and exogenous variables
-        date_col = None
-        if predictor_part == "1":
-            # No exogenous variables (pure ARIMA)
-            exog = None
-            predictor_names = []
-        else:
-            # Parse predictors
-            predictor_names = [p.strip() for p in predictor_part.split("+")]
-            # Validate predictors exist
-            missing = [p for p in predictor_names if p not in data.columns]
-            if missing:
-                raise ValueError(f"Predictors {missing} not found in data")
-
-            # Check if any predictor is a datetime column
-            datetime_predictors = []
-            regular_predictors = []
-            for p in predictor_names:
-                if pd.api.types.is_datetime64_any_dtype(data[p]):
-                    datetime_predictors.append(p)
-                else:
-                    regular_predictors.append(p)
-
-            # If there's a datetime predictor, use it as the index
-            if datetime_predictors:
-                date_col = datetime_predictors[0]
-                y = data.set_index(date_col)[outcome_name]
-
-                # Only use regular (non-datetime) predictors as exogenous
-                if regular_predictors:
-                    exog = data.set_index(date_col)[regular_predictors]
-                else:
-                    exog = None
+        # Handle "." notation (all columns except outcome and date)
+        if exog_vars == ['.']:
+            if inferred_date_col == '__index__':
+                exog_vars = [col for col in data.columns if col != outcome_name]
             else:
-                # No datetime columns, all are exogenous variables
-                exog = data[predictor_names]
+                exog_vars = [col for col in data.columns if col != outcome_name and col != inferred_date_col]
+
+        # Handle __index__ case
+        if inferred_date_col == '__index__':
+            # Use DatetimeIndex
+            y = data[outcome_name]
+
+            # Get exogenous variables if present
+            if exog_vars:
+                exog = data[exog_vars] if len(exog_vars) > 1 else data[[exog_vars[0]]]
+            else:
+                exog = None
+        else:
+            # Use date column as index
+            y = data.set_index(inferred_date_col)[outcome_name]
+
+            # Get exogenous variables if present (excluding date column)
+            if exog_vars:
+                exog = data.set_index(inferred_date_col)[exog_vars]
+            else:
+                exog = None
 
         # ==================
         # STAGE 1: Fit ARIMA
@@ -222,25 +213,17 @@ class HybridARIMABoostEngine(Engine):
         final_residuals = actuals - final_fitted
 
         # Extract dates
-        dates = None
-        if date_col is not None:
-            dates = data[date_col].values
-        elif "date" in data.columns:
-            dates = data["date"].values
+        if inferred_date_col == '__index__':
+            dates = data.index.values
         else:
-            # Try to find any datetime column
-            for col in data.columns:
-                if pd.api.types.is_datetime64_any_dtype(data[col]):
-                    dates = data[col].values
-                    date_col = col
-                    break
+            dates = data[inferred_date_col].values
 
         # Create blueprint
         blueprint = {
             "formula": formula,
             "outcome_name": outcome_name,
-            "predictor_names": predictor_names,
-            "date_col": date_col,
+            "exog_vars": exog_vars,
+            "date_col": inferred_date_col,
             "order": order,
             "seasonal_order": seasonal_order,
             "xgb_params": xgb_params,
@@ -251,7 +234,8 @@ class HybridARIMABoostEngine(Engine):
             "arima_model": fitted_arima,
             "xgb_model": xgb_model,
             "outcome_name": outcome_name,
-            "predictor_names": predictor_names,
+            "exog_vars": exog_vars,
+            "date_col": inferred_date_col,
             "order": order,
             "seasonal_order": seasonal_order,
             "n_obs": len(y),
@@ -307,15 +291,8 @@ class HybridARIMABoostEngine(Engine):
 
         arima_model = fit.fit_data["arima_model"]
         xgb_model = fit.fit_data["xgb_model"]
-        predictor_names = fit.fit_data["predictor_names"]
-
-        # Get date column from blueprint
-        date_col = fit.blueprint.get("date_col") if isinstance(fit.blueprint, dict) else None
-
-        # Filter out date column from predictor names
-        exog_predictor_names = (
-            [p for p in predictor_names if p != date_col] if date_col else predictor_names
-        )
+        exog_vars = fit.fit_data["exog_vars"]
+        date_col = fit.fit_data["date_col"]
 
         # Determine forecast horizon
         n_periods = len(new_data)
@@ -324,14 +301,14 @@ class HybridARIMABoostEngine(Engine):
         # ARIMA predictions
         # ==================
         # Get exogenous variables for ARIMA if present
-        if exog_predictor_names:
-            missing = [p for p in exog_predictor_names if p not in new_data.columns]
+        if exog_vars:
+            missing = [v for v in exog_vars if v not in new_data.columns]
             if missing:
                 raise ValueError(
                     f"Exogenous variables {missing} not found in new_data. "
-                    f"Required: {exog_predictor_names}"
+                    f"Required: {exog_vars}"
                 )
-            exog = new_data[exog_predictor_names]
+            exog = new_data[exog_vars]
         else:
             exog = None
 
@@ -357,12 +334,13 @@ class HybridARIMABoostEngine(Engine):
         # ==================
         final_forecast = arima_forecast.values + xgb_forecast
 
-        # Get date index from new_data if available
-        date_index = (
-            new_data[date_col]
-            if date_col and date_col in new_data.columns
-            else None
-        )
+        # Get date index from new_data
+        if date_col == '__index__':
+            date_index = new_data.index
+        elif date_col in new_data.columns:
+            date_index = new_data[date_col]
+        else:
+            date_index = None
 
         # Return predictions
         result = pd.DataFrame({".pred": final_forecast})

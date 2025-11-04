@@ -346,6 +346,117 @@ class TestGlobalFitting:
         with pytest.raises(ValueError, match="Group column 'group' not found"):
             wf.fit_global(data, group_col="group")
 
+    def test_global_with_multiple_predictors(self):
+        """Test global fitting with multiple predictors (fixes formula bug)"""
+        np.random.seed(42)
+        data = pd.DataFrame({
+            "x1": [1, 2, 3, 4, 5, 6],
+            "x2": [2, 3, 4, 5, 6, 7],
+            "y": [5, 8, 11, 17, 20, 23],
+            "group": ["A", "A", "A", "B", "B", "B"]
+        })
+
+        # Formula with multiple predictors (this is what was broken)
+        wf = workflow().add_formula("y ~ x1 + x2").add_model(linear_reg())
+        global_fit = wf.fit_global(data, group_col="group")
+
+        # Should work without error
+        assert global_fit is not None
+
+        # Test prediction
+        test = pd.DataFrame({
+            "x1": [7, 8],
+            "x2": [8, 9],
+            "group": ["A", "B"]
+        })
+        predictions = global_fit.predict(test)
+        assert len(predictions) == 2
+        assert ".pred" in predictions.columns
+
+    def test_global_with_multiple_predictors_various_spacing(self):
+        """Test formula parsing with various whitespace formats"""
+        np.random.seed(42)
+        data = pd.DataFrame({
+            "x1": [1, 2, 3, 4],
+            "x2": [2, 3, 4, 5],
+            "y": [5, 8, 11, 14],
+            "group": ["A", "A", "B", "B"]
+        })
+
+        # Test various whitespace formats
+        formulas_to_test = [
+            "y ~ x1 + x2",      # Standard spacing
+            "y~x1+x2",          # No spaces
+            "y  ~  x1  +  x2",  # Extra spaces
+            "y ~ x1+x2",        # Mixed spacing
+            "y~x1 + x2",        # Mixed spacing 2
+        ]
+
+        for formula in formulas_to_test:
+            wf = workflow().add_formula(formula).add_model(linear_reg())
+            global_fit = wf.fit_global(data, group_col="group")
+            assert global_fit is not None, f"Failed with formula: {formula}"
+
+    def test_global_with_many_predictors(self):
+        """Test global fitting with many predictors"""
+        np.random.seed(42)
+        data = pd.DataFrame({
+            "x1": [1, 2, 3, 4, 5, 6],
+            "x2": [2, 3, 4, 5, 6, 7],
+            "x3": [3, 4, 5, 6, 7, 8],
+            "x4": [4, 5, 6, 7, 8, 9],
+            "y": np.random.randn(6) + 10,
+            "category": ["A", "A", "A", "B", "B", "B"]
+        })
+
+        # Formula with many predictors
+        wf = workflow().add_formula("y ~ x1 + x2 + x3 + x4").add_model(linear_reg())
+        global_fit = wf.fit_global(data, group_col="category")
+
+        # Should fit successfully
+        assert global_fit is not None
+
+        # Test prediction
+        test = pd.DataFrame({
+            "x1": [7],
+            "x2": [8],
+            "x3": [9],
+            "x4": [10],
+            "category": ["A"]
+        })
+        predictions = global_fit.predict(test)
+        assert len(predictions) == 1
+
+    def test_global_formula_already_has_multiple_predictors_and_group(self):
+        """Test when formula already includes group among multiple predictors"""
+        data = pd.DataFrame({
+            "x1": [1, 2, 3, 4],
+            "x2": [2, 3, 4, 5],
+            "y": [5, 8, 13, 16],
+            "store": ["A", "A", "B", "B"]
+        })
+
+        # Formula already includes store among multiple predictors
+        wf = workflow().add_formula("y ~ x1 + x2 + store").add_model(linear_reg())
+        global_fit = wf.fit_global(data, group_col="store")
+
+        # Should not duplicate store column
+        assert global_fit is not None
+
+    def test_global_invalid_formula_format(self):
+        """Test error handling for invalid formula format"""
+        data = pd.DataFrame({
+            "x": [1, 2, 3],
+            "y": [4, 5, 6],
+            "group": ["A", "A", "B"]
+        })
+
+        # Formula without '~' should raise error
+        wf = workflow().add_formula("y").add_model(linear_reg())
+
+        with pytest.raises(ValueError, match="Invalid formula format"):
+            wf.fit_global(data, group_col="group")
+
 
 class TestNestedVsGlobal:
     """Compare nested vs global modeling approaches"""

@@ -8,7 +8,7 @@ Maps linear_reg to sklearn's linear models:
 - penalty + mixture=(0,1) → ElasticNet
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -32,13 +32,19 @@ class SklearnLinearEngine(Engine):
         "mixture": "l1_ratio",
     }
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(
+        self,
+        spec: ModelSpec,
+        molded: MoldedData,
+        original_training_data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Fit linear regression model using sklearn.
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes and predictors
+            original_training_data: Original training DataFrame (optional, for date column extraction)
 
         Returns:
             Dict containing fitted model and metadata
@@ -111,6 +117,7 @@ class SklearnLinearEngine(Engine):
             "fitted": fitted,
             "residuals": residuals,
             "date_col": date_col,
+            "original_training_data": original_training_data,
         }
 
     def predict(
@@ -292,6 +299,64 @@ class SklearnLinearEngine(Engine):
             outputs_list.append(test_df)
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
+
+        # Add date column if available in original data
+        if not outputs.empty:
+            try:
+                from py_parsnip.utils.time_series_utils import _infer_date_column
+
+                # For training data
+                original_training_data = fit.fit_data.get("original_training_data")
+                if original_training_data is not None:
+                    try:
+                        date_col = _infer_date_column(
+                            original_training_data,
+                            spec_date_col=None,
+                            fit_date_col=None
+                        )
+
+                        # Extract training dates
+                        if date_col == '__index__':
+                            train_dates = original_training_data.index.values
+                        else:
+                            train_dates = original_training_data[date_col].values
+
+                        # For test data (if evaluated)
+                        test_dates = None
+                        original_test_data = fit.evaluation_data.get("original_test_data")
+                        if original_test_data is not None:
+                            try:
+                                # Use same date_col from training
+                                if date_col == '__index__':
+                                    test_dates = original_test_data.index.values
+                                else:
+                                    test_dates = original_test_data[date_col].values
+                            except (KeyError, AttributeError):
+                                pass  # Skip test dates if not available
+
+                        # Combine dates based on split
+                        combined_dates = []
+                        train_count = (outputs['split'] == 'train').sum()
+                        test_count = (outputs['split'] == 'test').sum()
+
+                        # Add training dates
+                        if train_count > 0:
+                            combined_dates.extend(train_dates[:train_count])
+
+                        # Add test dates if they exist
+                        if test_count > 0 and test_dates is not None:
+                            combined_dates.extend(test_dates[:test_count])
+
+                        # Add date column as first column (before model/group columns)
+                        if len(combined_dates) == len(outputs):
+                            outputs.insert(0, 'date', combined_dates)
+
+                    except ValueError:
+                        # No datetime columns or invalid date column - skip date column
+                        pass
+            except ImportError:
+                # time_series_utils not available - skip date column
+                pass
 
         # ====================
         # 2. COEFFICIENTS DataFrame

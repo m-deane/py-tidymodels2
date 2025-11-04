@@ -175,6 +175,9 @@ class Workflow:
         if self.spec is None:
             raise ValueError("Workflow must have a model specification")
 
+        # Store original training data for engines that need raw datetime/categorical values
+        original_data = data.copy()
+
         # Handle preprocessor
         if self.preprocessor is not None:
             if isinstance(self.preprocessor, str):
@@ -223,7 +226,8 @@ class Workflow:
             raise ValueError("Workflow must have a formula (via add_formula()) or recipe (via add_recipe())")
 
         # Fit the model (data first, then formula)
-        model_fit = self.spec.fit(processed_data, formula)
+        # Pass original training data for engines that need raw datetime/categorical values
+        model_fit = self.spec.fit(processed_data, formula, original_training_data=original_data)
 
         return WorkflowFit(
             workflow=self,
@@ -339,21 +343,26 @@ class Workflow:
         # Update formula to include group column as a feature
         if isinstance(self.preprocessor, str):
             formula = self.preprocessor
+
+            # Validate formula structure
+            if '~' not in formula:
+                raise ValueError(f"Invalid formula format: {formula}. Formula must contain '~'")
+
+            # Robust formula parsing with whitespace normalization
+            lhs, rhs = formula.split('~', 1)
+            outcome = lhs.strip()
+            predictors = rhs.strip()
+
             # Check if group_col is already in the formula
-            if group_col not in formula:
-                # Add group_col to the formula
-                if " ~ " in formula:
-                    outcome, predictors = formula.split(" ~ ", 1)
-                    if predictors == ".":
-                        # Keep "." notation (will include group_col automatically)
-                        updated_formula = formula
-                    else:
-                        # Add group_col explicitly
-                        updated_formula = f"{outcome} ~ {predictors} + {group_col}"
-                else:
-                    raise ValueError(f"Invalid formula format: {formula}")
-            else:
+            # Split predictors on '+' and check each term
+            predictor_terms = [term.strip() for term in predictors.split('+')]
+
+            if group_col in predictor_terms or predictors == ".":
+                # group_col already in formula or using "." notation (includes all columns)
                 updated_formula = formula
+            else:
+                # Add group_col explicitly
+                updated_formula = f"{outcome} ~ {predictors} + {group_col}"
 
             # Update workflow with new formula
             updated_workflow = self.update_formula(updated_formula)
@@ -455,8 +464,9 @@ class WorkflowFit:
         else:
             raise ValueError(f"Unknown preprocessor type: {type(self.pre)}")
 
-        # Delegate to the underlying ModelFit with preprocessed data
-        self.fit = self.fit.evaluate(processed_test_data, outcome_col)
+        # Delegate to the underlying ModelFit with both original and preprocessed data
+        # Pass original test data so engines can access raw datetime/categorical values
+        self.fit = self.fit.evaluate(processed_test_data, outcome_col, original_test_data=test_data)
         return self
 
     def extract_fit_parsnip(self) -> ModelFit:

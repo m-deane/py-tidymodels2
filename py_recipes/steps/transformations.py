@@ -332,3 +332,74 @@ class PreparedStepYeoJohnson:
                 result[col] = self.transformers[col].transform(result[[col]]).ravel()
 
         return result
+
+
+@dataclass
+class StepInverse:
+    """
+    Apply inverse transformation (1/x).
+
+    Transforms variables by computing their reciprocal, useful for
+    modeling relationships where the effect decreases with magnitude.
+
+    Attributes:
+        columns: Columns to transform (None = all numeric)
+        offset: Value added before inversion to avoid division by zero (default: 0)
+    """
+
+    columns: Optional[List[str]] = None
+    offset: float = 0.0
+
+    def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepInverse":
+        """
+        Prepare inverse transformation.
+
+        Args:
+            data: Training data
+            training: Whether this is training data
+
+        Returns:
+            PreparedStepInverse ready to transform data
+        """
+        if self.columns is None:
+            cols = data.select_dtypes(include=[np.number]).columns.tolist()
+        else:
+            cols = [col for col in self.columns if col in data.columns]
+
+        return PreparedStepInverse(
+            columns=cols,
+            offset=self.offset
+        )
+
+
+@dataclass
+class PreparedStepInverse:
+    """
+    Fitted inverse transformation step.
+
+    Attributes:
+        columns: Columns to transform
+        offset: Offset value
+    """
+
+    columns: List[str]
+    offset: float
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply inverse transformation.
+
+        Args:
+            data: Data to transform
+
+        Returns:
+            DataFrame with inverse-transformed columns
+        """
+        result = data.copy()
+
+        for col in self.columns:
+            if col in result.columns:
+                # Apply inverse: 1 / (x + offset)
+                result[col] = 1.0 / (result[col] + self.offset)
+
+        return result

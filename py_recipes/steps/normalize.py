@@ -30,6 +30,9 @@ class StepNormalize:
         """
         Fit scaler to training data.
 
+        Note: Datetime columns are automatically excluded from normalization.
+        Use step_date() or step_timeseries_signature() to extract time features instead.
+
         Args:
             data: Training data
             training: Whether this is training data
@@ -43,6 +46,12 @@ class StepNormalize:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
             cols = self.columns
+
+        # Exclude datetime columns from normalization
+        # Datetime columns should be processed by step_date() or similar instead
+        datetime_cols = [c for c in data.columns
+                        if pd.api.types.is_datetime64_any_dtype(data[c])]
+        cols = [c for c in cols if c not in datetime_cols]
 
         # Fit scaler
         if self.method == "zscore":

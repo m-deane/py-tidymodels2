@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula
 
 
 @register_engine("recursive_reg", "skforecast")
@@ -27,7 +28,7 @@ class SkforecastRecursiveEngine(Engine):
         return args
 
     def fit_raw(
-        self, spec: ModelSpec, data: pd.DataFrame, formula: str
+        self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """
         Fit recursive forecasting model using raw data.
@@ -39,23 +40,37 @@ class SkforecastRecursiveEngine(Engine):
             spec: Model specification with base_model, lags, differentiation
             data: DataFrame with datetime index and target column
             formula: Formula like "y ~ date" or "y ~ ."
+            date_col: Name of date column, or '__index__' for DatetimeIndex
 
         Returns:
             Tuple of (fit_data_dict, blueprint_dict)
         """
         from skforecast.recursive import ForecasterRecursive
 
-        # Parse formula to get outcome variable
-        if "~" not in formula:
-            raise ValueError(f"Formula must contain '~': {formula}")
+        # Infer date column from data
+        inferred_date_col = _infer_date_column(
+            data,
+            spec_date_col=spec.args.get("date_col") if spec.args else None,
+            fit_date_col=date_col
+        )
 
-        outcome_name = formula.split("~")[0].strip()
+        # Parse formula to get outcome and exogenous variables
+        outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
         if outcome_name not in data.columns:
             raise ValueError(
                 f"Outcome '{outcome_name}' not found in data. "
                 f"Available columns: {list(data.columns)}"
             )
+
+        # Handle "." notation (all columns except outcome and date)
+        if exog_vars == ['.']:
+            if inferred_date_col == '__index__':
+                # Only exclude outcome (date is index)
+                exog_vars = [col for col in data.columns if col != outcome_name]
+            else:
+                # Exclude both outcome and date column
+                exog_vars = [col for col in data.columns if col != outcome_name and col != inferred_date_col]
 
         # Extract parameters
         args = dict(spec.args)
@@ -94,33 +109,53 @@ class SkforecastRecursiveEngine(Engine):
             regressor=regressor, lags=lags, differentiation=differentiation
         )
 
-        # Fit on the target series
-        y = data[outcome_name]
+        # Handle __index__ case for DatetimeIndex
+        if inferred_date_col == '__index__':
+            # Data already has DatetimeIndex
+            y = data[outcome_name]
 
-        # Ensure y has a frequency if it's a DatetimeIndex
-        if isinstance(y.index, pd.DatetimeIndex) and y.index.freq is None:
-            freq = pd.infer_freq(y.index)
-            if freq:
-                y.index = pd.DatetimeIndex(y.index, freq=freq)
+            # Ensure y has a frequency if it's a DatetimeIndex
+            if isinstance(y.index, pd.DatetimeIndex) and y.index.freq is None:
+                freq = pd.infer_freq(y.index)
+                if freq:
+                    y.index = pd.DatetimeIndex(y.index, freq=freq)
+                else:
+                    # If freq cannot be inferred, use the most common diff
+                    diffs = y.index[1:] - y.index[:-1]
+                    most_common_diff = diffs.value_counts().idxmax()
+                    y = y.asfreq(most_common_diff)
+
+            # Get exogenous variables if present
+            if exog_vars:
+                exog = data[exog_vars]
+                # Set frequency for exog
+                if isinstance(exog.index, pd.DatetimeIndex) and exog.index.freq is None:
+                    exog.index = y.index  # Use same index as y
             else:
-                # If freq cannot be inferred, use the most common diff
-                diffs = y.index[1:] - y.index[:-1]
-                most_common_diff = diffs.value_counts().idxmax()
-                y = y.asfreq(most_common_diff)
+                exog = None
+        else:
+            # Set date column as index
+            data_indexed = data.set_index(inferred_date_col)
+            y = data_indexed[outcome_name]
 
-        # Check for exogenous variables (anything besides outcome)
-        exog_cols = [col for col in data.columns if col != outcome_name]
-        exog = data[exog_cols] if exog_cols else None
+            # Ensure y has a frequency
+            if isinstance(y.index, pd.DatetimeIndex) and y.index.freq is None:
+                freq = pd.infer_freq(y.index)
+                if freq:
+                    y.index = pd.DatetimeIndex(y.index, freq=freq)
+                else:
+                    diffs = y.index[1:] - y.index[:-1]
+                    most_common_diff = diffs.value_counts().idxmax()
+                    y = y.asfreq(most_common_diff)
 
-        # Set frequency for exog if present
-        if exog is not None and isinstance(exog.index, pd.DatetimeIndex) and exog.index.freq is None:
-            freq = pd.infer_freq(exog.index)
-            if freq:
-                exog.index = pd.DatetimeIndex(exog.index, freq=freq)
+            # Get exogenous variables if present
+            if exog_vars:
+                exog = data_indexed[exog_vars]
+                # Set frequency for exog
+                if isinstance(exog.index, pd.DatetimeIndex) and exog.index.freq is None:
+                    exog.index = y.index  # Use same index as y
             else:
-                diffs = exog.index[1:] - exog.index[:-1]
-                most_common_diff = diffs.value_counts().idxmax()
-                exog = exog.asfreq(most_common_diff)
+                exog = None
 
         # Fit with store_in_sample_residuals=True for prediction intervals
         forecaster.fit(y=y, exog=exog, store_in_sample_residuals=True)
@@ -152,7 +187,8 @@ class SkforecastRecursiveEngine(Engine):
             "y_train_pred": y_train_pred.values if isinstance(y_train_pred, pd.Series) else y_train_pred,
             "lags": lags,
             "differentiation": differentiation,
-            "exog_cols": exog_cols,
+            "exog_vars": exog_vars,
+            "date_col": inferred_date_col,
             "train_index": y.index,
         }
 
@@ -160,7 +196,8 @@ class SkforecastRecursiveEngine(Engine):
         blueprint = {
             "formula": formula,
             "outcome_name": outcome_name,
-            "exog_cols": exog_cols,
+            "exog_vars": exog_vars,
+            "date_col": inferred_date_col,
         }
 
         return fit_data, blueprint
@@ -186,20 +223,25 @@ class SkforecastRecursiveEngine(Engine):
             DataFrame with predictions indexed by forecast dates
         """
         forecaster = fit.fit_data["forecaster"]
-        exog_cols = fit.fit_data["exog_cols"]
+        exog_vars = fit.fit_data["exog_vars"]
+        date_col = fit.fit_data["date_col"]
 
         # Determine forecast horizon
         steps = len(new_data) if new_data is not None and len(new_data) > 0 else 1
 
         # Get exogenous variables if provided
         exog = None
-        if exog_cols and new_data is not None and len(new_data) > 0:
-            missing_cols = set(exog_cols) - set(new_data.columns)
+        if exog_vars and new_data is not None and len(new_data) > 0:
+            missing_cols = set(exog_vars) - set(new_data.columns)
             if missing_cols:
                 raise ValueError(
                     f"Missing exogenous columns in new_data: {missing_cols}"
                 )
-            exog = new_data[exog_cols]
+            # Handle __index__ case
+            if date_col == '__index__':
+                exog = new_data[exog_vars]
+            else:
+                exog = new_data.set_index(date_col)[exog_vars] if date_col in new_data.columns else new_data[exog_vars]
 
         # Make predictions
         if type == "numeric":
