@@ -1,0 +1,1064 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>py_parsnip.models.gen_additive_mod &mdash; py-tidymodels 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            py-tidymodels
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#installation-steps">Installation Steps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#clone-the-repository">1. Clone the Repository</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#create-virtual-environment">2. Create Virtual Environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#install-package">3. Install Package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../user_guide/installation.html#development-installation-editable">Development Installation (Editable)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../user_guide/installation.html#standard-installation">Standard Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#install-optional-dependencies">4. Install Optional Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#verify-installation">5. Verify Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#jupyter-notebook-setup">Jupyter Notebook Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#development-installation">Development Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/installation.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#prophet-installation-issues">Prophet Installation Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#windows-issues">Windows Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#import-errors">Import Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/installation.html#kernel-not-found-in-jupyter">Kernel Not Found in Jupyter</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/quickstart.html">Quick Start Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#basic-regression">Basic Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#time-series-forecasting">Time Series Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#feature-engineering-with-recipes">Feature Engineering with Recipes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#hyperparameter-tuning">Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#multi-model-comparison">Multi-Model Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#model-stacking">Model Stacking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/quickstart.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/concepts.html">Core Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#architecture-overview">Architecture Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#layer-1-py-hardhat">Layer 1: py-hardhat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#layer-2-py-parsnip">Layer 2: py-parsnip</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#layer-3-py-rsample">Layer 3: py-rsample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#layer-4-8-higher-level-tools">Layer 4-8: Higher-Level Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#key-design-principles">Key Design Principles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#immutability">Immutability</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#composability">Composability</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#standardized-outputs">Standardized Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#data-flow">Data Flow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#training-flow">Training Flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#prediction-flow">Prediction Flow</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#working-with-formulas">Working with Formulas</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#basic-formulas">Basic Formulas</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#categorical-variables">Categorical Variables</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#working-with-recipes">Working with Recipes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#recipe-workflow">Recipe Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#why-prep-bake">Why prep/bake?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#time-series-considerations">Time Series Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#date-column-handling">Date Column Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#raw-vs-standard-path">Raw vs Standard Path</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#panel-grouped-modeling">Panel/Grouped Modeling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#nested-approach">Nested Approach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#global-approach">Global Approach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/concepts.html#when-to-use-each">When to Use Each</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/concepts.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/recipes.html">Recipe Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#what-are-recipes">What Are Recipes?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#the-prep-bake-pattern">The prep/bake Pattern</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#basic-workflow">Basic Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#why-separate-prep-and-bake">Why Separate prep and bake?</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#recipe-steps-by-category">Recipe Steps by Category</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#imputation-steps">Imputation Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#normalization-steps">Normalization Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#encoding-steps">Encoding Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#feature-engineering-steps">Feature Engineering Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#filtering-steps">Filtering Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#time-series-steps">Time Series Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#complete-example">Complete Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#real-world-pipeline">Real-World Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#time-series-example">Time Series Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#selectors">Selectors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#built-in-selectors">Built-in Selectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#custom-selection">Custom Selection</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#best-practices">Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#order-of-operations">Order of Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#avoid-data-leakage">Avoid Data Leakage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#reuse-prepped-recipes">Reuse Prepped Recipes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#common-patterns">Common Patterns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#handling-missing-data">Handling Missing Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#dealing-with-skewness">Dealing with Skewness</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#reducing-dimensionality">Reducing Dimensionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/recipes.html#rare-categories">Rare Categories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/recipes.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/time_series.html">Time Series Modeling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#time-series-models">Time Series Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#native-time-series-models">Native Time Series Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#hybrid-models">Hybrid Models</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#data-preparation">Data Preparation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#date-column-handling">Date Column Handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#time-series-splits">Time Series Splits</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#feature-engineering-for-time-series">Feature Engineering for Time Series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#lagged-features">Lagged Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#rolling-statistics">Rolling Statistics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#time-features">Time Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#differencing">Differencing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#complete-examples">Complete Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#prophet-forecasting">Prophet Forecasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#arima-with-auto-selection">ARIMA with Auto Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#recursive-ml-forecasting">Recursive ML Forecasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#panel-grouped-time-series">Panel/Grouped Time Series</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#hyperparameter-tuning-for-time-series">Hyperparameter Tuning for Time Series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#cross-validation">Cross-Validation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#best-practices">Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#check-stationarity">Check Stationarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#handle-seasonality">Handle Seasonality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#validate-on-holdout">Validate on Holdout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#check-residuals">Check Residuals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#use-appropriate-metrics">Use Appropriate Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#missing-dates">Missing Dates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#irregular-frequency">Irregular Frequency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/time_series.html#multiple-seasonality">Multiple Seasonality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/time_series.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/tuning.html">Hyperparameter Tuning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#grid-types">Grid Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/tuning.html#regular-grid">Regular Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/tuning.html#random-grid">Random Grid</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#analyzing-results">Analyzing Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#time-series-tuning">Time Series Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/tuning.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user_guide/workflows.html">Workflow Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#basic-workflow">Basic Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#with-recipes">With Recipes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#panel-grouped-models">Panel/Grouped Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/workflows.html#nested-approach">Nested Approach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../user_guide/workflows.html#global-approach">Global Approach</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#extracting-components">Extracting Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../user_guide/workflows.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/hardhat.html">py-hardhat: Data Preprocessing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/hardhat.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint"><code class="docutils literal notranslate"><span class="pre">Blueprint</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.formula"><code class="docutils literal notranslate"><span class="pre">Blueprint.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.roles"><code class="docutils literal notranslate"><span class="pre">Blueprint.roles</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.factor_levels"><code class="docutils literal notranslate"><span class="pre">Blueprint.factor_levels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.column_order"><code class="docutils literal notranslate"><span class="pre">Blueprint.column_order</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.ptypes"><code class="docutils literal notranslate"><span class="pre">Blueprint.ptypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.intercept"><code class="docutils literal notranslate"><span class="pre">Blueprint.intercept</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.indicators"><code class="docutils literal notranslate"><span class="pre">Blueprint.indicators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.design_info"><code class="docutils literal notranslate"><span class="pre">Blueprint.design_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.outcome_design_info"><code class="docutils literal notranslate"><span class="pre">Blueprint.outcome_design_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id0"><code class="docutils literal notranslate"><span class="pre">Blueprint.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id1"><code class="docutils literal notranslate"><span class="pre">Blueprint.roles</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id2"><code class="docutils literal notranslate"><span class="pre">Blueprint.factor_levels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id3"><code class="docutils literal notranslate"><span class="pre">Blueprint.column_order</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id4"><code class="docutils literal notranslate"><span class="pre">Blueprint.ptypes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id5"><code class="docutils literal notranslate"><span class="pre">Blueprint.intercept</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id6"><code class="docutils literal notranslate"><span class="pre">Blueprint.indicators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id7"><code class="docutils literal notranslate"><span class="pre">Blueprint.design_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id8"><code class="docutils literal notranslate"><span class="pre">Blueprint.outcome_design_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.__post_init__"><code class="docutils literal notranslate"><span class="pre">Blueprint.__post_init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.Blueprint.__init__"><code class="docutils literal notranslate"><span class="pre">Blueprint.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData"><code class="docutils literal notranslate"><span class="pre">MoldedData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.outcomes"><code class="docutils literal notranslate"><span class="pre">MoldedData.outcomes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.predictors"><code class="docutils literal notranslate"><span class="pre">MoldedData.predictors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.blueprint"><code class="docutils literal notranslate"><span class="pre">MoldedData.blueprint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.extras"><code class="docutils literal notranslate"><span class="pre">MoldedData.extras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id9"><code class="docutils literal notranslate"><span class="pre">MoldedData.outcomes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id10"><code class="docutils literal notranslate"><span class="pre">MoldedData.predictors</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id11"><code class="docutils literal notranslate"><span class="pre">MoldedData.blueprint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#id12"><code class="docutils literal notranslate"><span class="pre">MoldedData.extras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.__post_init__"><code class="docutils literal notranslate"><span class="pre">MoldedData.__post_init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.MoldedData.__init__"><code class="docutils literal notranslate"><span class="pre">MoldedData.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/hardhat.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.mold"><code class="docutils literal notranslate"><span class="pre">mold()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#py_hardhat.forge"><code class="docutils literal notranslate"><span class="pre">forge()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/hardhat.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#basic-mold-forge">Basic Mold/Forge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#formula-transformations">Formula Transformations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/hardhat.html#categorical-handling">Categorical Handling</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/parsnip.html">py-parsnip: Model Specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec"><code class="docutils literal notranslate"><span class="pre">ModelSpec</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.model_type"><code class="docutils literal notranslate"><span class="pre">ModelSpec.model_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.engine"><code class="docutils literal notranslate"><span class="pre">ModelSpec.engine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.args</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.date_col"><code class="docutils literal notranslate"><span class="pre">ModelSpec.date_col</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id0"><code class="docutils literal notranslate"><span class="pre">ModelSpec.model_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id1"><code class="docutils literal notranslate"><span class="pre">ModelSpec.engine</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id2"><code class="docutils literal notranslate"><span class="pre">ModelSpec.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id3"><code class="docutils literal notranslate"><span class="pre">ModelSpec.args</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id4"><code class="docutils literal notranslate"><span class="pre">ModelSpec.date_col</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.set_engine"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_engine()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit"><code class="docutils literal notranslate"><span class="pre">ModelFit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.spec"><code class="docutils literal notranslate"><span class="pre">ModelFit.spec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.fit_data"><code class="docutils literal notranslate"><span class="pre">ModelFit.fit_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.blueprint"><code class="docutils literal notranslate"><span class="pre">ModelFit.blueprint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.fit_time"><code class="docutils literal notranslate"><span class="pre">ModelFit.fit_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.evaluation_data"><code class="docutils literal notranslate"><span class="pre">ModelFit.evaluation_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.model_name"><code class="docutils literal notranslate"><span class="pre">ModelFit.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.model_group_name"><code class="docutils literal notranslate"><span class="pre">ModelFit.model_group_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id5"><code class="docutils literal notranslate"><span class="pre">ModelFit.spec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id6"><code class="docutils literal notranslate"><span class="pre">ModelFit.fit_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id7"><code class="docutils literal notranslate"><span class="pre">ModelFit.blueprint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id8"><code class="docutils literal notranslate"><span class="pre">ModelFit.fit_time</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id9"><code class="docutils literal notranslate"><span class="pre">ModelFit.evaluation_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id10"><code class="docutils literal notranslate"><span class="pre">ModelFit.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#id11"><code class="docutils literal notranslate"><span class="pre">ModelFit.model_group_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.predict"><code class="docutils literal notranslate"><span class="pre">ModelFit.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.extract_fit_engine"><code class="docutils literal notranslate"><span class="pre">ModelFit.extract_fit_engine()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.evaluate"><code class="docutils literal notranslate"><span class="pre">ModelFit.evaluate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">ModelFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.ModelFit.__init__"><code class="docutils literal notranslate"><span class="pre">ModelFit.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#linear-models">Linear Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.linear_reg"><code class="docutils literal notranslate"><span class="pre">linear_reg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.poisson_reg"><code class="docutils literal notranslate"><span class="pre">poisson_reg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.gen_additive_mod"><code class="docutils literal notranslate"><span class="pre">gen_additive_mod()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#tree-based-models">Tree-Based Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.decision_tree"><code class="docutils literal notranslate"><span class="pre">decision_tree()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.rand_forest"><code class="docutils literal notranslate"><span class="pre">rand_forest()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.boost_tree"><code class="docutils literal notranslate"><span class="pre">boost_tree()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#support-vector-machines">Support Vector Machines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.svm_rbf"><code class="docutils literal notranslate"><span class="pre">svm_rbf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.svm_linear"><code class="docutils literal notranslate"><span class="pre">svm_linear()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#instance-based-models">Instance-Based Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.nearest_neighbor"><code class="docutils literal notranslate"><span class="pre">nearest_neighbor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.mars"><code class="docutils literal notranslate"><span class="pre">mars()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.mlp"><code class="docutils literal notranslate"><span class="pre">mlp()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#time-series-models">Time Series Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.arima_reg"><code class="docutils literal notranslate"><span class="pre">arima_reg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.prophet_reg"><code class="docutils literal notranslate"><span class="pre">prophet_reg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.exp_smoothing"><code class="docutils literal notranslate"><span class="pre">exp_smoothing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.seasonal_reg"><code class="docutils literal notranslate"><span class="pre">seasonal_reg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.recursive_reg"><code class="docutils literal notranslate"><span class="pre">recursive_reg()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#hybrid-time-series-models">Hybrid Time Series Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.arima_boost"><code class="docutils literal notranslate"><span class="pre">arima_boost()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.prophet_boost"><code class="docutils literal notranslate"><span class="pre">prophet_boost()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#baseline-models">Baseline Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.null_model"><code class="docutils literal notranslate"><span class="pre">null_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.naive_reg"><code class="docutils literal notranslate"><span class="pre">naive_reg()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#generic-hybrid-models">Generic Hybrid Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.hybrid_model"><code class="docutils literal notranslate"><span class="pre">hybrid_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#manual-coefficient-models">Manual Coefficient Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.manual_reg"><code class="docutils literal notranslate"><span class="pre">manual_reg()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#module-py_parsnip.engine_registry">Engine Registry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine.param_map"><code class="docutils literal notranslate"><span class="pre">Engine.param_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine.fit"><code class="docutils literal notranslate"><span class="pre">Engine.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine.predict"><code class="docutils literal notranslate"><span class="pre">Engine.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine.extract_outputs"><code class="docutils literal notranslate"><span class="pre">Engine.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.Engine.translate_params"><code class="docutils literal notranslate"><span class="pre">Engine.translate_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.register_engine"><code class="docutils literal notranslate"><span class="pre">register_engine()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.get_engine"><code class="docutils literal notranslate"><span class="pre">get_engine()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#py_parsnip.engine_registry.list_engines"><code class="docutils literal notranslate"><span class="pre">list_engines()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/parsnip.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#basic-usage">Basic Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#time-series-model">Time Series Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/parsnip.html#gradient-boosting">Gradient Boosting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/rsample.html">py-rsample: Resampling &amp; Cross-Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/rsample.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split"><code class="docutils literal notranslate"><span class="pre">Split</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split.data"><code class="docutils literal notranslate"><span class="pre">Split.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split.in_id"><code class="docutils literal notranslate"><span class="pre">Split.in_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split.out_id"><code class="docutils literal notranslate"><span class="pre">Split.out_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split.id"><code class="docutils literal notranslate"><span class="pre">Split.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id0"><code class="docutils literal notranslate"><span class="pre">Split.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id1"><code class="docutils literal notranslate"><span class="pre">Split.in_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id2"><code class="docutils literal notranslate"><span class="pre">Split.out_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id3"><code class="docutils literal notranslate"><span class="pre">Split.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.Split.__init__"><code class="docutils literal notranslate"><span class="pre">Split.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit"><code class="docutils literal notranslate"><span class="pre">RSplit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.split"><code class="docutils literal notranslate"><span class="pre">RSplit.split</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.training"><code class="docutils literal notranslate"><span class="pre">RSplit.training()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.testing"><code class="docutils literal notranslate"><span class="pre">RSplit.testing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.analysis"><code class="docutils literal notranslate"><span class="pre">RSplit.analysis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.assessment"><code class="docutils literal notranslate"><span class="pre">RSplit.assessment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.__init__"><code class="docutils literal notranslate"><span class="pre">RSplit.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id4"><code class="docutils literal notranslate"><span class="pre">RSplit.split</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id5"><code class="docutils literal notranslate"><span class="pre">RSplit.training()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id6"><code class="docutils literal notranslate"><span class="pre">RSplit.testing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id7"><code class="docutils literal notranslate"><span class="pre">RSplit.analysis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#id8"><code class="docutils literal notranslate"><span class="pre">RSplit.assessment()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.__repr__"><code class="docutils literal notranslate"><span class="pre">RSplit.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.RSplit.__len__"><code class="docutils literal notranslate"><span class="pre">RSplit.__len__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/rsample.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#train-test-split">Train/Test Split</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.initial_split"><code class="docutils literal notranslate"><span class="pre">initial_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.initial_time_split"><code class="docutils literal notranslate"><span class="pre">initial_time_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.training"><code class="docutils literal notranslate"><span class="pre">training()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.testing"><code class="docutils literal notranslate"><span class="pre">testing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#cross-validation">Cross-Validation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.vfold_cv"><code class="docutils literal notranslate"><span class="pre">vfold_cv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/rsample.html#py_rsample.time_series_cv"><code class="docutils literal notranslate"><span class="pre">time_series_cv()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/rsample.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#basic-split">Basic Split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#time-series-split">Time Series Split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#k-fold-cross-validation">K-Fold Cross-Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/rsample.html#time-series-cross-validation">Time Series Cross-Validation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/workflows.html">py-workflows: Pipeline Composition</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/workflows.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow"><code class="docutils literal notranslate"><span class="pre">Workflow</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.preprocessor"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.update_model"><code class="docutils literal notranslate"><span class="pre">Workflow.update_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.fit"><code class="docutils literal notranslate"><span class="pre">Workflow.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.fit_nested"><code class="docutils literal notranslate"><span class="pre">Workflow.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.fit_global"><code class="docutils literal notranslate"><span class="pre">Workflow.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.Workflow.__init__"><code class="docutils literal notranslate"><span class="pre">Workflow.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.workflow"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/workflows.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#py_workflows.workflow"><code class="docutils literal notranslate"><span class="pre">workflow()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/workflows.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#basic-workflow">Basic Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#method-chaining">Method Chaining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#panel-grouped-models">Panel/Grouped Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflows.html#extracting-components">Extracting Components</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/recipes.html">py-recipes: Feature Engineering</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe"><code class="docutils literal notranslate"><span class="pre">Recipe</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.steps"><code class="docutils literal notranslate"><span class="pre">Recipe.steps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.template"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.roles"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#id0"><code class="docutils literal notranslate"><span class="pre">Recipe.steps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_impute_median"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_median()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_mutate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_mutate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_pct_change"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pct_change()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_boxcox"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boxcox()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_yeojohnson"><code class="docutils literal notranslate"><span class="pre">Recipe.step_yeojohnson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_inverse"><code class="docutils literal notranslate"><span class="pre">Recipe.step_inverse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_center"><code class="docutils literal notranslate"><span class="pre">Recipe.step_center()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_scale"><code class="docutils literal notranslate"><span class="pre">Recipe.step_scale()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_range"><code class="docutils literal notranslate"><span class="pre">Recipe.step_range()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_zv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_zv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_unknown"><code class="docutils literal notranslate"><span class="pre">Recipe.step_unknown()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_indicate_na"><code class="docutils literal notranslate"><span class="pre">Recipe.step_indicate_na()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_integer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_integer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_impute_mode"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_impute_knn"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_knn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_impute_linear"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_linear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_bs"><code class="docutils literal notranslate"><span class="pre">Recipe.step_bs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_ns"><code class="docutils literal notranslate"><span class="pre">Recipe.step_ns()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_poly"><code class="docutils literal notranslate"><span class="pre">Recipe.step_poly()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_harmonic"><code class="docutils literal notranslate"><span class="pre">Recipe.step_harmonic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_interact"><code class="docutils literal notranslate"><span class="pre">Recipe.step_interact()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_ratio"><code class="docutils literal notranslate"><span class="pre">Recipe.step_ratio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_discretize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_discretize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_cut"><code class="docutils literal notranslate"><span class="pre">Recipe.step_cut()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_percentile"><code class="docutils literal notranslate"><span class="pre">Recipe.step_percentile()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_ica"><code class="docutils literal notranslate"><span class="pre">Recipe.step_ica()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_kpca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_kpca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_pls"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pls()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_holiday"><code class="docutils literal notranslate"><span class="pre">Recipe.step_holiday()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_fourier"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fourier()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_timeseries_signature"><code class="docutils literal notranslate"><span class="pre">Recipe.step_timeseries_signature()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_lead"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lead()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_expanding"><code class="docutils literal notranslate"><span class="pre">Recipe.step_expanding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.update_role"><code class="docutils literal notranslate"><span class="pre">Recipe.update_role()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.add_role"><code class="docutils literal notranslate"><span class="pre">Recipe.add_role()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.remove_role"><code class="docutils literal notranslate"><span class="pre">Recipe.remove_role()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.has_role"><code class="docutils literal notranslate"><span class="pre">Recipe.has_role()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.recipe"><code class="docutils literal notranslate"><span class="pre">recipe()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#module-py_recipes.selectors">Selectors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_numeric"><code class="docutils literal notranslate"><span class="pre">all_numeric()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_nominal"><code class="docutils literal notranslate"><span class="pre">all_nominal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_integer"><code class="docutils literal notranslate"><span class="pre">all_integer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_float"><code class="docutils literal notranslate"><span class="pre">all_float()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_string"><code class="docutils literal notranslate"><span class="pre">all_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.all_datetime"><code class="docutils literal notranslate"><span class="pre">all_datetime()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.starts_with"><code class="docutils literal notranslate"><span class="pre">starts_with()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.ends_with"><code class="docutils literal notranslate"><span class="pre">ends_with()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.contains"><code class="docutils literal notranslate"><span class="pre">contains()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.matches"><code class="docutils literal notranslate"><span class="pre">matches()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.everything"><code class="docutils literal notranslate"><span class="pre">everything()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.one_of"><code class="docutils literal notranslate"><span class="pre">one_of()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.none_of"><code class="docutils literal notranslate"><span class="pre">none_of()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.where"><code class="docutils literal notranslate"><span class="pre">where()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.union"><code class="docutils literal notranslate"><span class="pre">union()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.difference"><code class="docutils literal notranslate"><span class="pre">difference()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.has_role"><code class="docutils literal notranslate"><span class="pre">has_role()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#py_recipes.selectors.resolve_selector"><code class="docutils literal notranslate"><span class="pre">resolve_selector()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#imputation-steps-6">Imputation Steps (6)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#normalization-steps-4">Normalization Steps (4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#encoding-steps-6">Encoding Steps (6)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#feature-engineering-steps-8">Feature Engineering Steps (8)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#filtering-steps-6">Filtering Steps (6)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#row-operations-6">Row Operations (6)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#transformation-steps-6">Transformation Steps (6)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#time-series-steps-4">Time Series Steps (4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/recipes.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#basic-recipe">Basic Recipe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#advanced-recipe">Advanced Recipe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/recipes.html#time-series-recipe">Time Series Recipe</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/yardstick.html">py-yardstick: Model Metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/yardstick.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#metric-set">Metric Set</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.metric_set"><code class="docutils literal notranslate"><span class="pre">metric_set()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#regression-metrics-7">Regression Metrics (7)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.rmse"><code class="docutils literal notranslate"><span class="pre">rmse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.mae"><code class="docutils literal notranslate"><span class="pre">mae()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.mape"><code class="docutils literal notranslate"><span class="pre">mape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.smape"><code class="docutils literal notranslate"><span class="pre">smape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.r_squared"><code class="docutils literal notranslate"><span class="pre">r_squared()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#classification-metrics-10">Classification Metrics (10)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.accuracy"><code class="docutils literal notranslate"><span class="pre">accuracy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.precision"><code class="docutils literal notranslate"><span class="pre">precision()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.recall"><code class="docutils literal notranslate"><span class="pre">recall()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/yardstick.html#py_yardstick.roc_auc"><code class="docutils literal notranslate"><span class="pre">roc_auc()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/yardstick.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#individual-metrics">Individual Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#id1">Metric Set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#with-dataframes">With DataFrames</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/yardstick.html#classification-metrics">Classification Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/tune.html">py-tune: Hyperparameter Tuning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/tune.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults"><code class="docutils literal notranslate"><span class="pre">TuneResults</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.metrics"><code class="docutils literal notranslate"><span class="pre">TuneResults.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.predictions"><code class="docutils literal notranslate"><span class="pre">TuneResults.predictions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.workflow"><code class="docutils literal notranslate"><span class="pre">TuneResults.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.resamples"><code class="docutils literal notranslate"><span class="pre">TuneResults.resamples</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.grid"><code class="docutils literal notranslate"><span class="pre">TuneResults.grid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.collect_metrics"><code class="docutils literal notranslate"><span class="pre">TuneResults.collect_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.collect_predictions"><code class="docutils literal notranslate"><span class="pre">TuneResults.collect_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.show_best"><code class="docutils literal notranslate"><span class="pre">TuneResults.show_best()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.select_best"><code class="docutils literal notranslate"><span class="pre">TuneResults.select_best()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.select_by_one_std_err"><code class="docutils literal notranslate"><span class="pre">TuneResults.select_by_one_std_err()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.TuneResults.__init__"><code class="docutils literal notranslate"><span class="pre">TuneResults.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/tune.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#tuning">Tuning</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.tune"><code class="docutils literal notranslate"><span class="pre">tune()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.tune_grid"><code class="docutils literal notranslate"><span class="pre">tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.fit_resamples"><code class="docutils literal notranslate"><span class="pre">fit_resamples()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#grid-generation">Grid Generation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.grid_regular"><code class="docutils literal notranslate"><span class="pre">grid_regular()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.grid_random"><code class="docutils literal notranslate"><span class="pre">grid_random()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#finalization">Finalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/tune.html#py_tune.finalize_workflow"><code class="docutils literal notranslate"><span class="pre">finalize_workflow()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/tune.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#basic-tuning">Basic Tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#analyze-results">Analyze Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#finalize-workflow">Finalize Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#random-grid">Random Grid</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/tune.html#fit-resamples-without-tuning">Fit Resamples Without Tuning</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/workflowsets.html">py-workflowsets: Multi-Model Comparison</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/workflowsets.html#core-classes">Core Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet"><code class="docutils literal notranslate"><span class="pre">WorkflowSet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflows"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflows</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.info"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#id0"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflows</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#id1"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.from_workflows"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.from_workflows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.from_cross"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.from_cross()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.results"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.results</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.workflow_set"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.workflow_set</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.metrics"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#id2"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.results</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#id3"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.workflow_set</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.collect_metrics"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.collect_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.collect_predictions"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.collect_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.rank_results"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.rank_results()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.autoplot"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.autoplot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/workflowsets.html#py_workflowsets.WorkflowSetResults.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSetResults.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/workflowsets.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#basic-workflow-set">Basic Workflow Set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#evaluate-workflows">Evaluate Workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#select-best-workflow">Select Best Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#from-explicit-workflows">From Explicit Workflows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/workflowsets.html#access-individual-workflows">Access Individual Workflows</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/visualize.html">py-visualize: Interactive Visualizations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/visualize.html#main-functions">Main Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#forecast-visualization">Forecast Visualization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/visualize.html#py_visualize.plot_forecast"><code class="docutils literal notranslate"><span class="pre">plot_forecast()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#residual-diagnostics">Residual Diagnostics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/visualize.html#py_visualize.plot_residuals"><code class="docutils literal notranslate"><span class="pre">plot_residuals()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#model-comparison">Model Comparison</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/visualize.html#py_visualize.plot_model_comparison"><code class="docutils literal notranslate"><span class="pre">plot_model_comparison()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#decomposition-plots">Decomposition Plots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/visualize.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#forecast-plot">Forecast Plot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#id1">Residual Diagnostics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#id2">Model Comparison</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#decomposition-plot">Decomposition Plot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/visualize.html#customization">Customization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/stacks.html">py-stacks: Model Ensembling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/stacks.html#core-classes">Core Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/stacks.html#main-functions">Main Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/stacks.html#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/stacks.html#basic-stacking">Basic Stacking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/stacks.html#model-weights">Model Weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/stacks.html#non-negative-weights">Non-Negative Weights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/stacks.html#cross-validation-stacking">Cross-Validation Stacking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/stacks.html#evaluate-stack">Evaluate Stack</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../models/linear_models.html">Linear Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/linear_models.html#linear-reg">linear_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/linear_models.html#poisson-reg">poisson_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/linear_models.html#gen-additive-mod">gen_additive_mod()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/linear_models.html#when-to-use">When to Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/linear_models.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models/tree_models.html">Tree-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/tree_models.html#decision-tree">decision_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/tree_models.html#rand-forest">rand_forest()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/tree_models.html#boost-tree">boost_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/tree_models.html#when-to-use">When to Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/tree_models.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models/time_series.html">Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#arima-reg">arima_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#prophet-reg">prophet_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#exp-smoothing">exp_smoothing()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#seasonal-reg">seasonal_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#recursive-reg">recursive_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#hybrid-models">Hybrid Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../models/time_series.html#arima-boost">arima_boost()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../models/time_series.html#prophet-boost">prophet_boost()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#when-to-use">When to Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/time_series.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models/ensemble_models.html">Ensemble Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/ensemble_models.html#boost-tree">boost_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/ensemble_models.html#hybrid-time-series">Hybrid Time Series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../models/ensemble_models.html#arima-boost">arima_boost()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../models/ensemble_models.html#prophet-boost">prophet_boost()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/ensemble_models.html#model-stacking">Model Stacking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/ensemble_models.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models/baseline_models.html">Baseline Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/baseline_models.html#null-model">null_model()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/baseline_models.html#naive-reg">naive_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/baseline_models.html#when-to-use">When to Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models/baseline_models.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/basic_regression.html">Basic Regression Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/basic_regression.html#simple-linear-regression">Simple Linear Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/basic_regression.html#with-feature-engineering">With Feature Engineering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/basic_regression.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/time_series_forecasting.html">Time Series Forecasting Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/time_series_forecasting.html#prophet-forecasting">Prophet Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/time_series_forecasting.html#arima-forecasting">ARIMA Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/time_series_forecasting.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/hyperparameter_tuning.html">Hyperparameter Tuning Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/hyperparameter_tuning.html#grid-search">Grid Search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/hyperparameter_tuning.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/panel_models.html">Panel/Grouped Model Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/panel_models.html#nested-approach">Nested Approach</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/panel_models.html#global-approach">Global Approach</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/panel_models.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/model_stacking.html">Model Stacking Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/model_stacking.html#basic-stacking">Basic Stacking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples/model_stacking.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/contributing.html">Contributing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/contributing.html#development-setup">Development Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/contributing.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/contributing.html#code-style">Code Style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/contributing.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/contributing.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/architecture.html">Architecture Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/architecture.html#layers">Layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/architecture.html#key-patterns">Key Patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/architecture.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/testing.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/testing.html#test-structure">Test Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/testing.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/testing.html#test-coverage">Test Coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/testing.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/changelog.html#version-0-1-0-current">Version 0.1.0 (Current)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/changelog.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">py-tidymodels</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">py_parsnip.models.gen_additive_mod</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for py_parsnip.models.gen_additive_mod</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generalized Additive Model (GAM) specification</span>
+
+<span class="sd">Supports engine:</span>
+<span class="sd">- pygam: LinearGAM, GAM</span>
+
+<span class="sd">Parameters (tidymodels naming):</span>
+<span class="sd">- select_features: Enable automatic feature selection (boolean)</span>
+<span class="sd">- adjust_deg_free: Adjustment to degrees of freedom (controls smoothing)</span>
+
+<span class="sd">GAMs fit smooth non-parametric functions to each predictor while maintaining</span>
+<span class="sd">the interpretability of additive models. They automatically detect and model</span>
+<span class="sd">non-linear relationships using splines.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">py_parsnip.model_spec</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelSpec</span>
+
+
+<div class="viewcode-block" id="gen_additive_mod">
+<a class="viewcode-back" href="../../../api/parsnip.html#py_parsnip.gen_additive_mod">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gen_additive_mod</span><span class="p">(</span>
+    <span class="n">select_features</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">adjust_deg_free</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">engine</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pygam&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ModelSpec</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Generalized Additive Model (GAM) specification.</span>
+
+<span class="sd">    GAMs extend linear models by replacing linear terms with smooth functions,</span>
+<span class="sd">    allowing automatic detection of non-linear relationships while maintaining</span>
+<span class="sd">    interpretability. Each predictor is fit with a smooth spline function.</span>
+
+<span class="sd">    Key advantages:</span>
+<span class="sd">    - Automatic non-linearity detection</span>
+<span class="sd">    - Interpretable smooth functions</span>
+<span class="sd">    - No need to manually specify transformations</span>
+<span class="sd">    - Visual assessment of predictor effects</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        select_features: Enable automatic feature selection (default False)</span>
+<span class="sd">            - When True, uses regularization to select important features</span>
+<span class="sd">            - Helpful with many predictors</span>
+<span class="sd">        adjust_deg_free: Adjustment to degrees of freedom (default 10)</span>
+<span class="sd">            - Controls smoothness of fitted curves</span>
+<span class="sd">            - Lower values = smoother (more bias, less variance)</span>
+<span class="sd">            - Higher values = more flexible (less bias, more variance)</span>
+<span class="sd">            - Typical range: 3-20</span>
+<span class="sd">        engine: Computational engine to use (default &quot;pygam&quot;)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ModelSpec for Generalized Additive Model</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; # Basic GAM with default smoothing</span>
+<span class="sd">        &gt;&gt;&gt; spec = gen_additive_mod()</span>
+
+<span class="sd">        &gt;&gt;&gt; # More flexible model (more wiggly curves)</span>
+<span class="sd">        &gt;&gt;&gt; spec = gen_additive_mod(adjust_deg_free=15)</span>
+
+<span class="sd">        &gt;&gt;&gt; # Smoother model (less wiggly curves)</span>
+<span class="sd">        &gt;&gt;&gt; spec = gen_additive_mod(adjust_deg_free=5)</span>
+
+<span class="sd">        &gt;&gt;&gt; # With automatic feature selection</span>
+<span class="sd">        &gt;&gt;&gt; spec = gen_additive_mod(select_features=True)</span>
+
+<span class="sd">        &gt;&gt;&gt; # Fit to data</span>
+<span class="sd">        &gt;&gt;&gt; import pandas as pd</span>
+<span class="sd">        &gt;&gt;&gt; df = pd.DataFrame({</span>
+<span class="sd">        ...     &#39;y&#39;: [1, 4, 9, 16, 25, 20, 15, 10],</span>
+<span class="sd">        ...     &#39;x&#39;: [1, 2, 3, 4, 5, 6, 7, 8],</span>
+<span class="sd">        ... })</span>
+<span class="sd">        &gt;&gt;&gt; fit = spec.fit(df, &#39;y ~ x&#39;)</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Hastie, T., &amp; Tibshirani, R. (1990). Generalized Additive Models.</span>
+<span class="sd">        Chapman and Hall/CRC.</span>
+
+<span class="sd">        Wood, S. N. (2017). Generalized Additive Models: An Introduction with R.</span>
+<span class="sd">        CRC Press.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Build args dict (only include non-None values)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">select_features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;select_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">select_features</span>
+    <span class="k">if</span> <span class="n">adjust_deg_free</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;adjust_deg_free&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adjust_deg_free</span>
+
+    <span class="k">return</span> <span class="n">ModelSpec</span><span class="p">(</span>
+        <span class="n">model_type</span><span class="o">=</span><span class="s2">&quot;gen_additive_mod&quot;</span><span class="p">,</span>
+        <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;regression&quot;</span><span class="p">,</span>
+        <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthew Deane.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
