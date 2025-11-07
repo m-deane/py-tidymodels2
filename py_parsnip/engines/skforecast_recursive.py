@@ -495,6 +495,14 @@ class SkforecastRecursiveEngine(Engine):
             {"metric": "base_model", "value": fit.fit_data["base_model_spec"].model_type, "split": ""},
         ])
 
+        # Add training date range
+        dates = fit.fit_data.get("dates")
+        if dates is not None and len(dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
         stats["model"] = fit.model_name or fit.spec.model_type
         stats["model_group_name"] = fit.model_group_name or ""

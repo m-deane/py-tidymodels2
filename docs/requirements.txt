@@ -1,0 +1,11 @@
+# Sphinx and documentation tools
+sphinx>=7.2.0
+sphinx-rtd-theme>=2.0.0
+sphinx-autodoc-typehints>=1.25.0
+myst-parser>=2.0.0
+
+# For proper type hints rendering
+typing-extensions>=4.9.0
+
+# For intersphinx links
+numpydoc>=1.6.0

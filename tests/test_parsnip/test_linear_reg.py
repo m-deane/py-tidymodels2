@@ -28,19 +28,19 @@ class TestLinearRegSpec:
         assert spec.model_type == "linear_reg"
         assert spec.engine == "sklearn"
         assert spec.mode == "regression"
-        assert spec.args == {}
+        assert spec.args == {"intercept": True}
 
     def test_spec_with_penalty(self):
         """Test linear_reg with penalty (Ridge)"""
         spec = linear_reg(penalty=0.1)
 
-        assert spec.args == {"penalty": 0.1}
+        assert spec.args == {"intercept": True, "penalty": 0.1}
 
     def test_spec_with_penalty_and_mixture(self):
         """Test linear_reg with penalty and mixture (ElasticNet)"""
         spec = linear_reg(penalty=0.1, mixture=0.5)
 
-        assert spec.args == {"penalty": 0.1, "mixture": 0.5}
+        assert spec.args == {"intercept": True, "penalty": 0.1, "mixture": 0.5}
 
     def test_set_engine(self):
         """Test set_engine() method"""
@@ -54,7 +54,7 @@ class TestLinearRegSpec:
         spec = linear_reg()
         spec = spec.set_args(penalty=0.2, mixture=0.3)
 
-        assert spec.args == {"penalty": 0.2, "mixture": 0.3}
+        assert spec.args == {"intercept": True, "penalty": 0.2, "mixture": 0.3}
 
     def test_spec_immutability(self):
         """Test that ModelSpec is immutable"""
@@ -62,9 +62,9 @@ class TestLinearRegSpec:
         spec2 = spec1.set_args(penalty=0.2)
 
         # Original spec should be unchanged
-        assert spec1.args == {"penalty": 0.1}
-        # New spec should have new value
-        assert spec2.args == {"penalty": 0.2}
+        assert spec1.args == {"intercept": True, "penalty": 0.1}
+        # New spec should have new value (intercept is preserved by set_args)
+        assert spec2.args == {"intercept": True, "penalty": 0.2}
 
 
 class TestLinearRegFit:

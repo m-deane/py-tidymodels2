@@ -65,7 +65,19 @@ class PmdarimaAutoARIMAEngine(Engine):
             For univariate ARIMA, use formula like "y ~ 1"
             For ARIMAX with exogenous variables, use "y ~ x1 + x2"
         """
-        from pmdarima import auto_arima
+        try:
+            from pmdarima import auto_arima
+        except ValueError as e:
+            if "numpy.dtype size changed" in str(e):
+                raise ImportError(
+                    "pmdarima has a numpy compatibility issue with numpy 2.x. "
+                    "Solutions:\n"
+                    "1. Use the statsmodels ARIMA engine instead: "
+                    "arima_reg().set_engine('statsmodels')\n"
+                    "2. Downgrade numpy to 1.26.x: pip install 'numpy<2.0'\n"
+                    "3. Wait for pmdarima to release numpy 2.x compatible wheels"
+                ) from e
+            raise
 
         # Infer date column from data
         inferred_date_col = _infer_date_column(
@@ -320,6 +332,7 @@ class PmdarimaAutoARIMAEngine(Engine):
     def _calculate_residual_diagnostics(self, residuals: np.ndarray) -> Dict[str, float]:
         """Calculate residual diagnostic statistics"""
         from scipy import stats as scipy_stats
+        import statsmodels.stats.diagnostic as sm_diag
 
         results = {}
         n = len(residuals)
@@ -341,9 +354,20 @@ class PmdarimaAutoARIMAEngine(Engine):
             results["shapiro_wilk_stat"] = np.nan
             results["shapiro_wilk_p"] = np.nan
 
-        # Ljung-Box and Breusch-Pagan would require statsmodels
-        results["ljung_box_stat"] = np.nan
-        results["ljung_box_p"] = np.nan
+        # Ljung-Box test for autocorrelation
+        try:
+            # Ensure we have enough lags (at least 1, max 10 or n//5)
+            n_lags = max(1, min(10, n // 5))
+            lb_result = sm_diag.acorr_ljungbox(residuals, lags=n_lags)
+            # Returns DataFrame with columns 'lb_stat' and 'lb_pvalue'
+            results["ljung_box_stat"] = lb_result['lb_stat'].iloc[-1]  # Last lag statistic
+            results["ljung_box_p"] = lb_result['lb_pvalue'].iloc[-1]  # Last lag p-value
+        except Exception as e:
+            # Not enough data or other issue
+            results["ljung_box_stat"] = np.nan
+            results["ljung_box_p"] = np.nan
+
+        # Breusch-Pagan test not applicable for auto ARIMA (no exog matrix in same format)
         results["breusch_pagan_stat"] = np.nan
         results["breusch_pagan_p"] = np.nan
 

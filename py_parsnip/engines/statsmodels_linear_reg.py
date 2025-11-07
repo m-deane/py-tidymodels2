@@ -67,6 +67,34 @@ class StatsmodelsLinearEngine(Engine):
             if y.shape[1] == 1:
                 y = y.iloc[:, 0]
 
+        # Handle intercept parameter
+        intercept = args.get("intercept", True)
+
+        # Check if X already has an intercept column (from patsy)
+        has_intercept_col = False
+        intercept_col_name = None
+        if isinstance(X, pd.DataFrame):
+            # Check for common intercept column names
+            for col in ["Intercept", "const", "intercept"]:
+                if col in X.columns:
+                    has_intercept_col = True
+                    intercept_col_name = col
+                    break
+
+        # Modify X based on intercept parameter
+        if not intercept and has_intercept_col:
+            # User wants no intercept, but X has one - remove it
+            import warnings
+            X = X.drop(columns=[intercept_col_name])
+            warnings.warn(
+                f"intercept=False: Removing '{intercept_col_name}' column from design matrix. "
+                f"Note: You can also control intercept via formula (e.g., 'y ~ x + 0').",
+                UserWarning
+            )
+        elif intercept and not has_intercept_col:
+            # User wants intercept, but X doesn't have one - add it
+            X = sm.add_constant(X, has_constant='skip')
+
         # Fit OLS model
         model = sm.OLS(y, X)
         fitted_model = model.fit()
@@ -118,6 +146,8 @@ class StatsmodelsLinearEngine(Engine):
         Returns:
             DataFrame with predictions
         """
+        import statsmodels.api as sm
+
         if type not in ("numeric", "conf_int"):
             raise ValueError(
                 f"linear_reg with statsmodels supports type='numeric' or 'conf_int', got '{type}'"
@@ -125,6 +155,25 @@ class StatsmodelsLinearEngine(Engine):
 
         model = fit.fit_data["model"]
         X = molded.predictors
+
+        # Handle intercept parameter (same logic as fit)
+        intercept = fit.spec.args.get("intercept", True)
+
+        # Check if X has an intercept column
+        has_intercept_col = False
+        intercept_col_name = None
+        if isinstance(X, pd.DataFrame):
+            for col in ["Intercept", "const", "intercept"]:
+                if col in X.columns:
+                    has_intercept_col = True
+                    intercept_col_name = col
+                    break
+
+        # Modify X to match training data
+        if not intercept and has_intercept_col:
+            X = X.drop(columns=[intercept_col_name])
+        elif intercept and not has_intercept_col:
+            X = sm.add_constant(X, has_constant='skip')
 
         # Make predictions
         predictions = model.predict(X)
@@ -211,19 +260,29 @@ class StatsmodelsLinearEngine(Engine):
 
         # Ljung-Box test for autocorrelation (using statsmodels)
         try:
-            lb_result = sm_diag.acorr_ljungbox(residuals, lags=min(10, n // 5), return_df=False)
-            results["ljung_box_stat"] = lb_result[0][-1]  # Last lag statistic
-            results["ljung_box_p"] = lb_result[1][-1]  # Last lag p-value
-        except:
+            # Ensure we have enough lags (at least 1, max 10 or n//5)
+            n_lags = max(1, min(10, n // 5))
+            lb_result = sm_diag.acorr_ljungbox(residuals, lags=n_lags)
+            # Returns DataFrame with columns 'lb_stat' and 'lb_pvalue'
+            results["ljung_box_stat"] = lb_result['lb_stat'].iloc[-1]  # Last lag statistic
+            results["ljung_box_p"] = lb_result['lb_pvalue'].iloc[-1]  # Last lag p-value
+        except Exception as e:
+            # Not enough data or other issue
             results["ljung_box_stat"] = np.nan
             results["ljung_box_p"] = np.nan
 
         # Breusch-Pagan test for heteroskedasticity
         try:
-            bp_result = sm_diag.het_breuschpagan(residuals, model.model.exog)
-            results["breusch_pagan_stat"] = bp_result[0]
-            results["breusch_pagan_p"] = bp_result[1]
-        except:
+            # Requires exogenous variables (X matrix with intercept)
+            if hasattr(model, 'model') and hasattr(model.model, 'exog'):
+                bp_result = sm_diag.het_breuschpagan(residuals, model.model.exog)
+                results["breusch_pagan_stat"] = bp_result[0]  # LM statistic
+                results["breusch_pagan_p"] = bp_result[1]  # p-value
+            else:
+                results["breusch_pagan_stat"] = np.nan
+                results["breusch_pagan_p"] = np.nan
+        except Exception as e:
+            # Not enough data or other issue
             results["breusch_pagan_stat"] = np.nan
             results["breusch_pagan_p"] = np.nan
 
@@ -347,7 +406,9 @@ class StatsmodelsLinearEngine(Engine):
         # ====================
         # 2. COEFFICIENTS DataFrame (with full statsmodels inference)
         # ====================
-        coef_names = list(fit.blueprint.column_order)
+        # Get coefficient names from the model's fitted parameters
+        # (model.params has the actual parameter names after fitting)
+        coef_names = list(model.params.index)
         coef_values = model.params.values
 
         # Get standard errors, t-stats, p-values from statsmodels
@@ -471,6 +532,31 @@ class StatsmodelsLinearEngine(Engine):
             {"metric": "n_obs_train", "value": n_obs, "split": "train"},
             {"metric": "n_features", "value": n_features, "split": ""},
         ])
+
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 

@@ -5,7 +5,7 @@ Maps bag_tree to sklearn's BaggingRegressor/BaggingClassifier
 with DecisionTreeRegressor/DecisionTreeClassifier as base estimators.
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -33,7 +33,7 @@ class SklearnBagTreeEngine(Engine):
         "tree_depth": "max_depth",
     }
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(self, spec: ModelSpec, molded: MoldedData, original_training_data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
         """
         Fit bagged tree model using sklearn.
 
@@ -149,6 +149,7 @@ class SklearnBagTreeEngine(Engine):
             "y_train": y,
             "fitted": fitted,
             "residuals": residuals,
+            "original_training_data": original_training_data,
         }
 
     def predict(
@@ -381,6 +382,31 @@ class SklearnBagTreeEngine(Engine):
             {"metric": "n_features", "value": fit.fit_data.get("n_features", 0), "split": ""},
         ])
 
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
 
         # Add model metadata
@@ -454,9 +480,20 @@ class SklearnBagTreeEngine(Engine):
             results["shapiro_wilk_stat"] = np.nan
             results["shapiro_wilk_p"] = np.nan
 
-        # Placeholder for tests requiring statsmodels
-        results["ljung_box_stat"] = np.nan
-        results["ljung_box_p"] = np.nan
+        # Ljung-Box test for autocorrelation
+        try:
+            from statsmodels.stats import diagnostic as sm_diag
+            # Ensure we have enough lags (at least 1, max 10 or n//5)
+            n_lags = max(1, min(10, n // 5))
+            lb_result = sm_diag.acorr_ljungbox(residuals, lags=n_lags)
+            # Returns DataFrame with columns 'lb_stat' and 'lb_pvalue'
+            results["ljung_box_stat"] = lb_result['lb_stat'].iloc[-1]  # Last lag statistic
+            results["ljung_box_p"] = lb_result['lb_pvalue'].iloc[-1]  # Last lag p-value
+        except Exception as e:
+            results["ljung_box_stat"] = np.nan
+            results["ljung_box_p"] = np.nan
+
+        # Breusch-Pagan test placeholder (requires fitted model for heteroskedasticity)
         results["breusch_pagan_stat"] = np.nan
         results["breusch_pagan_p"] = np.nan
 

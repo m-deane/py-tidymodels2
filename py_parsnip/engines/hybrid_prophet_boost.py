@@ -55,6 +55,80 @@ class HybridProphetBoostEngine(Engine):
         "mtry": "colsample_bytree",
     }
 
+    @staticmethod
+    def _create_xgb_features(dates: pd.Series) -> np.ndarray:
+        """
+        Create cyclical time features for XGBoost to capture seasonality.
+
+        NOTE: This method is DEPRECATED and should only be used as fallback
+        when no exogenous regressors are provided in the formula.
+        The preferred approach is to use actual exogenous variables from the formula.
+
+        Features include (NO days_since_start to avoid extrapolation):
+        - day_of_week: Day of week (0=Monday, 6=Sunday)
+        - day_of_month: Day within month (1-31)
+        - day_of_year: Day within year (1-365/366)
+        - month: Month of year (1-12)
+        - week_of_year: Week within year (1-52)
+        - Cyclical encodings (sin/cos) for proper periodicity:
+          - sin/cos day_of_week (weekly patterns)
+          - sin/cos day_of_year (yearly patterns)
+          - sin/cos month (monthly patterns)
+
+        Args:
+            dates: pandas Series of datetime values
+
+        Returns:
+            numpy array of shape (n_samples, 11) with cyclical time features
+            (removed days_since_start to prevent extrapolation issues)
+        """
+        dates = pd.to_datetime(dates)
+
+        # Categorical time features
+        # Use .dt accessor for Series, direct access for DatetimeIndex
+        if isinstance(dates, pd.Series):
+            day_of_week = dates.dt.dayofweek.values          # 0-6
+            day_of_month = dates.dt.day.values                # 1-31
+            day_of_year = dates.dt.dayofyear.values           # 1-365
+            month = dates.dt.month.values                     # 1-12
+            week_of_year = dates.dt.isocalendar().week.values # 1-52
+        else:
+            day_of_week = dates.dayofweek.values          # 0-6
+            day_of_month = dates.day.values                # 1-31
+            day_of_year = dates.dayofyear.values           # 1-365
+            month = dates.month.values                     # 1-12
+            week_of_year = dates.isocalendar().week.values # 1-52
+
+        # Cyclical encodings for smooth periodic patterns
+        # Day of week (weekly seasonality)
+        sin_day_of_week = np.sin(2 * np.pi * day_of_week / 7)
+        cos_day_of_week = np.cos(2 * np.pi * day_of_week / 7)
+
+        # Day of year (yearly seasonality)
+        sin_day_of_year = np.sin(2 * np.pi * day_of_year / 365.25)
+        cos_day_of_year = np.cos(2 * np.pi * day_of_year / 365.25)
+
+        # Month (monthly seasonality)
+        sin_month = np.sin(2 * np.pi * month / 12)
+        cos_month = np.cos(2 * np.pi * month / 12)
+
+        # Combine all features (REMOVED days_since_start)
+        features = np.column_stack([
+            day_of_week,
+            day_of_month,
+            day_of_year,
+            month,
+            week_of_year,
+            sin_day_of_week,
+            cos_day_of_week,
+            sin_day_of_year,
+            cos_day_of_year,
+            sin_month,
+            cos_month,
+        ])
+
+        return features
+
     def fit_raw(
         self, spec: ModelSpec, data: pd.DataFrame, formula: str, date_col: str = None
     ) -> tuple[Dict[str, Any], Any]:
@@ -86,23 +160,40 @@ class HybridProphetBoostEngine(Engine):
             fit_date_col=date_col
         )
 
-        # Parse formula to get outcome (predictor is the date column)
-        # Note: prophet_boost doesn't use exogenous variables, only date
+        # Parse formula to extract outcome and exogenous regressors
         outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
         # Validate outcome exists
         if outcome_name not in data.columns:
             raise ValueError(f"Outcome '{outcome_name}' not found in data")
 
-        # Prophet_boost ignores exogenous variables (they're not supported)
-        # Just validate there are none or warn
+        # Extract exogenous regressors if provided (matches R modeltime behavior)
+        use_exog = False
+        X_boost_cols = None
+
         if exog_vars:
-            import warnings
-            warnings.warn(
-                f"prophet_boost does not support exogenous variables. "
-                f"Variables {exog_vars} will be ignored.",
-                UserWarning
-            )
+            # Validate all exogenous variables exist
+            missing_vars = [v for v in exog_vars if v not in data.columns]
+            if missing_vars:
+                raise ValueError(
+                    f"Exogenous variables {missing_vars} not found in data. "
+                    f"Available columns: {list(data.columns)}"
+                )
+
+            # Extract exogenous variables for XGBoost
+            X_boost_data = data[exog_vars].copy()
+
+            # Handle categorical variables
+            from sklearn.preprocessing import LabelEncoder
+            label_encoders = {}
+            for col in X_boost_data.columns:
+                if X_boost_data[col].dtype == 'object' or X_boost_data[col].dtype.name == 'category':
+                    le = LabelEncoder()
+                    X_boost_data[col] = le.fit_transform(X_boost_data[col].astype(str))
+                    label_encoders[col] = le
+
+            use_exog = True
+            X_boost_cols = exog_vars
 
         # ==================
         # STAGE 1: Fit Prophet
@@ -154,10 +245,23 @@ class HybridProphetBoostEngine(Engine):
         # =======================
         # STAGE 2: Fit XGBoost on residuals
         # =======================
-        # Create time-based features for XGBoost
-        # Use the date as a numeric feature (days since start)
-        dates = pd.to_datetime(prophet_df["ds"])
-        days_since_start = (dates - dates.min()).dt.days.values.reshape(-1, 1)
+        # Determine XGBoost features: use exogenous regressors if available,
+        # otherwise use cyclical time features (fallback)
+        if use_exog:
+            # Use actual exogenous regressors (matches R modeltime behavior)
+            X_boost = X_boost_data.values
+        else:
+            # Fallback: use cyclical time features (deprecated, see docstring)
+            import warnings
+            warnings.warn(
+                "No exogenous regressors provided in formula. "
+                "Using auto-generated cyclical time features as fallback. "
+                "For better performance, provide exogenous variables: "
+                "e.g., 'y ~ date + feature1 + feature2'",
+                UserWarning
+            )
+            dates = pd.to_datetime(prophet_df["ds"])
+            X_boost = self._create_xgb_features(dates)
 
         # Target for XGBoost is Prophet residuals
         y_boost = prophet_residuals
@@ -177,10 +281,10 @@ class HybridProphetBoostEngine(Engine):
 
         # Fit XGBoost
         xgb_model = XGBRegressor(**xgb_params)
-        xgb_model.fit(days_since_start, y_boost)
+        xgb_model.fit(X_boost, y_boost)
 
         # Get XGBoost predictions on training data
-        xgb_fitted = xgb_model.predict(days_since_start)
+        xgb_fitted = xgb_model.predict(X_boost)
 
         # ==================
         # Combine predictions
@@ -194,6 +298,10 @@ class HybridProphetBoostEngine(Engine):
         # Extract dates
         dates_values = prophet_df["ds"].values
 
+        # Store date_min for potential fallback (though not used with exog regressors)
+        dates_pd = pd.to_datetime(prophet_df["ds"])
+        date_min_val = dates_pd.min()
+
         # Create blueprint
         blueprint = {
             "formula": formula,
@@ -201,7 +309,8 @@ class HybridProphetBoostEngine(Engine):
             "date_col": inferred_date_col,
             "prophet_params": prophet_params,
             "xgb_params": xgb_params,
-            "date_min": dates.min(),  # Store for future predictions
+            "use_exog": use_exog,
+            "exog_cols": X_boost_cols,
         }
 
         # Return fit data
@@ -220,7 +329,10 @@ class HybridProphetBoostEngine(Engine):
             "dates": dates_values,
             "prophet_params": prophet_params,
             "xgb_params": xgb_params,
-            "date_min": dates.min(),
+            "date_min": date_min_val,  # Keep for backward compatibility
+            "use_exog": use_exog,
+            "exog_cols": X_boost_cols,
+            "label_encoders": label_encoders if use_exog else None,
         }
 
         return fit_data, blueprint
@@ -267,7 +379,9 @@ class HybridProphetBoostEngine(Engine):
         prophet_model = fit.fit_data["prophet_model"]
         xgb_model = fit.fit_data["xgb_model"]
         date_col = fit.fit_data["date_col"]
-        date_min = fit.fit_data["date_min"]
+        use_exog = fit.fit_data.get("use_exog", False)
+        exog_cols = fit.fit_data.get("exog_cols")
+        label_encoders = fit.fit_data.get("label_encoders")
 
         # Get date series from new_data
         if date_col == '__index__':
@@ -293,18 +407,32 @@ class HybridProphetBoostEngine(Engine):
         # ==================
         # XGBoost predictions
         # ==================
-        # Create time-based features (days since training start)
-        dates = pd.to_datetime(date_series)
-        time_diff = dates - date_min
-        # TimedeltaIndex or Timedelta - convert to days
-        if isinstance(time_diff, pd.TimedeltaIndex):
-            days_since_start = time_diff.days
+        # Use exogenous regressors if available, otherwise use cyclical features
+        if use_exog and exog_cols:
+            # Extract and encode exogenous variables from new_data
+            missing_cols = [col for col in exog_cols if col not in new_data.columns]
+            if missing_cols:
+                raise ValueError(
+                    f"Exogenous variables {missing_cols} not found in new data. "
+                    f"Required: {exog_cols}, Available: {list(new_data.columns)}"
+                )
+
+            X_boost_pred = new_data[exog_cols].copy()
+
+            # Apply same label encoding as training
+            if label_encoders:
+                for col, le in label_encoders.items():
+                    if col in X_boost_pred.columns:
+                        X_boost_pred[col] = le.transform(X_boost_pred[col].astype(str))
+
+            X_boost = X_boost_pred.values
         else:
-            days_since_start = time_diff.dt.days
-        days_since_start = np.array(days_since_start).reshape(-1, 1)
+            # Fallback: use cyclical time features
+            dates = pd.to_datetime(date_series)
+            X_boost = self._create_xgb_features(dates)
 
         # Get XGBoost predictions
-        xgb_pred = xgb_model.predict(days_since_start)
+        xgb_pred = xgb_model.predict(X_boost)
 
         # ==================
         # Combine predictions
@@ -425,6 +553,7 @@ class HybridProphetBoostEngine(Engine):
             test_preds = fit.evaluation_data["test_predictions"]
             outcome_col = fit.evaluation_data["outcome_col"]
             date_col = fit.fit_data["date_col"]
+            date_min = fit.fit_data["date_min"]
 
             test_actuals = test_data[outcome_col].values
             test_predictions = test_preds[".pred"].values
@@ -433,10 +562,51 @@ class HybridProphetBoostEngine(Engine):
             # Get test dates
             if date_col == '__index__':
                 test_dates = test_data.index.values
+                date_series = test_data.index
             elif date_col in test_data.columns:
                 test_dates = test_data[date_col].values
+                date_series = test_data[date_col]
             else:
                 test_dates = np.arange(len(test_actuals))
+                date_series = None
+
+            # Calculate component predictions for test data
+            test_prophet_fitted = None
+            test_xgb_fitted = None
+
+            if date_series is not None:
+                # Get Prophet component for test data
+                future_test = pd.DataFrame({"ds": date_series})
+                prophet_forecast = prophet_model.predict(future_test)
+                test_prophet_fitted = prophet_forecast["yhat"].values
+
+                # Get XGBoost component for test data
+                use_exog = fit.fit_data.get("use_exog", False)
+                exog_cols = fit.fit_data.get("exog_cols")
+                label_encoders = fit.fit_data.get("label_encoders")
+
+                if use_exog and exog_cols:
+                    # Use exogenous regressors from test data
+                    if all(col in test_data.columns for col in exog_cols):
+                        X_boost_test_data = test_data[exog_cols].copy()
+
+                        # Apply same label encoding as training
+                        if label_encoders:
+                            for col, le in label_encoders.items():
+                                if col in X_boost_test_data.columns:
+                                    X_boost_test_data[col] = le.transform(X_boost_test_data[col].astype(str))
+
+                        X_boost_test = X_boost_test_data.values
+                    else:
+                        # Fallback if exogenous columns missing
+                        dates_test = pd.to_datetime(date_series)
+                        X_boost_test = self._create_xgb_features(dates_test)
+                else:
+                    # Use cyclical time features
+                    dates_test = pd.to_datetime(date_series)
+                    X_boost_test = self._create_xgb_features(dates_test)
+
+                test_xgb_fitted = xgb_model.predict(X_boost_test)
 
             forecast_test = pd.Series(test_actuals).combine_first(
                 pd.Series(test_predictions)
@@ -446,6 +616,8 @@ class HybridProphetBoostEngine(Engine):
                 {
                     "date": test_dates,
                     "actuals": test_actuals,
+                    "prophet_fitted": test_prophet_fitted if test_prophet_fitted is not None else np.nan,
+                    "xgb_fitted": test_xgb_fitted if test_xgb_fitted is not None else np.nan,
                     "fitted": test_predictions,
                     "forecast": forecast_test,
                     "residuals": test_residuals,

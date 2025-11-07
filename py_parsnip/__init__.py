@@ -35,6 +35,8 @@ from py_parsnip.models.nearest_neighbor import nearest_neighbor
 from py_parsnip.models.svm_rbf import svm_rbf
 from py_parsnip.models.svm_linear import svm_linear
 from py_parsnip.models.mlp import mlp
+from py_parsnip.models.hybrid_model import hybrid_model
+from py_parsnip.models.manual_reg import manual_reg
 
 # Import engines to trigger registration
 import py_parsnip.engines  # noqa: F401
@@ -62,5 +64,7 @@ __all__ = [
     "svm_rbf",
     "svm_linear",
     "mlp",
+    "hybrid_model",
+    "manual_reg",
 ]
 __version__ = "0.1.0"

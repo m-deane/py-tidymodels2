@@ -7,7 +7,7 @@ Maps poisson_reg to statsmodels' GLM with Poisson family:
 - Maximum likelihood estimation
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -26,13 +26,14 @@ class StatsmodelsPoissonEngine(Engine):
     in statsmodels GLM and will raise an error if specified.
     """
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(self, spec: ModelSpec, molded: MoldedData, original_training_data: Optional[pd.DataFrame] = None) -> Dict[str, Any]:
         """
         Fit Poisson regression model using statsmodels GLM.
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes and predictors
+            original_training_data: Original training DataFrame (optional, for date column extraction)
 
         Returns:
             Dict containing fitted model and metadata
@@ -89,6 +90,7 @@ class StatsmodelsPoissonEngine(Engine):
             "fitted": fitted,
             "residuals": residuals,
             "date_col": date_col,
+            "original_training_data": original_training_data,
             # GLM-specific statistics
             "aic": results.aic,
             "bic": results.bic,
@@ -373,6 +375,31 @@ class StatsmodelsPoissonEngine(Engine):
             {"metric": "n_obs_train", "value": n_obs, "split": "train"},
             {"metric": "n_features", "value": n_features, "split": ""},
         ])
+
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 

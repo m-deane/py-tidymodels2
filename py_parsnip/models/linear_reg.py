@@ -8,6 +8,7 @@ Supports multiple engines:
 Parameters (tidymodels naming):
 - penalty: Regularization penalty (L1 + L2)
 - mixture: Mix of L1 (1.0) vs L2 (0.0) penalty
+- intercept: Whether to fit an intercept term (default True)
 """
 
 from typing import Optional
@@ -17,6 +18,7 @@ from py_parsnip.model_spec import ModelSpec
 def linear_reg(
     penalty: Optional[float] = None,
     mixture: Optional[float] = None,
+    intercept: bool = True,
     engine: str = "sklearn",
 ) -> ModelSpec:
     """
@@ -31,6 +33,12 @@ def linear_reg(
             - 1 = pure L1 (Lasso)
             - 0.5 = equal mix (ElasticNet)
             - For sklearn ElasticNet: maps to 'l1_ratio'
+        intercept: Whether to fit an intercept term (default True)
+            - True: Fit intercept (standard regression)
+            - False: Force regression through origin (no intercept)
+            - For sklearn: maps to 'fit_intercept'
+            - For statsmodels: modifies formula to include '+0'
+            - Note: If formula already contains '+0' or '-1', formula takes precedence
         engine: Computational engine to use (default "sklearn")
 
     Returns:
@@ -49,11 +57,14 @@ def linear_reg(
         >>> # ElasticNet (mix of L1 and L2)
         >>> spec = linear_reg(penalty=0.1, mixture=0.5)
 
+        >>> # Regression through origin (no intercept)
+        >>> spec = linear_reg(intercept=False)
+
         >>> # Change engine
         >>> spec = linear_reg(engine="statsmodels")
     """
-    # Build args dict (only include non-None values)
-    args = {}
+    # Build args dict (only include non-None values, always include intercept)
+    args = {"intercept": intercept}
     if penalty is not None:
         args["penalty"] = penalty
     if mixture is not None:

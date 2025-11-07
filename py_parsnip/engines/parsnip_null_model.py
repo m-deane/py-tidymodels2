@@ -6,7 +6,7 @@ A baseline model that predicts a constant value:
 - Classification: mode (most frequent class)
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -24,13 +24,19 @@ class ParsnipNullEngine(Engine):
     Classification: Predicts mode of training outcomes
     """
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(
+        self,
+        spec: ModelSpec,
+        molded: MoldedData,
+        original_training_data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Fit null model by computing baseline statistic.
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes
+            original_training_data: Optional original training data with date columns
 
         Returns:
             Dict containing baseline value
@@ -43,13 +49,29 @@ class ParsnipNullEngine(Engine):
             if y.shape[1] == 1:
                 y = y.iloc[:, 0]
 
+        # Get strategy from spec args
+        strategy = spec.args.get("strategy", "mean")
+
         # Compute baseline value based on mode
         if spec.mode == "regression":
-            # For regression, use mean
-            baseline_value = float(np.mean(y))
-            method = "mean"
+            # For regression, use specified strategy
+            if strategy == "mean":
+                baseline_value = float(np.mean(y))
+                method = "mean"
+            elif strategy == "median":
+                baseline_value = float(np.median(y))
+                method = "median"
+            elif strategy == "last":
+                # Last observed value
+                if isinstance(y, pd.Series):
+                    baseline_value = float(y.iloc[-1])
+                else:
+                    baseline_value = float(y[-1])
+                method = "last"
+            else:
+                raise ValueError(f"Unsupported strategy: {strategy}. Use 'mean', 'median', or 'last'.")
         elif spec.mode == "classification":
-            # For classification, use mode (most frequent)
+            # For classification, always use mode (most frequent)
             if isinstance(y, pd.Series):
                 baseline_value = y.mode()[0]
             else:
@@ -70,10 +92,11 @@ class ParsnipNullEngine(Engine):
             residuals = (y - fitted)
 
         return {
-            "model": {"baseline_value": baseline_value, "method": method},
+            "model": {"baseline_value": baseline_value, "method": method, "strategy": strategy},
             "fitted": fitted,
             "residuals": residuals,
             "outcomes": y,
+            "original_training_data": original_training_data,
         }
 
     def predict(
@@ -163,6 +186,11 @@ class ParsnipNullEngine(Engine):
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
 
+        # Add model metadata columns
+        outputs["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        outputs["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        outputs["group"] = "global"  # Default group for non-grouped models
+
         # ====================
         # 2. COEFFICIENTS DataFrame
         # ====================
@@ -174,6 +202,11 @@ class ParsnipNullEngine(Engine):
             "ci_0.025": [np.nan],
             "ci_0.975": [np.nan],
         })
+
+        # Add model metadata columns
+        coefficients["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        coefficients["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        coefficients["group"] = "global"
 
         # ====================
         # 3. STATS DataFrame
@@ -232,6 +265,36 @@ class ParsnipNullEngine(Engine):
                 test_accuracy = np.mean(test_actuals == test_predictions)
                 stats_rows.append({"metric": "accuracy", "value": test_accuracy, "split": "test"})
 
+        # Add training date range (if available from original data)
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
+
+        # Add model metadata columns
+        stats["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        stats["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        stats["group"] = "global"
 
         return outputs, coefficients, stats

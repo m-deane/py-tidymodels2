@@ -387,6 +387,7 @@ class StatsmodelsSeasonalRegEngine(Engine):
     def _calculate_residual_diagnostics(self, residuals: np.ndarray) -> Dict[str, float]:
         """Calculate residual diagnostic statistics"""
         from scipy import stats as scipy_stats
+        import statsmodels.stats.diagnostic as sm_diag
 
         results = {}
         n = len(residuals)
@@ -408,9 +409,20 @@ class StatsmodelsSeasonalRegEngine(Engine):
             results["shapiro_wilk_stat"] = np.nan
             results["shapiro_wilk_p"] = np.nan
 
-        # Ljung-Box and Breusch-Pagan placeholders
-        results["ljung_box_stat"] = np.nan
-        results["ljung_box_p"] = np.nan
+        # Ljung-Box test for autocorrelation
+        try:
+            # Ensure we have enough lags (at least 1, max 10 or n//5)
+            n_lags = max(1, min(10, n // 5))
+            lb_result = sm_diag.acorr_ljungbox(residuals, lags=n_lags)
+            # Returns DataFrame with columns 'lb_stat' and 'lb_pvalue'
+            results["ljung_box_stat"] = lb_result['lb_stat'].iloc[-1]  # Last lag statistic
+            results["ljung_box_p"] = lb_result['lb_pvalue'].iloc[-1]  # Last lag p-value
+        except Exception as e:
+            # Not enough data or other issue
+            results["ljung_box_stat"] = np.nan
+            results["ljung_box_p"] = np.nan
+
+        # Breusch-Pagan test not applicable for STL decomposition (no exog matrix)
         results["breusch_pagan_stat"] = np.nan
         results["breusch_pagan_p"] = np.nan
 

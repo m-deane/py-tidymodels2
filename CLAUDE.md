@@ -142,11 +142,11 @@ The project follows a layered architecture inspired by R's tidymodels:
    - Consistent across all model types
    - Inspired by R's broom package (`tidy()`, `glance()`, `augment()`)
 
-**Implemented Models (20 Total):**
+**Implemented Models (23 Total):**
 
 **Baseline Models (2):**
-- `null_model()` - Mean/median baseline
-- `naive_reg()` - Time series baselines (naive, seasonal_naive, drift)
+- `null_model()` - Mean/median baseline (strategy: mean, median, last)
+- `naive_reg()` - Time series baselines (strategy: naive, seasonal_naive, drift, window)
 
 **Linear & Generalized Models (3):**
 - `linear_reg()` - Linear regression (sklearn, statsmodels engines)
@@ -182,6 +182,23 @@ The project follows a layered architecture inspired by R's tidymodels:
 
 **Recursive Forecasting (1):**
 - `recursive_reg()` - ML models for multi-step forecasting (skforecast)
+
+**Generic Hybrid Models (1):**
+- `hybrid_model()` - Combines any two models with four strategies:
+  - **residual** (default): Train model2 on residuals from model1
+  - **sequential**: Different models for different time periods (regime changes)
+  - **weighted**: Weighted combination of predictions (ensembling)
+  - **custom_data** (NEW): Train models on different/overlapping datasets
+    - Use dict input: `fit({'model1': early_data, 'model2': later_data}, formula)`
+    - Supports overlapping or non-overlapping training periods
+    - Flexible blending: weighted, avg, model1, or model2
+    - Ideal for adaptive learning with changing data distributions
+
+**Manual Coefficient Models (1):**
+- `manual_reg()` - User-specified coefficients (no fitting)
+  - Useful for comparing with external forecasts (Excel, R, SAS, etc.)
+  - Incorporating domain expert knowledge
+  - Creating baselines for benchmarking
 
 **Parameter Translation:**
 - Tidymodels naming → Engine-specific naming
@@ -642,6 +659,30 @@ seasonal_period → m (exact value, not a maximum)
 - `py_parsnip/engines/pmdarima_auto_arima.py` - auto_arima engine
 - `tests/test_parsnip/test_auto_arima.py` - 57 tests covering search constraints
 
+**Known Issue: numpy 2.x Compatibility**
+- pmdarima 2.0.4 was compiled against numpy 1.x and has binary incompatibility with numpy 2.x
+- Error: `ValueError: numpy.dtype size changed, may indicate binary incompatibility`
+- **Solutions:**
+  1. **Recommended:** Use statsmodels ARIMA engine instead:
+     ```python
+     spec = arima_reg().set_engine("statsmodels")
+     ```
+  2. Downgrade numpy to 1.26.x (if auto_arima is essential):
+     ```bash
+     pip install 'numpy<2.0'
+     ```
+  3. Wait for pmdarima to release numpy 2.x compatible wheels
+
+**Workaround in Code:**
+The auto_arima engine now catches this error and provides a helpful message:
+```python
+try:
+    from pmdarima import auto_arima
+except ValueError as e:
+    if "numpy.dtype size changed" in str(e):
+        raise ImportError("pmdarima has a numpy compatibility issue...")
+```
+
 ### Notebook Index Mismatch Issues
 **Problem:** When comparing pandas Series from test data with prediction DataFrames, index mismatch causes ValueError.
 
@@ -808,11 +849,12 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 
 ## Project Status and Planning
 
-**Current Status:** Phase 5 Complete, All 1019+ Tests Passing
-**Last Updated:** 2025-10-31 (Phase 5: VARMAX and auto_arima engine)
-**Total Tests Passing:** 1019+ tests across all packages (900+ from Phases 1-4A, 119 from Phase 5)
-**Total Models:** 22 production-ready models (20 base + 2 Phase 5 additions)
-**Total Engines:** 28+ engine implementations
+**Current Status:** All Issues Complete (1-8), 762+ Tests Passing
+**Last Updated:** 2025-11-07 (Issues 7-8: hybrid_model and manual_reg)
+**Total Tests Passing:** 762+ tests across all packages (714 base + 48 new)
+**Total Models:** 23 production-ready models (21 fitted + 1 hybrid + 1 manual)
+**Total Engines:** 30+ engine implementations
+**All Issues Completed:** ✅ Issues 1-8 from backlog
 
 **Phase 1 - COMPLETED (Foundation):**
 - ✅ py-hardhat: 14 tests - Data preprocessing with mold/forge
@@ -914,6 +956,25 @@ See `PHASE_4A_NOTEBOOK_TESTING_REPORT.md` and `NOTEBOOK_TESTING_REPORT.md` for d
 
 **Total Phase 5 Tests:** 119 (62 VARMAX + 57 auto_arima)
 
+**Issues 7-8 - COMPLETED (Generic Hybrid & Manual Models):**
+- ✅ **Issue 7: hybrid_model()**: Generic hybrid model combining any two models (24 tests)
+  - Three strategies: residual, sequential, weighted
+  - Flexible split points (int, float, date string)
+  - Automatic mode setting for unknown modes
+  - Works with all 23 model types
+  - Tests: `tests/test_parsnip/test_hybrid_model.py` - 24 passing
+  - Documentation: `_md/ISSUE_7_HYBRID_MODEL_SUMMARY.md`
+
+- ✅ **Issue 8: manual_reg()**: Manual coefficient specification (24 tests)
+  - User specifies coefficients directly (no fitting)
+  - Compare with external forecasts (Excel, R, SAS)
+  - Incorporate domain expert knowledge
+  - Create baselines for benchmarking
+  - Tests: `tests/test_parsnip/test_manual_reg.py` - 24 passing
+  - Documentation: `_md/ISSUE_8_MANUAL_MODEL_SUMMARY.md`
+
+**Total Issues 7-8 Tests:** 48 (24 hybrid + 24 manual)
+
 **Example Notebooks:**
 - 01_hardhat_demo.ipynb - Data preprocessing
 - 02_parsnip_demo.ipynb - Linear regression
@@ -1010,6 +1071,103 @@ def predict_raw(self, fit, new_data, type):
 ```
 
 3. Standard methods should raise NotImplementedError
+
+### Hybrid Model Implementation (Issue 7)
+**Purpose:** Combine any two models with flexible strategies.
+
+**Three Strategies:**
+
+1. **Residual Strategy** (default):
+```python
+spec = hybrid_model(
+    model1=linear_reg(),
+    model2=rand_forest().set_mode('regression'),
+    strategy='residual'
+)
+# Trains model2 on residuals from model1
+# Final prediction = model1_pred + model2_pred
+```
+
+2. **Sequential Strategy** (regime changes):
+```python
+spec = hybrid_model(
+    model1=linear_reg(),
+    model2=decision_tree().set_mode('regression'),
+    strategy='sequential',
+    split_point='2020-06-01'  # or int index, or float proportion
+)
+# Uses model1 before split_point, model2 after
+```
+
+3. **Weighted Strategy** (ensembling):
+```python
+spec = hybrid_model(
+    model1=linear_reg(),
+    model2=svm_rbf().set_mode('regression'),
+    strategy='weighted',
+    weight1=0.6,
+    weight2=0.4
+)
+# Final prediction = 0.6*model1_pred + 0.4*model2_pred
+```
+
+**Key Implementation Details:**
+- Uses public API only (`model.fit()`, `model.predict()`, `extract_outputs()`)
+- Automatically sets mode to "regression" for models with `mode='unknown'`
+- Works with any two model types from the 23 available
+- Returns standard three-DataFrame output
+
+**Code References:**
+- `py_parsnip/models/hybrid_model.py` - Model specification
+- `py_parsnip/engines/generic_hybrid.py` - Engine implementation
+- `tests/test_parsnip/test_hybrid_model.py` - 24 tests passing
+- `_md/ISSUE_7_HYBRID_MODEL_SUMMARY.md` - Full documentation
+
+### Manual Regression Implementation (Issue 8)
+**Purpose:** Manually specify coefficients instead of fitting from data.
+
+**Use Cases:**
+- Compare with external forecasting tools (Excel, R, SAS)
+- Incorporate domain expert knowledge
+- Create simple baselines
+- Reproduce legacy model forecasts
+
+**Basic Usage:**
+```python
+# Domain expert coefficients
+spec = manual_reg(
+    coefficients={"temperature": 1.5, "humidity": -0.3},
+    intercept=20.0
+)
+fit = spec.fit(data, 'sales ~ temperature + humidity')
+predictions = fit.predict(test_data)
+```
+
+**Advanced Usage:**
+```python
+# Compare with external tool
+external_coefs = {"x1": 2.1, "x2": 0.8}
+external_model = manual_reg(coefficients=external_coefs, intercept=5.0)
+fit = external_model.fit(data, 'y ~ x1 + x2')
+
+# Standard comparison with fitted model
+fitted_model = linear_reg().fit(data, 'y ~ x1 + x2')
+outputs_ext, _, stats_ext = fit.extract_outputs()
+outputs_fit, _, stats_fit = fitted_model.extract_outputs()
+```
+
+**Key Implementation Details:**
+- Patsy adds "Intercept" column automatically - engine handles this correctly
+- Partial coefficient specification (missing coefficients default to 0.0)
+- Validates coefficient variables match formula predictors
+- Statistical inference columns (std_error, p_value, etc.) set to NaN (not applicable)
+- Returns standard three-DataFrame output
+
+**Code References:**
+- `py_parsnip/models/manual_reg.py` - Model specification
+- `py_parsnip/engines/parsnip_manual_reg.py` - Engine implementation
+- `tests/test_parsnip/test_manual_reg.py` - 24 tests passing
+- `_md/ISSUE_8_MANUAL_MODEL_SUMMARY.md` - Full documentation
 
 ### Common Gotchas When Implementing Engines
 

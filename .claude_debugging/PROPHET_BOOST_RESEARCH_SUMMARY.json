@@ -1,0 +1,187 @@
+{
+  "search_summary": {
+    "platforms_searched": ["local_filesystem", "R_source_code"],
+    "repositories_analyzed": 1,
+    "docs_reviewed": 3,
+    "files_analyzed": [
+      "reference/modeltime-master/R/parsnip-prophet_boost.R",
+      "reference/modeltime-master/R/parsnip-prophet_boost_data.R",
+      "reference/modeltime-master/tests/testthat/test-algo-prophet_boost.R",
+      "py_parsnip/engines/hybrid_prophet_boost.py",
+      "py_parsnip/models/prophet_boost.py",
+      "tests/test_parsnip/test_prophet_boost.py"
+    ]
+  },
+  "repositories": [
+    {
+      "citation": "Business Science. 'modeltime: Time Series Forecasting Framework for Tidymodels.' GitHub, 2024. https://github.com/business-science/modeltime",
+      "platform": "github",
+      "stats": {
+        "stars": "~500+",
+        "forks": "~80+",
+        "contributors": "10+",
+        "last_updated": "2024-10-22"
+      },
+      "key_features": [
+        "Prophet + XGBoost hybrid forecasting",
+        "Two-stage residual modeling",
+        "Exogenous regressor support via formula interface",
+        "Automatic XREG recipe preprocessing",
+        "Zero XGBoost contribution when no exogenous variables"
+      ],
+      "architecture": "Two-stage hybrid: (1) Prophet fits trend+seasonality, (2) XGBoost models residuals using ONLY user-provided exogenous regressors from formula. If formula is 'y ~ date' with no additional variables, XGBoost contributes zeros.",
+      "code_quality": {
+        "testing": "comprehensive",
+        "documentation": "excellent",
+        "maintenance": "active"
+      },
+      "usage_example": "model_spec <- prophet_boost(trees=250) %>% set_engine('prophet_xgboost'); fit <- model_spec %>% fit(log(value) ~ date + as.numeric(date) + month(date), data=training(splits))",
+      "limitations": [
+        "Requires explicit exogenous regressors in formula",
+        "Does not auto-generate time features",
+        "XGBoost only activates when xregs provided"
+      ],
+      "alternatives": [
+        "prophet_reg (Prophet alone)",
+        "arima_boost (ARIMA + XGBoost)",
+        "temporal_hierarchy"
+      ]
+    }
+  ],
+  "technical_insights": {
+    "common_patterns": [
+      "Exogenous regressors extracted from formula via create_xreg_recipe()",
+      "XGBoost trains on prophet_residuals = actual - prophet_fitted",
+      "Final prediction = prophet_pred + xgb_pred",
+      "When no xregs: xgb_pred = zeros (Prophet handles everything)",
+      "Prediction uses bake_xreg_recipe() to process new data's xregs"
+    ],
+    "best_practices": [
+      "Include meaningful exogenous variables in formula (month, numeric date, fourier terms)",
+      "Use recipes for xreg preprocessing (encoding, normalization)",
+      "Let Prophet handle base trend and seasonality",
+      "Use XGBoost only for residual patterns that require xregs",
+      "Test both with and without xregs to ensure stable predictions"
+    ],
+    "pitfalls": [
+      "Auto-generating time features leads to extrapolation on test data",
+      "Using days_since_start causes out-of-distribution values for future dates",
+      "Always running XGBoost (even without xregs) can degrade test performance",
+      "Cyclical features (sin/cos) alone may not capture all patterns",
+      "Not recalculating features for new data breaks prediction consistency"
+    ],
+    "emerging_trends": [
+      "Hybrid classical + ML models for time series",
+      "Residual modeling as two-stage approach",
+      "Formula-based feature specification",
+      "Recipe-based preprocessing pipelines"
+    ]
+  },
+  "implementation_recommendations": [
+    {
+      "scenario": "Formula with no exogenous regressors (y ~ date)",
+      "recommended_solution": "XGBoost should contribute zeros (Prophet handles everything)",
+      "rationale": "Matches R behavior. Prevents extrapolation issues on test data. Prophet alone is sufficient for basic trend+seasonality."
+    },
+    {
+      "scenario": "Formula with exogenous regressors (y ~ date + month + numeric_date)",
+      "recommended_solution": "Extract actual xreg columns from data and pass to XGBoost",
+      "rationale": "Uses domain-meaningful features. Generalizes well to test data. Matches R's xreg_recipe approach."
+    },
+    {
+      "scenario": "Test data far beyond training range (30+ days)",
+      "recommended_solution": "Use only cyclical/categorical features (month, day_of_week), avoid linear features (days_since_start)",
+      "rationale": "Cyclical features don't extrapolate poorly. Linear trend handled by Prophet. Prevents systematic bias in residuals."
+    },
+    {
+      "scenario": "Python implementation currently auto-generates 12 time features",
+      "recommended_solution": "Remove auto-generation. Parse formula to extract xregs. If no xregs, set xgb_fitted = zeros.",
+      "rationale": "Aligns with R implementation. Fixes sharp residual increase in test set. Maintains architectural consistency."
+    }
+  ],
+  "community_insights": {
+    "popular_solutions": [
+      "Use create_xreg_recipe() and bake_xreg_recipe() for preprocessing",
+      "Include month(date), as.numeric(date), fourier_vec() as common xregs",
+      "Test accuracy expectations: MAE < 700, Max Error < 1500",
+      "Support both univariate (no xregs) and multivariate (with xregs) modes"
+    ],
+    "controversial_topics": [
+      "Whether to auto-generate time features vs require explicit xregs",
+      "How to handle seasonality: Prophet only vs Prophet + XGBoost",
+      "Whether XGBoost should always run or only when xregs provided"
+    ],
+    "expert_opinions": [
+      "Prophet excels at trend and seasonality, let it handle those",
+      "XGBoost should model residual patterns using domain features",
+      "Auto-generated features often fail on out-of-sample data",
+      "Explicit feature engineering generalizes better than auto-features"
+    ]
+  },
+  "root_cause_analysis": {
+    "issue": "Sharp increase in test set residuals for prophet_boost",
+    "confirmed_causes": [
+      {
+        "cause": "XGBoost always runs, even when no exogenous regressors provided",
+        "evidence": "Python implementation generates 12 time features automatically. R implementation sets xgb_fitted = zeros when no xregs.",
+        "impact": "High - XGBoost adds noise instead of value when no meaningful features"
+      },
+      {
+        "cause": "days_since_start feature extrapolates poorly on test data",
+        "evidence": "Training: days_since_start ∈ [0, 365]. Test (30 days later): days_since_start ∈ [395, 425]. XGBoost never saw values > 365 during training.",
+        "impact": "Critical - Causes systematic bias in XGBoost predictions"
+      },
+      {
+        "cause": "Python uses auto-generated cyclical features, R uses actual exogenous regressors",
+        "evidence": "R extracts xregs from formula (month, numeric_date). Python generates sin/cos encodings from dates alone.",
+        "impact": "Critical - Different feature spaces between train and test"
+      }
+    ],
+    "fix_priority": [
+      {
+        "priority": 1,
+        "fix": "Modify fit_raw() to parse formula and extract actual exogenous variables",
+        "files_to_modify": ["py_parsnip/engines/hybrid_prophet_boost.py"],
+        "estimated_effort": "Medium (2-4 hours)"
+      },
+      {
+        "priority": 2,
+        "fix": "When no exogenous variables, set xgb_fitted = zeros (match R behavior)",
+        "files_to_modify": ["py_parsnip/engines/hybrid_prophet_boost.py"],
+        "estimated_effort": "Low (30 min)"
+      },
+      {
+        "priority": 3,
+        "fix": "Remove _create_xgb_features() auto-generation or limit to cyclical-only",
+        "files_to_modify": ["py_parsnip/engines/hybrid_prophet_boost.py"],
+        "estimated_effort": "Low (1 hour)"
+      },
+      {
+        "priority": 4,
+        "fix": "Add xreg preprocessing pipeline (similar to R's xreg_recipe)",
+        "files_to_modify": ["py_parsnip/engines/hybrid_prophet_boost.py"],
+        "estimated_effort": "Medium (3-5 hours)"
+      }
+    ]
+  },
+  "validation_tests": [
+    {
+      "test_name": "No exogenous regressors",
+      "test_code": "spec = prophet_boost(); fit = spec.fit(data, 'sales ~ date')",
+      "expected_behavior": "XGBoost contributes zeros, predictions = Prophet only",
+      "current_behavior": "XGBoost trains on 12 auto-features, may add noise"
+    },
+    {
+      "test_name": "With month exogenous regressor",
+      "test_code": "fit = spec.fit(data, 'sales ~ date + month_num')",
+      "expected_behavior": "XGBoost uses month_num column as feature",
+      "current_behavior": "Warning: exogenous variables ignored"
+    },
+    {
+      "test_name": "Test data 30 days after training",
+      "test_code": "train_end = 2022-12-31; test_start = 2023-01-01; predict 30 days",
+      "expected_behavior": "Residuals remain stable (MAE < 700)",
+      "current_behavior": "Sharp residual increase observed"
+    }
+  ]
+}

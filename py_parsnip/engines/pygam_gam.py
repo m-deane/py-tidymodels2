@@ -6,7 +6,7 @@ Maps gen_additive_mod to pygam's LinearGAM:
 - adjust_deg_free → n_splines parameter (controls smoothness)
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -25,13 +25,19 @@ class PyGAMEngine(Engine):
     - adjust_deg_free → n_splines (number of splines per term)
     """
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(
+        self,
+        spec: ModelSpec,
+        molded: MoldedData,
+        original_training_data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Fit GAM using pygam.
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes and predictors
+            original_training_data: Original training DataFrame (optional, for date column extraction)
 
         Returns:
             Dict containing fitted model and metadata
@@ -114,6 +120,7 @@ class PyGAMEngine(Engine):
             "fitted": fitted,
             "residuals": residuals,
             "date_col": date_col,
+            "original_training_data": original_training_data,
             # GAM-specific statistics
             "aic": model.statistics_["AIC"] if hasattr(model, "statistics_") else np.nan,
             "aicc": model.statistics_["AICc"] if hasattr(model, "statistics_") else np.nan,
@@ -215,10 +222,10 @@ class PyGAMEngine(Engine):
         Extract comprehensive three-DataFrame output.
 
         Returns:
-            Tuple of (outputs, partial_effects, stats)
+            Tuple of (outputs, coefficients, stats)
 
             - Outputs: Observation-level results with actuals, fitted, residuals
-            - Partial_effects: Summary of smooth term effects (feature importance)
+            - Coefficients: Smooth term effects as feature importance (effect_range)
             - Stats: Comprehensive metrics by split + GAM statistics
         """
         model = fit.fit_data["model"]
@@ -281,14 +288,73 @@ class PyGAMEngine(Engine):
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
 
-        # ============================
-        # 2. PARTIAL EFFECTS DataFrame
-        # ============================
-        # Extract information about smooth terms
+        # Add date column if available in original data
+        if not outputs.empty:
+            try:
+                from py_parsnip.utils.time_series_utils import _infer_date_column
+
+                # For training data
+                original_training_data = fit.fit_data.get("original_training_data")
+                if original_training_data is not None:
+                    try:
+                        date_col = _infer_date_column(
+                            original_training_data,
+                            spec_date_col=None,
+                            fit_date_col=None
+                        )
+
+                        # Extract training dates
+                        if date_col == '__index__':
+                            train_dates = original_training_data.index.values
+                        else:
+                            train_dates = original_training_data[date_col].values
+
+                        # For test data (if evaluated)
+                        test_dates = None
+                        original_test_data = fit.evaluation_data.get("original_test_data")
+                        if original_test_data is not None:
+                            try:
+                                # Use same date_col from training
+                                if date_col == '__index__':
+                                    test_dates = original_test_data.index.values
+                                else:
+                                    test_dates = original_test_data[date_col].values
+                            except (KeyError, AttributeError):
+                                pass  # Skip test dates if not available
+
+                        # Combine dates based on split
+                        combined_dates = []
+                        train_count = (outputs['split'] == 'train').sum()
+                        test_count = (outputs['split'] == 'test').sum()
+
+                        # Add training dates
+                        if train_count > 0:
+                            combined_dates.extend(train_dates[:train_count])
+
+                        # Add test dates if they exist
+                        if test_count > 0 and test_dates is not None:
+                            combined_dates.extend(test_dates[:test_count])
+
+                        # Add date column as first column (before model/group columns)
+                        if len(combined_dates) == len(outputs):
+                            outputs.insert(0, 'date', combined_dates)
+
+                    except ValueError:
+                        # No datetime columns or invalid date column - skip date column
+                        pass
+            except ImportError:
+                # time_series_utils not available - skip date column
+                pass
+
+        # ====================
+        # 2. COEFFICIENTS DataFrame (Feature Importances for GAM)
+        # ====================
+        # For GAMs, we report smooth term effects as feature importance
+        # using effect_range (range of partial dependence) as the importance measure
         feature_names = list(fit.blueprint.column_order)
         n_features = fit.fit_data.get("n_features", 0)
 
-        partial_effects_list = []
+        coefficients_list = []
 
         # Get coefficients and statistics if available
         if hasattr(model, "coef_"):
@@ -322,24 +388,26 @@ class PyGAMEngine(Engine):
                     except:
                         effect_range = np.nan
 
-                    partial_effects_list.append({
-                        "feature": feature_name,
-                        "feature_index": i,
-                        "effect_range": effect_range,
-                        "data_range": x_range,
-                        "data_min": x_min,
-                        "data_max": x_max,
+                    coefficients_list.append({
+                        "variable": feature_name,
+                        "coefficient": effect_range,  # Effect range acts as feature importance
+                        "std_error": np.nan,  # Not applicable for GAMs
+                        "t_stat": np.nan,  # Not applicable
+                        "p_value": np.nan,  # Not applicable
+                        "ci_0.025": np.nan,  # Not applicable
+                        "ci_0.975": np.nan,  # Not applicable
+                        "vif": np.nan,  # Not applicable for GAMs
                     })
 
-        partial_effects = pd.DataFrame(partial_effects_list) if partial_effects_list else pd.DataFrame(
-            columns=["feature", "feature_index", "effect_range", "data_range", "data_min", "data_max"]
+        coefficients = pd.DataFrame(coefficients_list) if coefficients_list else pd.DataFrame(
+            columns=["variable", "coefficient", "std_error", "t_stat", "p_value", "ci_0.025", "ci_0.975", "vif"]
         )
 
         # Add model metadata
-        if not partial_effects.empty:
-            partial_effects["model"] = fit.model_name if fit.model_name else fit.spec.model_type
-            partial_effects["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
-            partial_effects["group"] = "global"
+        if not coefficients.empty:
+            coefficients["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+            coefficients["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+            coefficients["group"] = "global"
 
         # ====================
         # 3. STATS DataFrame
@@ -419,6 +487,31 @@ class PyGAMEngine(Engine):
             {"metric": "n_splines", "value": n_splines, "split": ""},
         ])
 
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
 
         # Add model metadata
@@ -426,4 +519,4 @@ class PyGAMEngine(Engine):
         stats["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
         stats["group"] = "global"
 
-        return outputs, partial_effects, stats
+        return outputs, coefficients, stats

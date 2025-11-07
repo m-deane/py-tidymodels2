@@ -311,6 +311,14 @@ class StatsmodelsVARMAXEngine(Engine):
             {"metric": "bic", "value": model.bic if hasattr(model, "bic") else np.nan, "split": ""},
         ]
 
+        # Add training date range
+        dates = fit.fit_data.get("dates")
+        if dates is not None and len(dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
         stats["model"] = fit.model_name if fit.model_name else fit.spec.model_type
         stats["model_group_name"] = fit.model_group_name if fit.model_group_name else ""

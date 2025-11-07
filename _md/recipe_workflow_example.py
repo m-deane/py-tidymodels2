@@ -10,12 +10,12 @@ import numpy as np
 from py_workflows import workflow
 from py_parsnip import linear_reg
 from py_recipes import recipe
-from py_recipes.selectors import all_numeric, all_nominal, all_predictors
+from py_recipes.selectors import all_numeric, all_nominal
 from py_yardstick import rmse, mae, r_squared
 
 # Create sample time series data
 np.random.seed(42)
-dates = pd.date_range('2020-01-01', periods=100, freq='M')
+dates = pd.date_range('2020-01-01', periods=100, freq='ME')  # ME = month end
 df = pd.DataFrame({
     'date': dates,
     'target': np.random.randn(100).cumsum() + 100,
@@ -58,77 +58,74 @@ print("="*70)
 # Recipe-based workflow with advanced feature engineering
 # Advantages: Normalization, encoding, imputation, feature creation, etc.
 
+# For recipes, we prep/bake outside the workflow, then use formula in workflow
 rec = (
-    recipe(train, "target ~ .")  # Use all columns as predictors
-    .step_rm("date")  # Remove date column from predictors
-    .step_normalize(all_numeric())  # Normalize numeric features (z-score)
-    .step_dummy(all_nominal())  # One-hot encode categorical variables
-    # Could add more steps:
-    # .step_impute_median(all_numeric())  # Handle missing values
-    # .step_interact(["lag1", "lag2"])  # Create interaction terms
-    # .step_pca(all_numeric(), num_comp=2)  # Dimensionality reduction
+    recipe()  # Create empty recipe
+    .step_normalize()  # Normalize numeric features (z-score) - None = all numeric
+    .step_dummy(["category"])  # One-hot encode categorical variable
 )
+
+# Prep the recipe on training data
+rec_prepped = rec.prep(train)
+
+# Apply to both train and test
+train_processed = rec_prepped.bake(train)
+test_processed = rec_prepped.bake(test)
 
 wf_recipe = (
     workflow()
-    .add_recipe(rec)
+    # Formula on preprocessed data
+    .add_formula("target ~ lag1 + lag2 + lag3 + category_B + category_C + has_promo")
     .add_model(linear_reg())
 )
 
-fit_recipe = wf_recipe.fit(train)
-fit_recipe = fit_recipe.evaluate(test)
+fit_recipe = wf_recipe.fit(train_processed)
+fit_recipe = fit_recipe.evaluate(test_processed)
 
 outputs_recipe, coefs_recipe, stats_recipe = fit_recipe.extract_outputs()
 
 print("\nRecipe approach:")
 print("  Steps:")
-print("    1. Start with all columns: target ~ .")
-print("    2. Remove date column")
-print("    3. Normalize all numeric columns (z-score)")
-print("    4. One-hot encode categorical columns")
-print(f"  Features used: lag1, lag2, lag3, category_B, category_C, has_promo (normalized + encoded)")
+print("    1. Normalize all numeric columns (z-score)")
+print("    2. One-hot encode categorical columns")
+print("  Features used: lag1, lag2, lag3, category_B, category_C, has_promo (normalized + encoded)")
 print(f"  Test RMSE: {stats_recipe[stats_recipe['metric'] == 'rmse']['value'].iloc[1]:.4f}")
 
 print("\n" + "="*70)
-print("APPROACH 3: Recipe with Custom Feature Engineering")
+print("APPROACH 3: Recipe Without Workflow (Manual prep/bake)")
 print("="*70)
 
-# More advanced recipe with feature engineering
-rec_advanced = (
-    recipe(train, "target ~ .")
-    .step_rm("date")  # Remove date
-    # Create polynomial features
-    .step_poly("lag1", degree=2)  # Add lag1^2
-    # Create interaction
-    .step_interact(["lag1", "lag2"])  # Add lag1*lag2
-    # Normalize everything
-    .step_normalize(all_numeric())
-    # Encode categoricals
-    .step_dummy(all_nominal())
-    # Log transform (would fail on negative values, so commented)
-    # .step_log(["lag1"])
+# You can also use recipes without workflows - just prep/bake directly
+rec_manual = (
+    recipe()
+    .step_normalize()
+    .step_dummy(["category"])
 )
 
-wf_advanced = (
-    workflow()
-    .add_recipe(rec_advanced)
-    .add_model(linear_reg())
-)
+# Prep on training data
+rec_manual_prepped = rec_manual.prep(train)
 
-fit_advanced = wf_advanced.fit(train)
-fit_advanced = fit_advanced.evaluate(test)
+# Bake both datasets
+train_manual = rec_manual_prepped.bake(train)
+test_manual = rec_manual_prepped.bake(test)
 
-outputs_advanced, coefs_advanced, stats_advanced = fit_advanced.extract_outputs()
+# Then fit model directly on processed data
+# Remove date column for modeling
+train_for_model = train_manual.drop(columns=['date'])
+test_for_model = test_manual.drop(columns=['date'])
 
-print("\nAdvanced recipe approach:")
-print("  Steps:")
-print("    1. Remove date column")
-print("    2. Create polynomial features: lag1^2")
-print("    3. Create interactions: lag1*lag2")
-print("    4. Normalize all numeric features")
-print("    5. One-hot encode categoricals")
-print(f"  Features engineered: {len(coefs_advanced) - 1} total features")
-print(f"  Test RMSE: {stats_advanced[stats_advanced['metric'] == 'rmse']['value'].iloc[1]:.4f}")
+spec_manual = linear_reg()
+fit_manual = spec_manual.fit(train_for_model, "target ~ .")
+fit_manual = fit_manual.evaluate(test_for_model)
+
+outputs_manual, _, stats_manual = fit_manual.extract_outputs()
+
+print("\nManual recipe approach:")
+print("  Benefits:")
+print("    - Full control over preprocessing")
+print("    - Can save/load prepped recipes")
+print("    - Apply same preprocessing to multiple models")
+print(f"  Test RMSE: {stats_manual[stats_manual['metric'] == 'rmse']['value'].iloc[1]:.4f}")
 
 print("\n" + "="*70)
 print("Key Differences: Formula vs Recipe")

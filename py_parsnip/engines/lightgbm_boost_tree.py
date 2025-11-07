@@ -12,7 +12,7 @@ Maps boost_tree to LightGBM's LGBMRegressor:
 - stop_iter → early_stopping_rounds
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -48,13 +48,19 @@ class LightGBMBoostTreeEngine(Engine):
         "stop_iter": "early_stopping_rounds",
     }
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(
+        self,
+        spec: ModelSpec,
+        molded: MoldedData,
+        original_training_data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Fit boosted tree model using LightGBM.
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes and predictors
+            original_training_data: Original training DataFrame (optional, for date column extraction)
 
         Returns:
             Dict containing fitted model and metadata
@@ -159,6 +165,7 @@ class LightGBMBoostTreeEngine(Engine):
             "y_train": y,
             "fitted": fitted,
             "residuals": residuals,
+            "original_training_data": original_training_data,
         }
 
     def predict(
@@ -307,6 +314,64 @@ class LightGBMBoostTreeEngine(Engine):
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
 
+        # Add date column if available in original data
+        if not outputs.empty:
+            try:
+                from py_parsnip.utils.time_series_utils import _infer_date_column
+
+                # For training data
+                original_training_data = fit.fit_data.get("original_training_data")
+                if original_training_data is not None:
+                    try:
+                        date_col = _infer_date_column(
+                            original_training_data,
+                            spec_date_col=None,
+                            fit_date_col=None
+                        )
+
+                        # Extract training dates
+                        if date_col == '__index__':
+                            train_dates = original_training_data.index.values
+                        else:
+                            train_dates = original_training_data[date_col].values
+
+                        # For test data (if evaluated)
+                        test_dates = None
+                        original_test_data = fit.evaluation_data.get("original_test_data")
+                        if original_test_data is not None:
+                            try:
+                                # Use same date_col from training
+                                if date_col == '__index__':
+                                    test_dates = original_test_data.index.values
+                                else:
+                                    test_dates = original_test_data[date_col].values
+                            except (KeyError, AttributeError):
+                                pass  # Skip test dates if not available
+
+                        # Combine dates based on split
+                        combined_dates = []
+                        train_count = (outputs['split'] == 'train').sum()
+                        test_count = (outputs['split'] == 'test').sum()
+
+                        # Add training dates
+                        if train_count > 0:
+                            combined_dates.extend(train_dates[:train_count])
+
+                        # Add test dates if they exist
+                        if test_count > 0 and test_dates is not None:
+                            combined_dates.extend(test_dates[:test_count])
+
+                        # Add date column as first column (before model/group columns)
+                        if len(combined_dates) == len(outputs):
+                            outputs.insert(0, 'date', combined_dates)
+
+                    except ValueError:
+                        # No datetime columns or invalid date column - skip date column
+                        pass
+            except ImportError:
+                # time_series_utils not available - skip date column
+                pass
+
         # ====================
         # 2. FEATURE IMPORTANCE DataFrame
         # ====================
@@ -377,6 +442,31 @@ class LightGBMBoostTreeEngine(Engine):
             {"metric": "n_obs_train", "value": n_obs, "split": "train"},
             {"metric": "n_trees", "value": model.n_estimators if hasattr(model, "n_estimators") else 0, "split": ""},
         ])
+
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 

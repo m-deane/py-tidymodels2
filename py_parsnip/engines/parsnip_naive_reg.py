@@ -1,13 +1,14 @@
 """
 Parsnip engine for naive forecasting
 
-Implements three naive forecasting methods:
+Implements four naive forecasting strategies:
 - naive: Last observed value (random walk)
 - seasonal_naive: Last value from same season
 - drift: Linear trend from first to last value
+- window: Rolling window average (moving average)
 """
 
-from typing import Dict, Any, Literal
+from typing import Dict, Any, Literal, Optional
 import pandas as pd
 import numpy as np
 
@@ -27,13 +28,19 @@ class ParsnipNaiveEngine(Engine):
     - drift: y_t = y_{t-1} + (y_T - y_1) / (T - 1)
     """
 
-    def fit(self, spec: ModelSpec, molded: MoldedData) -> Dict[str, Any]:
+    def fit(
+        self,
+        spec: ModelSpec,
+        molded: MoldedData,
+        original_training_data: Optional[pd.DataFrame] = None
+    ) -> Dict[str, Any]:
         """
         Fit naive model (just stores training values).
 
         Args:
             spec: ModelSpec with model configuration
             molded: MoldedData with outcomes
+            original_training_data: Optional original training data with date columns
 
         Returns:
             Dict containing training values and method
@@ -52,20 +59,21 @@ class ParsnipNaiveEngine(Engine):
         else:
             y_values = y
 
-        # Get method and seasonal_period from args
-        method = spec.args.get("method", "naive")
+        # Get strategy from args (with backward compatibility for "method")
+        strategy = spec.args.get("strategy") or spec.args.get("method", "naive")
         seasonal_period = spec.args.get("seasonal_period")
+        window_size = spec.args.get("window_size")
 
-        # Compute fitted values based on method
+        # Compute fitted values based on strategy
         n = len(y_values)
         fitted = np.full(n, np.nan)
 
-        if method == "naive":
+        if strategy == "naive":
             # Naive: y_t = y_{t-1}
             fitted[1:] = y_values[:-1]
             fitted[0] = y_values[0]  # First value = itself
 
-        elif method in ["seasonal_naive", "snaive"]:
+        elif strategy in ["seasonal_naive", "snaive"]:
             # Seasonal naive: y_t = y_{t-s}
             if seasonal_period is None:
                 raise ValueError("seasonal_period required for seasonal_naive")
@@ -81,7 +89,7 @@ class ParsnipNaiveEngine(Engine):
             for i in range(s, n):
                 fitted[i] = y_values[i - s]
 
-        elif method == "drift":
+        elif strategy == "drift":
             # Drift: y_t = y_{t-1} + (y_T - y_1) / (T - 1)
             drift = (y_values[-1] - y_values[0]) / (n - 1)
 
@@ -89,22 +97,46 @@ class ParsnipNaiveEngine(Engine):
             for i in range(1, n):
                 fitted[i] = y_values[i-1] + drift
 
+        elif strategy == "window":
+            # Window: Rolling window average
+            if window_size is None:
+                raise ValueError("window_size required for window strategy")
+
+            w = window_size
+            if w < 1:
+                raise ValueError(f"window_size must be >= 1, got {w}")
+            if w > n:
+                raise ValueError(f"window_size ({w}) must be <= data length ({n})")
+
+            # For first w values, use expanding window average
+            for i in range(n):
+                if i == 0:
+                    fitted[i] = y_values[i]  # First value = itself
+                elif i < w:
+                    # Expanding window (use all available past values)
+                    fitted[i] = np.mean(y_values[:i])
+                else:
+                    # Rolling window (use last w values)
+                    fitted[i] = np.mean(y_values[i-w:i])
+
         else:
-            raise ValueError(f"Unknown method: {method}")
+            raise ValueError(f"Unknown strategy: {strategy}. Use 'naive', 'seasonal_naive', 'drift', or 'window'.")
 
         # Calculate residuals
         residuals = y_values - fitted
 
         return {
             "model": {
-                "method": method,
+                "strategy": strategy,
                 "seasonal_period": seasonal_period,
+                "window_size": window_size,
                 "train_values": y_values,
                 "n_train": n,
             },
             "fitted": fitted,
             "residuals": residuals,
             "outcomes": y,
+            "original_training_data": original_training_data,
         }
 
     def predict(
@@ -125,21 +157,22 @@ class ParsnipNaiveEngine(Engine):
             DataFrame with predictions
         """
         model = fit.fit_data["model"]
-        method = model["method"]
+        strategy = model["strategy"]
         train_values = model["train_values"]
         seasonal_period = model["seasonal_period"]
+        window_size = model["window_size"]
 
         # Get number of predictions (horizon)
         n_pred = len(molded.predictors)
 
         predictions = np.full(n_pred, np.nan)
 
-        if method == "naive":
+        if strategy == "naive":
             # All predictions = last training value
             last_value = train_values[-1]
             predictions = np.full(n_pred, last_value)
 
-        elif method in ["seasonal_naive", "snaive"]:
+        elif strategy in ["seasonal_naive", "snaive"]:
             # Use last full seasonal cycle
             s = seasonal_period
             n_train = len(train_values)
@@ -155,13 +188,29 @@ class ParsnipNaiveEngine(Engine):
                         predictions[h] = train_values[i]
                         break
 
-        elif method == "drift":
+        elif strategy == "drift":
             # Extrapolate drift
             last_value = train_values[-1]
             drift = (train_values[-1] - train_values[0]) / (len(train_values) - 1)
 
             for h in range(n_pred):
                 predictions[h] = last_value + drift * (h + 1)
+
+        elif strategy == "window":
+            # Window: Use last window_size values for average
+            # For forecasting, predict the mean of the last window
+            w = window_size
+            n_train = len(train_values)
+
+            # Calculate window average from last w training values
+            if w > n_train:
+                # Use all available values
+                window_avg = np.mean(train_values)
+            else:
+                window_avg = np.mean(train_values[-w:])
+
+            # All predictions = window average (constant forecast)
+            predictions = np.full(n_pred, window_avg)
 
         return pd.DataFrame({".pred": predictions})
 
@@ -182,7 +231,7 @@ class ParsnipNaiveEngine(Engine):
         fitted = fit_output["fitted"]
         residuals = fit_output["residuals"]
         outcomes = fit_output["outcomes"]
-        method = fit_output["model"]["method"]
+        strategy = fit_output["model"]["strategy"]
 
         if isinstance(outcomes, pd.Series):
             actuals = outcomes.values
@@ -225,17 +274,27 @@ class ParsnipNaiveEngine(Engine):
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
 
+        # Add model metadata columns
+        outputs["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        outputs["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        outputs["group"] = "global"  # Default group for non-grouped models
+
         # ====================
         # 2. COEFFICIENTS DataFrame
         # ====================
         coefficients = pd.DataFrame({
-            "variable": ["method"],
-            "coefficient": [method],
+            "variable": ["strategy"],
+            "coefficient": [strategy],
             "std_error": [np.nan],
             "p_value": [np.nan],
             "ci_0.025": [np.nan],
             "ci_0.975": [np.nan],
         })
+
+        # Add model metadata columns
+        coefficients["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        coefficients["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        coefficients["group"] = "global"
 
         # ====================
         # 3. STATS DataFrame
@@ -262,7 +321,7 @@ class ParsnipNaiveEngine(Engine):
             {"metric": "mae", "value": mae_val, "split": "train"},
             {"metric": "mape", "value": mape_val, "split": "train"},
             {"metric": "r_squared", "value": r2_val, "split": "train"},
-            {"metric": "method", "value": method, "split": "train"},
+            {"metric": "strategy", "value": strategy, "split": "train"},
         ])
 
         # Test metrics (if evaluated)
@@ -288,6 +347,36 @@ class ParsnipNaiveEngine(Engine):
                 {"metric": "r_squared", "value": test_r2, "split": "test"},
             ])
 
+        # Add training date range (if available from original data)
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
+
         stats = pd.DataFrame(stats_rows)
+
+        # Add model metadata columns
+        stats["model"] = fit.model_name if fit.model_name else fit.spec.model_type
+        stats["model_group_name"] = fit.model_group_name if fit.model_group_name else ""
+        stats["group"] = "global"
 
         return outputs, coefficients, stats

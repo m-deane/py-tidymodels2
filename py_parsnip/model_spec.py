@@ -155,31 +155,82 @@ class ModelSpec:
             )
         else:
             # Standard molding path
-            if formula is not None:
+            # Special case: if data is a dict (for custom_data strategy in hybrid_model)
+            # skip molding and pass dict directly to engine
+            if isinstance(data, dict):
+                import inspect
+                fit_signature = inspect.signature(engine.fit)
+                accepts_original_data = 'original_training_data' in fit_signature.parameters
+
+                if not accepts_original_data:
+                    raise ValueError(
+                        "Engine does not support dict input (missing original_training_data parameter)"
+                    )
+
+                # Validate dict has required keys
+                if 'model1' not in data or 'model2' not in data:
+                    raise ValueError(
+                        "When using dict data, must provide 'model1' and 'model2' keys. "
+                        f"Got keys: {list(data.keys())}"
+                    )
+
+                # Create blueprint from first dataset in dict for metadata and formula storage
+                if isinstance(data['model1'], pd.DataFrame):
+                    from py_hardhat import mold as create_mold
+                    temp_molded = create_mold(formula, data['model1'])
+                    blueprint = temp_molded.blueprint
+                else:
+                    raise ValueError(
+                        "Dict data['model1'] must be a DataFrame for blueprint creation"
+                    )
+
+                # Create a minimal MoldedData with just the blueprint (no actual molding)
+                # This allows the engine to access the formula via molded.blueprint.formula
+                from py_hardhat import MoldedData
+                minimal_molded = MoldedData(
+                    predictors=None,
+                    outcomes=None,
+                    blueprint=blueprint,
+                    extras={}
+                )
+
+                # Pass dict as original_training_data and minimal molded for formula
+                fit_data = engine.fit(self, minimal_molded, original_training_data=data)
+            elif formula is not None:
                 molded = mold(formula, data)
+                # Pass original_training_data to engine.fit() for datetime column extraction
+                # If not provided, use data itself (direct fit() calls have original data)
+                # Check if engine.fit() accepts original_training_data parameter
+                import inspect
+                fit_signature = inspect.signature(engine.fit)
+                accepts_original_data = 'original_training_data' in fit_signature.parameters
+
+                if accepts_original_data:
+                    # Pass original_training_data (defaults to data for consistency)
+                    orig_data = original_training_data if original_training_data is not None else data
+                    fit_data = engine.fit(self, molded, original_training_data=orig_data)
+                else:
+                    fit_data = engine.fit(self, molded)
+                blueprint = molded.blueprint
             else:
                 # Assume data is already molded (MoldedData object)
                 if isinstance(data, MoldedData):
                     molded = data
+                    # Check if engine.fit() accepts original_training_data parameter
+                    import inspect
+                    fit_signature = inspect.signature(engine.fit)
+                    accepts_original_data = 'original_training_data' in fit_signature.parameters
+
+                    if accepts_original_data:
+                        orig_data = original_training_data if original_training_data is not None else None
+                        fit_data = engine.fit(self, molded, original_training_data=orig_data)
+                    else:
+                        fit_data = engine.fit(self, molded)
+                    blueprint = molded.blueprint
                 else:
                     raise ValueError(
                         "Either provide a formula or pass MoldedData directly"
                     )
-
-            # Pass original_training_data to engine.fit() for datetime column extraction
-            # If not provided, use data itself (direct fit() calls have original data)
-            # Check if engine.fit() accepts original_training_data parameter
-            import inspect
-            fit_signature = inspect.signature(engine.fit)
-            accepts_original_data = 'original_training_data' in fit_signature.parameters
-
-            if accepts_original_data:
-                # Use original_training_data if provided, otherwise use data itself
-                orig_data = original_training_data if original_training_data is not None else data
-                fit_data = engine.fit(self, molded, original_training_data=orig_data)
-            else:
-                fit_data = engine.fit(self, molded)
-            blueprint = molded.blueprint
 
         # Create ModelFit
         return ModelFit(
@@ -340,11 +391,8 @@ class ModelFit:
         self.evaluation_data["test_data"] = test_data
         self.evaluation_data["test_predictions"] = predictions
         self.evaluation_data["outcome_col"] = outcome_col
-        # Store original test data for engines that need raw datetime/categorical values
-        # If not provided, use test_data itself (direct evaluate() calls have original data)
-        self.evaluation_data["original_test_data"] = (
-            original_test_data if original_test_data is not None else test_data
-        )
+        # Store original test data (defaults to test_data for consistency)
+        self.evaluation_data["original_test_data"] = original_test_data if original_test_data is not None else test_data
 
         return self
 

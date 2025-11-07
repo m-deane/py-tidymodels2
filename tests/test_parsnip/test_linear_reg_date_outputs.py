@@ -130,21 +130,29 @@ class TestLinearRegDateOutputs:
         assert 'date' not in outputs.columns, "Date column should not be present for non-TS data"
         assert len(outputs) == 100
 
-    def test_backward_compatibility_no_original_data(self, ts_data_with_date_col):
-        """Test backward compatibility - no date column when original_data not provided."""
+    def test_automatic_date_detection(self, ts_data_with_date_col):
+        """Test that date column is automatically detected and added."""
         train = ts_data_with_date_col.iloc[:80].copy()
         test = ts_data_with_date_col.iloc[80:].copy()
 
-        # Fit WITHOUT original_training_data
+        # Fit without explicitly passing original_training_data
+        # Date column should still be detected automatically
         spec = linear_reg()
-        fit = spec.fit(train, 'y ~ x1 + x2')  # No original_training_data
-        fit = fit.evaluate(test)  # No original_test_data
+        fit = spec.fit(train, 'y ~ x1 + x2')
+        fit = fit.evaluate(test)
 
         # Extract outputs
         outputs, _, _ = fit.extract_outputs()
 
-        # Assertions - no date column since original_data wasn't provided
-        assert 'date' not in outputs.columns
+        # Assertions - date column should be automatically added
+        assert 'date' in outputs.columns, "Date column should be automatically detected"
+        assert len(outputs) == 100
+
+        # Verify date values are correct
+        train_dates = outputs[outputs['split'] == 'train']['date']
+        test_dates = outputs[outputs['split'] == 'test']['date']
+        assert len(train_dates) == 80
+        assert len(test_dates) == 20
 
     def test_date_column_train_only(self, ts_data_with_date_col):
         """Test that date column works when only training data is available (no evaluate)."""

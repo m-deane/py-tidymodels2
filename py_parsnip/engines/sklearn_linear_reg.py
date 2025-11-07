@@ -30,6 +30,7 @@ class SklearnLinearEngine(Engine):
     param_map = {
         "penalty": "alpha",
         "mixture": "l1_ratio",
+        "intercept": "fit_intercept",
     }
 
     def fit(
@@ -69,23 +70,36 @@ class SklearnLinearEngine(Engine):
         args = spec.args
         penalty = args.get("penalty")
         mixture = args.get("mixture")
+        intercept = args.get("intercept", True)  # Default to True
+
+        # Handle intercept: Remove Intercept column from X if intercept=False
+        # (patsy adds Intercept column by default, but sklearn will handle it via fit_intercept)
+        has_intercept_col = False
+        if isinstance(X, pd.DataFrame) and "Intercept" in X.columns:
+            has_intercept_col = True
+            if not intercept:
+                # Remove Intercept column when intercept=False
+                X = X.drop(columns=["Intercept"])
+            else:
+                # Remove Intercept column when intercept=True (sklearn will add it internally)
+                X = X.drop(columns=["Intercept"])
 
         if penalty is None or penalty == 0:
             # No regularization - use LinearRegression
             model_class = LinearRegression
-            model_args = {}
+            model_args = {"fit_intercept": intercept}
         elif mixture is None or mixture == 0.0:
             # Pure L2 penalty - use Ridge
             model_class = Ridge
-            model_args = {"alpha": penalty}
+            model_args = {"alpha": penalty, "fit_intercept": intercept}
         elif mixture == 1.0:
             # Pure L1 penalty - use Lasso
             model_class = Lasso
-            model_args = {"alpha": penalty}
+            model_args = {"alpha": penalty, "fit_intercept": intercept}
         else:
             # Mix of L1 and L2 - use ElasticNet
             model_class = ElasticNet
-            model_args = {"alpha": penalty, "l1_ratio": mixture}
+            model_args = {"alpha": penalty, "l1_ratio": mixture, "fit_intercept": intercept}
 
         # Create and fit model
         model = model_class(**model_args)
@@ -93,7 +107,8 @@ class SklearnLinearEngine(Engine):
 
         # Calculate fitted values and residuals
         fitted = model.predict(X)
-        residuals = y.values if isinstance(y, pd.Series) else y - fitted
+        y_array = y.values if isinstance(y, pd.Series) else y
+        residuals = y_array - fitted
 
         # Check if there's a date column in outcomes
         date_col = None
@@ -143,6 +158,10 @@ class SklearnLinearEngine(Engine):
         model = fit.fit_data["model"]
         X = molded.predictors
 
+        # Remove Intercept column if present (patsy adds it, but sklearn handles it internally)
+        if isinstance(X, pd.DataFrame) and "Intercept" in X.columns:
+            X = X.drop(columns=["Intercept"])
+
         # Make predictions
         predictions = model.predict(X)
 
@@ -189,9 +208,10 @@ class SklearnLinearEngine(Engine):
             "mda": mda,
         }
 
-    def _calculate_residual_diagnostics(self, residuals: np.ndarray) -> Dict[str, float]:
+    def _calculate_residual_diagnostics(self, residuals: np.ndarray, X: Optional[np.ndarray] = None) -> Dict[str, float]:
         """Calculate residual diagnostic statistics"""
         from scipy import stats as scipy_stats
+        import statsmodels.stats.diagnostic as sm_diag
 
         results = {}
         n = len(residuals)
@@ -213,13 +233,40 @@ class SklearnLinearEngine(Engine):
             results["shapiro_wilk_stat"] = np.nan
             results["shapiro_wilk_p"] = np.nan
 
-        # Ljung-Box test would require statsmodels
-        results["ljung_box_stat"] = np.nan
-        results["ljung_box_p"] = np.nan
+        # Ljung-Box test for autocorrelation (using statsmodels)
+        try:
+            # Ensure we have enough lags (at least 1, max 10 or n//5)
+            n_lags = max(1, min(10, n // 5))
+            lb_result = sm_diag.acorr_ljungbox(residuals, lags=n_lags)
+            # Returns DataFrame with columns 'lb_stat' and 'lb_pvalue'
+            results["ljung_box_stat"] = lb_result['lb_stat'].iloc[-1]  # Last lag statistic
+            results["ljung_box_p"] = lb_result['lb_pvalue'].iloc[-1]  # Last lag p-value
+        except Exception as e:
+            # Not enough data or other issue
+            results["ljung_box_stat"] = np.nan
+            results["ljung_box_p"] = np.nan
 
-        # Breusch-Pagan test would require statsmodels
-        results["breusch_pagan_stat"] = np.nan
-        results["breusch_pagan_p"] = np.nan
+        # Breusch-Pagan test for heteroskedasticity
+        try:
+            # Requires exogenous variables (X matrix) with at least 2 columns (including constant)
+            if X is not None and len(X) == len(residuals):
+                # B-P test requires a constant column - add it if not present
+                if X.shape[1] >= 1:
+                    # Add constant column
+                    X_with_const = np.column_stack([np.ones(len(X)), X])
+                    bp_result = sm_diag.het_breuschpagan(residuals, X_with_const)
+                    results["breusch_pagan_stat"] = bp_result[0]  # LM statistic
+                    results["breusch_pagan_p"] = bp_result[1]  # p-value
+                else:
+                    results["breusch_pagan_stat"] = np.nan
+                    results["breusch_pagan_p"] = np.nan
+            else:
+                results["breusch_pagan_stat"] = np.nan
+                results["breusch_pagan_p"] = np.nan
+        except Exception as e:
+            # Not enough data or other issue
+            results["breusch_pagan_stat"] = np.nan
+            results["breusch_pagan_p"] = np.nan
 
         return results
 
@@ -361,8 +408,20 @@ class SklearnLinearEngine(Engine):
         # ====================
         # 2. COEFFICIENTS DataFrame
         # ====================
+        # Get coefficient names from blueprint (excludes Intercept which patsy added)
         coef_names = list(fit.blueprint.column_order)
+
+        # Remove "Intercept" from coef_names if present (patsy added it, but we removed it)
+        if "Intercept" in coef_names:
+            coef_names = [name for name in coef_names if name != "Intercept"]
+
         coef_values = model.coef_ if hasattr(model, "coef_") else []
+
+        # Add intercept if the model has one (fit_intercept=True)
+        has_intercept = hasattr(model, "fit_intercept") and model.fit_intercept
+        if has_intercept and hasattr(model, "intercept_"):
+            coef_names = ["Intercept"] + coef_names
+            coef_values = np.concatenate([[model.intercept_], coef_values])
 
         # Calculate standard errors, t-stats, p-values, CI using OLS formula
         X_train = fit.fit_data.get("X_train")
@@ -376,16 +435,25 @@ class SklearnLinearEngine(Engine):
         ci_upper = [np.nan] * len(coef_names)
         vifs = [np.nan] * len(coef_names)
 
-        # Only calculate if we have OLS model (no regularization)
+        # Calculate number of parameters (features + intercept if present)
+        n_params = len(coef_names)
+
+        # Only calculate if we have OLS model (no regularization) and enough observations
         if (fit.fit_data.get("model_class") == "LinearRegression" and
-            X_train is not None and residuals is not None and n_obs > n_features):
+            X_train is not None and residuals is not None and n_obs > n_params):
 
             # Calculate MSE
-            mse = np.sum(residuals ** 2) / (n_obs - n_features)
+            mse = np.sum(residuals ** 2) / (n_obs - n_params)
 
             # Calculate standard errors
             try:
-                XtX_inv = np.linalg.inv(X_train.T @ X_train)
+                # Add intercept column if model has intercept
+                if has_intercept:
+                    X_with_intercept = np.column_stack([np.ones(X_train.shape[0]), X_train])
+                else:
+                    X_with_intercept = X_train.values if isinstance(X_train, pd.DataFrame) else X_train
+
+                XtX_inv = np.linalg.inv(X_with_intercept.T @ X_with_intercept)
                 var_coef = mse * np.diag(XtX_inv)
                 std_errors = np.sqrt(var_coef)
 
@@ -393,7 +461,7 @@ class SklearnLinearEngine(Engine):
                 t_stats = coef_values / std_errors
 
                 # Calculate p-values (two-tailed)
-                df = n_obs - n_features
+                df = n_obs - n_params
                 p_values = 2 * (1 - scipy_stats.t.cdf(np.abs(t_stats), df))
 
                 # Calculate 95% confidence intervals
@@ -404,9 +472,10 @@ class SklearnLinearEngine(Engine):
                 # Calculate VIF for each predictor (skip intercept if present)
                 for i, col_name in enumerate(coef_names):
                     if col_name != "Intercept" and X_train.shape[1] > 1:
-                        # VIF calculation
-                        X_i = X_train.iloc[:, i:i+1]
-                        X_not_i = X_train.drop(X_train.columns[i], axis=1)
+                        # VIF calculation (use original X_train without intercept)
+                        idx = i - 1 if has_intercept else i  # Adjust index if intercept present
+                        X_i = X_train.iloc[:, idx:idx+1]
+                        X_not_i = X_train.drop(X_train.columns[idx], axis=1)
 
                         if X_not_i.shape[1] > 0:
                             from sklearn.linear_model import LinearRegression as LR
@@ -477,7 +546,13 @@ class SklearnLinearEngine(Engine):
 
         # Residual diagnostics (on training data)
         if residuals is not None and len(residuals) > 0:
-            resid_diag = self._calculate_residual_diagnostics(residuals)
+            # Get X_train for Breusch-Pagan test
+            X_train_for_diag = fit.fit_data.get("X_train")
+            if X_train_for_diag is not None:
+                # Convert to numpy array if DataFrame
+                if isinstance(X_train_for_diag, pd.DataFrame):
+                    X_train_for_diag = X_train_for_diag.values
+            resid_diag = self._calculate_residual_diagnostics(residuals, X_train_for_diag)
             for metric_name, value in resid_diag.items():
                 stats_rows.append({
                     "metric": metric_name,
@@ -492,6 +567,31 @@ class SklearnLinearEngine(Engine):
             {"metric": "model_class", "value": fit.fit_data.get("model_class", ""), "split": ""},
             {"metric": "n_obs_train", "value": n_obs, "split": "train"},
         ])
+
+        # Add training date range
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 

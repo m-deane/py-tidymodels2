@@ -18,6 +18,9 @@ Prophet parameters:
 - seasonality_mode: How components combine ('additive' or 'multiplicative')
 - n_changepoints: Number of potential changepoints
 - changepoint_range: Proportion of history for changepoints
+- seasonality_yearly: Toggle yearly seasonality ('auto', True, False)
+- seasonality_weekly: Toggle weekly seasonality ('auto', True, False)
+- seasonality_daily: Toggle daily seasonality ('auto', True, False)
 
 XGBoost parameters:
 - trees: Number of boosting iterations (n_estimators)
@@ -29,7 +32,7 @@ XGBoost parameters:
 - mtry: Feature sampling ratio (colsample_bytree)
 """
 
-from typing import Literal
+from typing import Literal, Union
 from py_parsnip.model_spec import ModelSpec
 
 
@@ -41,6 +44,9 @@ def prophet_boost(
     seasonality_mode: Literal["additive", "multiplicative"] = "additive",
     n_changepoints: int = 25,
     changepoint_range: float = 0.8,
+    seasonality_yearly: Union[Literal["auto"], bool] = "auto",
+    seasonality_weekly: Union[Literal["auto"], bool] = "auto",
+    seasonality_daily: Union[Literal["auto"], bool] = "auto",
     # XGBoost parameters
     trees: int = 100,
     tree_depth: int = 6,
@@ -74,6 +80,18 @@ def prophet_boost(
             - 'multiplicative': y = trend * (1 + seasonality) + error
         n_changepoints: Number of potential changepoints (default 25)
         changepoint_range: Proportion of history for changepoints (default 0.8)
+        seasonality_yearly: Toggles yearly seasonality component
+            - 'auto': Prophet decides based on data (default)
+            - True: Force yearly seasonality on
+            - False: Turn yearly seasonality off (let XGBoost capture it)
+        seasonality_weekly: Toggles weekly seasonality component
+            - 'auto': Prophet decides based on data (default)
+            - True: Force weekly seasonality on
+            - False: Turn weekly seasonality off (let XGBoost capture it)
+        seasonality_daily: Toggles daily seasonality component
+            - 'auto': Prophet decides based on data (default)
+            - True: Force daily seasonality on
+            - False: Turn daily seasonality off (let XGBoost capture it)
         trees: Number of boosting trees (default 100)
         tree_depth: Maximum tree depth (default 6)
         learn_rate: XGBoost learning rate (default 0.1)
@@ -109,12 +127,31 @@ def prophet_boost(
         ...     learn_rate=0.01
         ... )
 
+        >>> # Let XGBoost capture ALL seasonality (Prophet handles only trend)
+        >>> spec = prophet_boost(
+        ...     seasonality_yearly=False,
+        ...     seasonality_weekly=False,
+        ...     seasonality_daily=False,
+        ...     trees=200,
+        ...     tree_depth=6
+        ... )
+
+        >>> # Let XGBoost capture yearly seasonality only
+        >>> spec = prophet_boost(
+        ...     seasonality_yearly=False,
+        ...     trees=150
+        ... )
+
     Note:
         The hybrid approach is particularly effective when:
         - Data has strong seasonality but also non-linear patterns
         - Prophet alone leaves structured residuals
         - You want to capture complex interactions
         - Data has both trend/seasonal and non-linear components
+
+        Turning off Prophet's seasonality components (setting to False) allows
+        XGBoost to capture those patterns instead, which can be beneficial when
+        seasonality is non-linear or interacts with other features.
     """
     args = {
         # Prophet parameters
@@ -124,6 +161,9 @@ def prophet_boost(
         "seasonality_mode": seasonality_mode,
         "n_changepoints": n_changepoints,
         "changepoint_range": changepoint_range,
+        "yearly_seasonality": seasonality_yearly,
+        "weekly_seasonality": seasonality_weekly,
+        "daily_seasonality": seasonality_daily,
         # XGBoost parameters
         "trees": trees,
         "tree_depth": tree_depth,

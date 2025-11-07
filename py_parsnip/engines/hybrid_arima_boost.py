@@ -457,20 +457,59 @@ class HybridARIMABoostEngine(Engine):
             test_data = fit.evaluation_data["test_data"]
             test_preds = fit.evaluation_data["test_predictions"]
             outcome_col = fit.evaluation_data["outcome_col"]
+            date_col = fit.fit_data["date_col"]
+            exog_vars = fit.fit_data.get("exog_vars", [])
 
             test_actuals = test_data[outcome_col].values
             test_predictions = test_preds[".pred"].values
             test_residuals = test_actuals - test_predictions
 
-            # Try to get dates from test data
+            # Get test dates
             test_dates = None
-            if dates is not None:
+            if date_col == '__index__':
+                test_dates = test_data.index.values
+            elif date_col and date_col in test_data.columns:
+                test_dates = test_data[date_col].values
+            else:
+                # Try to find any datetime column
                 for col in test_data.columns:
                     if pd.api.types.is_datetime64_any_dtype(test_data[col]):
                         test_dates = test_data[col].values
                         break
             if test_dates is None:
                 test_dates = np.arange(len(test_actuals))
+
+            # Calculate component predictions for test data
+            test_arima_fitted = None
+            test_xgb_fitted = None
+
+            try:
+                n_periods = len(test_data)
+
+                # Get ARIMA component for test data
+                if exog_vars:
+                    missing = [v for v in exog_vars if v not in test_data.columns]
+                    if not missing:
+                        exog_test = test_data[exog_vars]
+                        arima_forecast = arima_model.forecast(steps=n_periods, exog=exog_test)
+                        test_arima_fitted = arima_forecast.values
+                else:
+                    arima_forecast = arima_model.forecast(steps=n_periods)
+                    test_arima_fitted = arima_forecast.values
+
+                # Get XGBoost component for test data
+                if exog_vars and not missing:
+                    X_boost_test = exog_test.values
+                else:
+                    # Use time index
+                    last_train_idx = fit.fit_data["n_obs"]
+                    X_boost_test = np.arange(last_train_idx, last_train_idx + n_periods).reshape(-1, 1)
+
+                test_xgb_fitted = xgb_model.predict(X_boost_test)
+
+            except Exception:
+                # If component calculation fails, leave as None
+                pass
 
             forecast_test = pd.Series(test_actuals).combine_first(
                 pd.Series(test_predictions)
@@ -480,6 +519,8 @@ class HybridARIMABoostEngine(Engine):
                 {
                     "date": test_dates,
                     "actuals": test_actuals,
+                    "arima_fitted": test_arima_fitted if test_arima_fitted is not None else np.nan,
+                    "xgb_fitted": test_xgb_fitted if test_xgb_fitted is not None else np.nan,
                     "fitted": test_predictions,
                     "forecast": forecast_test,
                     "residuals": test_residuals,
