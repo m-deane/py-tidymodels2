@@ -1,5 +1,6 @@
 """Recipe steps for py-recipes"""
 
+from py_recipes.steps.remove import StepRm, StepSelect
 from py_recipes.steps.normalize import StepNormalize, PreparedStepNormalize
 from py_recipes.steps.dummy import StepDummy, PreparedStepDummy
 from py_recipes.steps.impute import (
@@ -30,6 +31,8 @@ from py_recipes.steps.timeseries import (
 from py_recipes.steps.feature_selection import (
     StepPCA,
     PreparedStepPCA,
+    StepCorr,
+    PreparedStepCorr,
     StepSelectCorr,
     PreparedStepSelectCorr,
 )
@@ -60,6 +63,13 @@ from py_recipes.steps.filters import (
     PreparedStepLinComb,
     StepFilterMissing,
     PreparedStepFilterMissing,
+)
+from py_recipes.steps.filter_supervised import (
+    StepFilterAnova,
+    StepFilterRfImportance,
+    StepFilterMutualInfo,
+    StepFilterRocAuc,
+    StepFilterChisq,
 )
 from py_recipes.steps.naomit import (
     StepNaOmit,
@@ -133,6 +143,9 @@ from py_recipes.steps.financial_oscillators import (
 )
 
 __all__ = [
+    # Column selection steps
+    "StepRm",
+    "StepSelect",
     # Basic steps
     "StepNormalize",
     "PreparedStepNormalize",
@@ -165,6 +178,8 @@ __all__ = [
     # Feature selection steps
     "StepPCA",
     "PreparedStepPCA",
+    "StepCorr",
+    "PreparedStepCorr",
     "StepSelectCorr",
     "PreparedStepSelectCorr",
     # Transformation steps
@@ -194,6 +209,12 @@ __all__ = [
     "PreparedStepFilterMissing",
     "StepNaOmit",
     "PreparedStepNaOmit",
+    # Supervised filter steps
+    "StepFilterAnova",
+    "StepFilterRfImportance",
+    "StepFilterMutualInfo",
+    "StepFilterRocAuc",
+    "StepFilterChisq",
     # Extended categorical steps
     "StepOther",
     "PreparedStepOther",

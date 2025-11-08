@@ -570,6 +570,31 @@ class TestCustomDataStrategy:
 
         np.testing.assert_allclose(predictions['.pred'].values, expected, rtol=1e-5)
 
+    def test_custom_data_predictions_sum(self, overlapping_data):
+        """Test predictions with sum blend"""
+        spec = hybrid_model(
+            model1=linear_reg(),
+            model2=linear_reg(),
+            strategy='custom_data',
+            blend_predictions='sum'
+        )
+
+        data_dict = {
+            'model1': overlapping_data['model1'],
+            'model2': overlapping_data['model2']
+        }
+        fit = spec.fit(data_dict, 'y ~ x')
+
+        test_data = pd.DataFrame({'x': range(150, 160)})
+        predictions = fit.predict(test_data)
+
+        # Verify sum blend
+        pred1 = fit.fit_data['model1_fit'].predict(test_data)['.pred'].values
+        pred2 = fit.fit_data['model2_fit'].predict(test_data)['.pred'].values
+        expected = pred1 + pred2
+
+        np.testing.assert_allclose(predictions['.pred'].values, expected, rtol=1e-5)
+
     def test_custom_data_predictions_model1_only(self, overlapping_data):
         """Test predictions with model1 only"""
         spec = hybrid_model(

@@ -5,9 +5,11 @@ Provides mean, median, mode, KNN, and linear interpolation imputation.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union, Callable
 import pandas as pd
 import numpy as np
+
+from py_recipes.selectors import resolve_selector, where
 
 
 @dataclass
@@ -18,10 +20,10 @@ class StepImputeMean:
     Replaces NA values in numeric columns with the training mean.
 
     Attributes:
-        columns: Columns to impute (None = all numeric with NA)
+        columns: Columns to impute (None = all numeric with NA, or use selector)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepImputeMean":
         """
@@ -36,11 +38,12 @@ class StepImputeMean:
         """
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select numeric columns with NA
-            numeric_cols = data.select_dtypes(include=[np.number]).columns
-            cols = [col for col in numeric_cols if data[col].isna().any()]
+            # Auto-select numeric columns with missing values
+            selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         # Calculate means
         means = {}
@@ -89,10 +92,10 @@ class StepImputeMedian:
     Replaces NA values in numeric columns with the training median.
 
     Attributes:
-        columns: Columns to impute (None = all numeric with NA)
+        columns: Columns to impute (None = all numeric with NA, or use selector)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepImputeMedian":
         """
@@ -107,11 +110,12 @@ class StepImputeMedian:
         """
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select numeric columns with NA
-            numeric_cols = data.select_dtypes(include=[np.number]).columns
-            cols = [col for col in numeric_cols if data[col].isna().any()]
+            # Auto-select numeric columns with missing values
+            selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         # Calculate medians
         medians = {}
@@ -161,10 +165,10 @@ class StepImputeMode:
     Works for both numeric and categorical columns.
 
     Attributes:
-        columns: Columns to impute (None = all columns with NA)
+        columns: Columns to impute (None = all columns with NA, or use selector)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepImputeMode":
         """
@@ -179,10 +183,12 @@ class StepImputeMode:
         """
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select columns with NA
-            cols = [col for col in data.columns if data[col].isna().any()]
+            # Auto-select all columns with missing values
+            selector = where(lambda s: s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         # Calculate modes
         modes = {}
@@ -236,12 +242,12 @@ class StepImputeKnn:
     Useful when missing values have patterns related to other features.
 
     Attributes:
-        columns: Columns to impute (None = all numeric with NA)
+        columns: Columns to impute (None = all numeric with NA, or use selector)
         neighbors: Number of neighbors to use (default: 5)
         weights: Weight function ('uniform' or 'distance')
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     neighbors: int = 5
     weights: str = "uniform"
 
@@ -260,11 +266,12 @@ class StepImputeKnn:
 
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select numeric columns with NA
-            numeric_cols = data.select_dtypes(include=[np.number]).columns
-            cols = [col for col in numeric_cols if data[col].isna().any()]
+            # Auto-select numeric columns with missing values
+            selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         if len(cols) == 0:
             return PreparedStepImputeKnn(
@@ -339,12 +346,12 @@ class StepImputeLinear:
     Particularly useful for time series data.
 
     Attributes:
-        columns: Columns to impute (None = all numeric with NA)
+        columns: Columns to impute (None = all numeric with NA, or use selector)
         limit: Maximum number of consecutive NAs to fill (None = no limit)
         limit_direction: Direction to fill ('forward', 'backward', or 'both')
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     limit: Optional[int] = None
     limit_direction: str = "both"
 
@@ -361,11 +368,12 @@ class StepImputeLinear:
         """
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select numeric columns with NA
-            numeric_cols = data.select_dtypes(include=[np.number]).columns
-            cols = [col for col in numeric_cols if data[col].isna().any()]
+            # Auto-select numeric columns with missing values
+            selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         return PreparedStepImputeLinear(
             columns=cols,
@@ -422,13 +430,13 @@ class StepImputeBag:
     the outcome and other variables are predictors.
 
     Attributes:
-        columns: Columns to impute (None = all columns with NA)
+        columns: Columns to impute (None = all columns with NA, or use selector)
         impute_with: Columns to use as predictors (None = all other columns)
         trees: Number of bagged trees to use (default: 25)
         seed_val: Random seed for reproducibility
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     impute_with: Optional[List[str]] = None
     trees: int = 25
     seed_val: int = None
@@ -452,10 +460,12 @@ class StepImputeBag:
 
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select columns with NA
-            cols = [col for col in data.columns if data[col].isna().any()]
+            # Auto-select all columns with missing values
+            selector = where(lambda s: s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         if len(cols) == 0:
             return PreparedStepImputeBag(
@@ -603,12 +613,12 @@ class StepImputeRoll:
     (e.g. median) within a moving window. Particularly useful for time series data.
 
     Attributes:
-        columns: Columns to impute (None = all numeric with NA)
+        columns: Columns to impute (None = all numeric with NA, or use selector)
         window: Size of rolling window (must be odd integer >= 3, default: 5)
         statistic: Function to compute imputed value (default: np.nanmedian)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     window: int = 5
     statistic: Any = None
 
@@ -635,11 +645,12 @@ class StepImputeRoll:
         """
         # Determine columns to impute
         if self.columns is None:
-            # Auto-select numeric columns with NA
-            numeric_cols = data.select_dtypes(include=[np.number]).columns
-            cols = [col for col in numeric_cols if data[col].isna().any()]
+            # Auto-select numeric columns with missing values
+            selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
         else:
-            cols = self.columns
+            selector = self.columns
+
+        cols = resolve_selector(selector, data)
 
         return PreparedStepImputeRoll(
             columns=cols,

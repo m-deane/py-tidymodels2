@@ -133,13 +133,14 @@ class ModelSpec:
         if hasattr(engine, "fit_raw"):
             import inspect
 
-            # Check if fit_raw accepts date_col parameter
+            # Check if fit_raw accepts optional parameters
             fit_raw_signature = inspect.signature(engine.fit_raw)
             accepts_date_col = 'date_col' in fit_raw_signature.parameters
+            accepts_original_data = 'original_training_data' in fit_raw_signature.parameters
 
             # Build kwargs for fit_raw
             fit_raw_kwargs = {}
-            if original_training_data is not None:
+            if original_training_data is not None and accepts_original_data:
                 fit_raw_kwargs['original_training_data'] = original_training_data
 
             # Only infer and pass date_col if engine supports it

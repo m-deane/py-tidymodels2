@@ -5,9 +5,11 @@ Provides lag features, differencing, percent changes, and rolling statistics.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Union, Callable
 import pandas as pd
 import numpy as np
+
+from py_recipes.selectors import resolve_selector, all_numeric
 
 
 @dataclass
@@ -18,12 +20,16 @@ class StepLag:
     Creates lagged versions of specified columns to capture temporal patterns.
 
     Attributes:
-        columns: Columns to create lags for
+        columns: Columns to create lags for (selector function, column names, or None for all_numeric())
         lags: List of lag periods (e.g., [1, 2, 7] for 1-day, 2-day, 7-day lags)
     """
 
-    columns: List[str]
-    lags: List[int]
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
+    lags: List[int] = None
+
+    def __post_init__(self):
+        if self.lags is None:
+            self.lags = [1]
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepLag":
         """
@@ -36,11 +42,12 @@ class StepLag:
         Returns:
             PreparedStepLag ready to create lag features
         """
-        # Validate columns exist
-        existing_cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for consistent column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepLag(
-            columns=existing_cols,
+            columns=cols,
             lags=self.lags
         )
 
@@ -88,12 +95,12 @@ class StepDiff:
     time series stationary.
 
     Attributes:
-        columns: Columns to difference
+        columns: Columns to difference (selector function, column names, or None for all_numeric())
         lag: Period for differencing (default 1)
         differences: Number of times to difference (default 1)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     lag: int = 1
     differences: int = 1
 
@@ -108,11 +115,9 @@ class StepDiff:
         Returns:
             PreparedStepDiff ready to difference data
         """
-        if self.columns is None:
-            # Auto-select numeric columns
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for consistent column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepDiff(
             columns=cols,
@@ -168,11 +173,11 @@ class StepPctChange:
     Computes percentage changes between consecutive observations.
 
     Attributes:
-        columns: Columns to compute percent changes for
+        columns: Columns to compute percent changes for (selector function, column names, or None for all_numeric())
         periods: Number of periods for change calculation (default 1)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     periods: int = 1
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepPctChange":
@@ -186,11 +191,9 @@ class StepPctChange:
         Returns:
             PreparedStepPctChange ready to compute percent changes
         """
-        if self.columns is None:
-            # Auto-select numeric columns
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for consistent column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepPctChange(
             columns=cols,
@@ -239,13 +242,13 @@ class StepRolling:
     Computes statistics over rolling windows (mean, std, min, max, sum).
 
     Attributes:
-        columns: Columns to compute rolling stats for
+        columns: Columns to compute rolling stats for (selector function, column names, or None for all_numeric())
         window: Size of rolling window
         stats: Statistics to compute (mean, std, min, max, sum)
     """
 
-    columns: List[str]
-    window: int
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
+    window: int = 1
     stats: List[str] = None
 
     def __post_init__(self):
@@ -263,10 +266,12 @@ class StepRolling:
         Returns:
             PreparedStepRolling ready to compute rolling stats
         """
-        existing_cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for consistent column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepRolling(
-            columns=existing_cols,
+            columns=cols,
             window=self.window,
             stats=self.stats
         )

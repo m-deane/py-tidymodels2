@@ -214,10 +214,25 @@ class Workflow:
                     )
 
                 # Build explicit formula (patsy doesn't support "y ~ ." notation)
-                predictor_cols = [col for col in processed_data.columns if col != outcome_col]
+                # Exclude datetime columns - they should be indices, not predictors
+                predictor_cols = [
+                    col for col in processed_data.columns
+                    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
+                ]
                 if len(predictor_cols) == 0:
                     raise ValueError("No predictor columns found after recipe preprocessing")
-                formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
+
+                # Escape column names that contain Patsy special characters
+                # Special chars: ^ * : + - / ( ) ** [ ] { }
+                import re
+                def escape_column_name(col):
+                    if re.search(r'[\^\*\:\+\-\/\(\)\[\]\{\}]', col):
+                        # Wrap in Q() for Patsy to treat as literal column name
+                        return f'Q("{col}")'
+                    return col
+
+                escaped_cols = [escape_column_name(col) for col in predictor_cols]
+                formula = f"{outcome_col} ~ {' + '.join(escaped_cols)}"
                 fitted_preprocessor = prepared_recipe
             else:
                 raise ValueError(f"Unknown preprocessor type: {type(self.preprocessor)}")

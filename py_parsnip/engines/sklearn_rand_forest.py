@@ -393,6 +393,44 @@ class SklearnRandForestEngine(Engine):
 
         outputs = pd.concat(outputs_list, ignore_index=True) if outputs_list else pd.DataFrame()
 
+        # Try to add date column if original data has datetime columns
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            # Check if we have original data with datetime
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                # Extract date values for training data
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+
+                # Handle test data if present
+                if fit.evaluation_data and 'original_test_data' in fit.evaluation_data:
+                    test_data_orig = fit.evaluation_data['original_test_data']
+                    if date_col == '__index__':
+                        test_dates = test_data_orig.index.values
+                    else:
+                        test_dates = test_data_orig[date_col].values
+
+                    # Combine train and test dates
+                    all_dates = np.concatenate([train_dates, test_dates])
+                else:
+                    all_dates = train_dates
+
+                # Insert date column at position 0
+                outputs.insert(0, 'date', all_dates)
+
+        except (ValueError, ImportError):
+            # No datetime columns or error - skip date column (backward compat)
+            pass
+
         # ====================
         # 2. COEFFICIENTS DataFrame (Feature Importances for Random Forest)
         # ====================

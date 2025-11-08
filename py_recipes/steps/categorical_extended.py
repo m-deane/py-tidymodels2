@@ -6,9 +6,10 @@ missing indicators, and integer encoding.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union, Callable
 import pandas as pd
 import numpy as np
+from py_recipes.selectors import resolve_selector, all_nominal
 
 
 @dataclass
@@ -20,12 +21,12 @@ class StepOther:
     into a single "other" category, reducing dimensionality.
 
     Attributes:
-        columns: Categorical columns to process (None = all categorical)
+        columns: Column selector (None = all categorical, can be list, string, or callable)
         threshold: Minimum frequency to keep level (default: 0.05)
         other_label: Label for pooled category (default: "other")
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     threshold: float = 0.05
     other_label: str = "other"
 
@@ -40,10 +41,8 @@ class StepOther:
         Returns:
             PreparedStepOther with level mappings
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_nominal()
+        cols = resolve_selector(selector, data)
 
         # Track levels to keep for each column
         levels_to_keep = {}
@@ -112,11 +111,11 @@ class StepNovel:
     preventing errors when encoding test data.
 
     Attributes:
-        columns: Categorical columns to process (None = all categorical)
+        columns: Column selector (None = all categorical, can be list, string, or callable)
         novel_label: Label for novel levels (default: "new")
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     novel_label: str = "new"
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepNovel":
@@ -130,10 +129,8 @@ class StepNovel:
         Returns:
             PreparedStepNovel with known levels
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_nominal()
+        cols = resolve_selector(selector, data)
 
         # Record all levels seen in training
         training_levels = {}
@@ -187,75 +184,6 @@ class PreparedStepNovel:
 
 
 @dataclass
-class StepIndicateNa:
-    """
-    Create indicator columns for missing values.
-
-    Adds binary indicator columns showing where missing values occurred,
-    preserving information about missingness patterns.
-
-    Attributes:
-        columns: Columns to create indicators for (None = all with NA)
-        prefix: Prefix for indicator columns (default: "na_ind")
-    """
-
-    columns: Optional[List[str]] = None
-    prefix: str = "na_ind"
-
-    def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepIndicateNa":
-        """
-        Identify columns with missing values.
-
-        Args:
-            data: Training data
-            training: Whether this is training data
-
-        Returns:
-            PreparedStepIndicateNa ready to create indicators
-        """
-        if self.columns is None:
-            # Find columns with any missing values
-            cols = [col for col in data.columns if data[col].isna().any()]
-        else:
-            cols = [col for col in self.columns if col in data.columns and data[col].isna().any()]
-
-        return PreparedStepIndicateNa(columns=cols, prefix=self.prefix)
-
-
-@dataclass
-class PreparedStepIndicateNa:
-    """
-    Fitted missing indicator step.
-
-    Attributes:
-        columns: Columns to create indicators for
-        prefix: Prefix for indicator columns
-    """
-
-    columns: List[str]
-    prefix: str
-
-    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Create missing value indicator columns.
-
-        Args:
-            data: Data to transform
-
-        Returns:
-            DataFrame with indicator columns added
-        """
-        result = data.copy()
-
-        for col in self.columns:
-            if col in result.columns:
-                indicator_name = f"{self.prefix}_{col}"
-                result[indicator_name] = result[col].isna().astype(int)
-
-        return result
-
-
-@dataclass
 class StepUnknown:
     """
     Assign missing categorical values to "unknown" level.
@@ -265,11 +193,11 @@ class StepUnknown:
     Essential preprocessing for categorical variables with missingness.
 
     Attributes:
-        columns: Categorical columns to process (None = all categorical)
+        columns: Column selector (None = all categorical, can be list, string, or callable)
         unknown_label: Label for missing values (default: "_unknown_")
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     unknown_label: str = "_unknown_"
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepUnknown":
@@ -283,11 +211,8 @@ class StepUnknown:
         Returns:
             PreparedStepUnknown ready to handle missing values
         """
-        if self.columns is None:
-            # Auto-detect categorical columns
-            cols = data.select_dtypes(include=['object', 'category']).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_nominal()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepUnknown(
             columns=cols,
@@ -324,6 +249,78 @@ class PreparedStepUnknown:
             if col in result.columns:
                 # Replace NA with unknown_label
                 result[col] = result[col].fillna(self.unknown_label)
+
+        return result
+
+
+@dataclass
+class StepIndicateNa:
+    """
+    Create indicator columns for missing values.
+
+    Adds binary indicator columns showing where missing values occurred,
+    preserving information about missingness patterns.
+
+    Attributes:
+        columns: Column selector (None = all with NA, can be list, string, or callable)
+        prefix: Prefix for indicator columns (default: "na_ind")
+    """
+
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
+    prefix: str = "na_ind"
+
+    def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepIndicateNa":
+        """
+        Identify columns with missing values.
+
+        Args:
+            data: Training data
+            training: Whether this is training data
+
+        Returns:
+            PreparedStepIndicateNa ready to create indicators
+        """
+        if self.columns is None:
+            # Find columns with any missing values
+            cols = [col for col in data.columns if data[col].isna().any()]
+        else:
+            selector = self.columns
+            cols = resolve_selector(selector, data)
+            # Filter to only columns with missing values
+            cols = [col for col in cols if data[col].isna().any()]
+
+        return PreparedStepIndicateNa(columns=cols, prefix=self.prefix)
+
+
+@dataclass
+class PreparedStepIndicateNa:
+    """
+    Fitted missing indicator step.
+
+    Attributes:
+        columns: Columns to create indicators for
+        prefix: Prefix for indicator columns
+    """
+
+    columns: List[str]
+    prefix: str
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Create missing value indicator columns.
+
+        Args:
+            data: Data to transform
+
+        Returns:
+            DataFrame with indicator columns added
+        """
+        result = data.copy()
+
+        for col in self.columns:
+            if col in result.columns:
+                indicator_name = f"{self.prefix}_{col}"
+                result[indicator_name] = result[col].isna().astype(int)
 
         return result
 

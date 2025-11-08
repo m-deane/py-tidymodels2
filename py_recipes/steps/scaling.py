@@ -5,9 +5,10 @@ Provides center, scale, and range transformations.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Callable
 import pandas as pd
 import numpy as np
+from py_recipes.selectors import resolve_selector, all_numeric
 
 
 @dataclass
@@ -17,9 +18,10 @@ class StepCenter:
 
     Attributes:
         columns: Columns to center (None = all numeric)
+                 Can be: None, list of strings, selector function, or "all"
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepCenter":
         """
@@ -35,10 +37,9 @@ class StepCenter:
         Returns:
             PreparedStepCenter with fitted means
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Exclude datetime columns from centering
         # Datetime columns should be processed by step_date() or similar instead
@@ -91,9 +92,10 @@ class StepScale:
 
     Attributes:
         columns: Columns to scale (None = all numeric)
+                 Can be: None, list of strings, selector function, or "all"
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepScale":
         """
@@ -109,10 +111,9 @@ class StepScale:
         Returns:
             PreparedStepScale with fitted standard deviations
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Exclude datetime columns from scaling
         # Datetime columns should be processed by step_date() or similar instead
@@ -165,11 +166,12 @@ class StepRange:
 
     Attributes:
         columns: Columns to scale (None = all numeric)
+                 Can be: None, list of strings, selector function, or "all"
         min_val: Minimum value of scaled range (default: 0)
         max_val: Maximum value of scaled range (default: 1)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     min_val: float = 0.0
     max_val: float = 1.0
 
@@ -187,10 +189,9 @@ class StepRange:
         Returns:
             PreparedStepRange with fitted ranges
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Use resolve_selector for column selection
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Exclude datetime columns from range scaling
         # Datetime columns should be processed by step_date() or similar instead

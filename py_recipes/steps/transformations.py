@@ -5,9 +5,10 @@ Provides log, sqrt, Box-Cox, and Yeo-Johnson transformations.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union, Callable
 import pandas as pd
 import numpy as np
+from ..selectors import resolve_selector, all_numeric
 
 
 @dataclass
@@ -18,16 +19,19 @@ class StepLog:
     Computes log(x + offset) to handle zeros and negatives.
 
     Attributes:
-        columns: Columns to transform (None = all numeric)
+        columns: Column selector (None = all numeric, str = single column,
+                 List[str] = column list, Callable = selector function)
         base: Logarithm base (default: natural log)
         offset: Value added before transformation (default: 0)
         signed: If True, preserves sign (default: False)
+        inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     base: float = np.e
     offset: float = 0.0
     signed: bool = False
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepLog":
         """
@@ -40,16 +44,33 @@ class StepLog:
         Returns:
             PreparedStepLog ready to transform data
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
+
+        # Calculate safe offset if data has negative values and offset is provided
+        safe_offset = self.offset
+        if not self.signed and training:
+            # Check minimum value across all selected columns
+            min_val = min([data[col].min() for col in cols if col in data.columns], default=0)
+            if min_val < 0:
+                # Need offset to make all values positive
+                required_offset = abs(min_val) + 1e-10
+                if self.offset < required_offset:
+                    import warnings
+                    warnings.warn(
+                        f"Log transform: offset={self.offset} is insufficient for negative values "
+                        f"(min={min_val:.4f}). Using offset={required_offset:.4f} instead. "
+                        f"Consider using signed=True for signed log transform.",
+                        UserWarning
+                    )
+                    safe_offset = required_offset
 
         return PreparedStepLog(
             columns=cols,
             base=self.base,
-            offset=self.offset,
-            signed=self.signed
+            offset=safe_offset,
+            signed=self.signed,
+            inplace=self.inplace
         )
 
 
@@ -63,12 +84,14 @@ class PreparedStepLog:
         base: Logarithm base
         offset: Offset value
         signed: Preserve sign
+        inplace: Replace original columns or create new ones
     """
 
     columns: List[str]
     base: float
     offset: float
     signed: bool
+    inplace: bool
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -86,9 +109,14 @@ class PreparedStepLog:
             if col in result.columns:
                 if self.signed:
                     # Preserve sign: sign(x) * log(abs(x) + offset)
-                    result[col] = np.sign(result[col]) * np.log(np.abs(result[col]) + self.offset) / np.log(self.base)
+                    transformed = np.sign(result[col]) * np.log(np.abs(result[col]) + self.offset) / np.log(self.base)
                 else:
-                    result[col] = np.log(result[col] + self.offset) / np.log(self.base)
+                    transformed = np.log(result[col] + self.offset) / np.log(self.base)
+
+                if self.inplace:
+                    result[col] = transformed
+                else:
+                    result[f"{col}_log"] = transformed
 
         return result
 
@@ -101,10 +129,13 @@ class StepSqrt:
     Computes sqrt(x) for non-negative values.
 
     Attributes:
-        columns: Columns to transform (None = all numeric)
+        columns: Column selector (None = all numeric, str = single column,
+                 List[str] = column list, Callable = selector function)
+        inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepSqrt":
         """
@@ -117,12 +148,10 @@ class StepSqrt:
         Returns:
             PreparedStepSqrt ready to transform data
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
-        return PreparedStepSqrt(columns=cols)
+        return PreparedStepSqrt(columns=cols, inplace=self.inplace)
 
 
 @dataclass
@@ -132,9 +161,11 @@ class PreparedStepSqrt:
 
     Attributes:
         columns: Columns to transform
+        inplace: Replace original columns or create new ones
     """
 
     columns: List[str]
+    inplace: bool
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -150,7 +181,12 @@ class PreparedStepSqrt:
 
         for col in self.columns:
             if col in result.columns:
-                result[col] = np.sqrt(result[col])
+                transformed = np.sqrt(result[col])
+
+                if self.inplace:
+                    result[col] = transformed
+                else:
+                    result[f"{col}_sqrt"] = transformed
 
         return result
 
@@ -164,14 +200,17 @@ class StepBoxCox:
     Uses sklearn's PowerTransformer.
 
     Attributes:
-        columns: Columns to transform (None = all numeric)
+        columns: Column selector (None = all numeric, str = single column,
+                 List[str] = column list, Callable = selector function)
         lambdas: Dict of column -> lambda parameter (None = estimate from data)
         limits: Tuple of (lower, upper) limits for lambda search
+        inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     lambdas: Optional[Dict[str, float]] = None
     limits: tuple = (-5, 5)
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepBoxCox":
         """
@@ -186,10 +225,8 @@ class StepBoxCox:
         """
         from sklearn.preprocessing import PowerTransformer
 
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Fit transformers
         transformers = {}
@@ -209,7 +246,8 @@ class StepBoxCox:
         return PreparedStepBoxCox(
             columns=list(transformers.keys()),
             transformers=transformers,
-            lambdas=lambdas_fitted
+            lambdas=lambdas_fitted,
+            inplace=self.inplace
         )
 
 
@@ -222,11 +260,13 @@ class PreparedStepBoxCox:
         columns: Columns to transform
         transformers: Dict of fitted PowerTransformers
         lambdas: Dict of fitted lambda values
+        inplace: Replace original columns or create new ones
     """
 
     columns: List[str]
     transformers: Dict[str, Any]
     lambdas: Dict[str, float]
+    inplace: bool
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -242,7 +282,12 @@ class PreparedStepBoxCox:
 
         for col in self.columns:
             if col in result.columns and col in self.transformers:
-                result[col] = self.transformers[col].transform(result[[col]]).ravel()
+                transformed = self.transformers[col].transform(result[[col]]).ravel()
+
+                if self.inplace:
+                    result[col] = transformed
+                else:
+                    result[f"{col}_boxcox"] = transformed
 
         return result
 
@@ -256,14 +301,17 @@ class StepYeoJohnson:
     Uses sklearn's PowerTransformer.
 
     Attributes:
-        columns: Columns to transform (None = all numeric)
+        columns: Column selector (None = all numeric, str = single column,
+                 List[str] = column list, Callable = selector function)
         lambdas: Dict of column -> lambda parameter (None = estimate from data)
         limits: Tuple of (lower, upper) limits for lambda search
+        inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     lambdas: Optional[Dict[str, float]] = None
     limits: tuple = (-5, 5)
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepYeoJohnson":
         """
@@ -278,10 +326,8 @@ class StepYeoJohnson:
         """
         from sklearn.preprocessing import PowerTransformer
 
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Fit transformers
         transformers = {}
@@ -296,7 +342,8 @@ class StepYeoJohnson:
         return PreparedStepYeoJohnson(
             columns=cols,
             transformers=transformers,
-            lambdas=lambdas_fitted
+            lambdas=lambdas_fitted,
+            inplace=self.inplace
         )
 
 
@@ -309,11 +356,13 @@ class PreparedStepYeoJohnson:
         columns: Columns to transform
         transformers: Dict of fitted PowerTransformers
         lambdas: Dict of fitted lambda values
+        inplace: Replace original columns or create new ones
     """
 
     columns: List[str]
     transformers: Dict[str, Any]
     lambdas: Dict[str, float]
+    inplace: bool
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -329,7 +378,12 @@ class PreparedStepYeoJohnson:
 
         for col in self.columns:
             if col in result.columns:
-                result[col] = self.transformers[col].transform(result[[col]]).ravel()
+                transformed = self.transformers[col].transform(result[[col]]).ravel()
+
+                if self.inplace:
+                    result[col] = transformed
+                else:
+                    result[f"{col}_yeojohnson"] = transformed
 
         return result
 
@@ -343,12 +397,15 @@ class StepInverse:
     modeling relationships where the effect decreases with magnitude.
 
     Attributes:
-        columns: Columns to transform (None = all numeric)
+        columns: Column selector (None = all numeric, str = single column,
+                 List[str] = column list, Callable = selector function)
         offset: Value added before inversion to avoid division by zero (default: 0)
+        inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     offset: float = 0.0
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepInverse":
         """
@@ -361,14 +418,13 @@ class StepInverse:
         Returns:
             PreparedStepInverse ready to transform data
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         return PreparedStepInverse(
             columns=cols,
-            offset=self.offset
+            offset=self.offset,
+            inplace=self.inplace
         )
 
 
@@ -380,10 +436,12 @@ class PreparedStepInverse:
     Attributes:
         columns: Columns to transform
         offset: Offset value
+        inplace: Replace original columns or create new ones
     """
 
     columns: List[str]
     offset: float
+    inplace: bool
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -400,6 +458,11 @@ class PreparedStepInverse:
         for col in self.columns:
             if col in result.columns:
                 # Apply inverse: 1 / (x + offset)
-                result[col] = 1.0 / (result[col] + self.offset)
+                transformed = 1.0 / (result[col] + self.offset)
+
+                if self.inplace:
+                    result[col] = transformed
+                else:
+                    result[f"{col}_inverse"] = transformed
 
         return result

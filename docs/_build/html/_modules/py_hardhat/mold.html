@@ -185,6 +185,17 @@
 <li class="toctree-l3"><a class="reference internal" href="../../user_guide/time_series.html#prophet-forecasting">Prophet Forecasting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../user_guide/time_series.html#arima-with-auto-selection">ARIMA with Auto Selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../user_guide/time_series.html#recursive-ml-forecasting">Recursive ML Forecasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/time_series.html#using-ml-models-for-time-series-regression">Using ML Models for Time Series Regression</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#random-forest-example">Random Forest Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#gradient-boosting-example-xgboost-lightgbm-catboost">Gradient Boosting Example (XGBoost/LightGBM/CatBoost)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#support-vector-machines-example">Support Vector Machines Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#k-nearest-neighbors-example">k-Nearest Neighbors Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#neural-network-mlp-example">Neural Network (MLP) Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#feature-engineering-for-ml-time-series-models">Feature Engineering for ML Time Series Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#understanding-the-three-dataframe-output">Understanding the Three-DataFrame Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../user_guide/time_series.html#comparing-multiple-ml-models">Comparing Multiple ML Models</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../user_guide/time_series.html#panel-grouped-time-series">Panel/Grouped Time Series</a></li>
 </ul>
 </li>
@@ -236,9 +247,112 @@
 <li class="toctree-l2"><a class="reference internal" href="../../user_guide/workflows.html#see-also">See Also</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide/visualization.html">Visualization Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#basic-usage-pattern">Basic Usage Pattern</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#forecast-visualization">Forecast Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/visualization.html#plot-forecast">plot_forecast()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/visualization.html#plot-forecast-multi">plot_forecast_multi()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#residual-diagnostics">Residual Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/visualization.html#plot-residuals">plot_residuals()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#model-comparison">Model Comparison</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/visualization.html#plot-model-comparison">plot_model_comparison()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#hyperparameter-tuning-visualization">Hyperparameter Tuning Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../user_guide/visualization.html#plot-tune-results">plot_tune_results()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#saving-and-exporting-plots">Saving and Exporting Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#advanced-customization">Advanced Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user_guide/visualization.html#examples">Examples</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html">Complete API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#linear-generalized-models">Linear &amp; Generalized Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#linear-reg">linear_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#poisson-reg">poisson_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#gen-additive-mod">gen_additive_mod()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#tree-based-models">Tree-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#decision-tree">decision_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#rand-forest">rand_forest()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#boost-tree">boost_tree()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#support-vector-machines">Support Vector Machines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#svm-rbf">svm_rbf()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#svm-linear">svm_linear()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#instance-based-models">Instance-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#nearest-neighbor">nearest_neighbor()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#mars">mars()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#mlp">mlp()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#time-series-models">Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#arima-reg">arima_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#prophet-reg">prophet_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#exp-smoothing">exp_smoothing()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#seasonal-reg">seasonal_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#recursive-reg">recursive_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#varmax-reg">varmax_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#hybrid-time-series-models">Hybrid Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#arima-boost">arima_boost()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#prophet-boost">prophet_boost()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#generic-hybrid-models">Generic Hybrid Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#hybrid-model">hybrid_model()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#baseline-models">Baseline Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#null-model">null_model()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#naive-reg">naive_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#manual-coefficient-models">Manual Coefficient Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#manual-reg">manual_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#cross-cutting-concepts">Cross-Cutting Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#engine-selection">Engine Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#mode-setting">Mode Setting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#tunable-parameters">Tunable Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#prediction-types">Prediction Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#output-structure">Output Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#formula-syntax">Formula Syntax</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#model-selection-guide">Model Selection Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#computational-complexity">Computational Complexity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#memory-usage">Memory Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#parallelization">Parallelization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../complete_api_reference.html#common-workflows">Common Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#basic-regression">Basic Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#time-series-forecasting">Time Series Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#hyperparameter-tuning">Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../complete_api_reference.html#multi-model-comparison">Multi-Model Comparison</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../api/hardhat.html">py-hardhat: Data Preprocessing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../api/hardhat.html#core-classes">Core Classes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/hardhat.html#py_hardhat.Blueprint"><code class="docutils literal notranslate"><span class="pre">Blueprint</span></code></a><ul>
@@ -541,6 +655,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -616,6 +731,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.union"><code class="docutils literal notranslate"><span class="pre">union()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.difference"><code class="docutils literal notranslate"><span class="pre">difference()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.all_predictors"><code class="docutils literal notranslate"><span class="pre">all_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.all_outcomes"><code class="docutils literal notranslate"><span class="pre">all_outcomes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.all_numeric_predictors"><code class="docutils literal notranslate"><span class="pre">all_numeric_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.all_nominal_predictors"><code class="docutils literal notranslate"><span class="pre">all_nominal_predictors()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.has_role"><code class="docutils literal notranslate"><span class="pre">has_role()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/recipes.html#py_recipes.selectors.resolve_selector"><code class="docutils literal notranslate"><span class="pre">resolve_selector()</span></code></a></li>
 </ul>
@@ -1092,9 +1211,53 @@
 <span class="sd">        ValueError: If formula is invalid or references missing columns</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># Expand &#39;.&#39; wildcard in formula if present</span>
+    <span class="c1"># Early validation: Check if formula references columns with spaces</span>
+    <span class="c1"># This catches cases where outcome column has spaces before patsy parsing</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+    <span class="c1"># Extract potential column names from raw formula (before expansion)</span>
+    <span class="c1"># Look for multi-word tokens that might be column names</span>
+    <span class="n">raw_tokens</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[\w\s]+&#39;</span><span class="p">,</span> <span class="n">formula</span><span class="p">)</span>
+    <span class="n">raw_cols_with_spaces</span> <span class="o">=</span> <span class="p">[</span><span class="n">token</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">raw_tokens</span>
+                            <span class="k">if</span> <span class="s1">&#39; &#39;</span> <span class="ow">in</span> <span class="n">token</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">and</span> <span class="n">token</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">raw_cols_with_spaces</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Column names used in formula cannot contain spaces. Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">raw_cols_with_spaces</span><span class="p">)</span><span class="si">}</span><span class="s2"> invalid column(s):</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">raw_cols_with_spaces</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>  <span class="c1"># Show first 5</span>
+            <span class="sa">f</span><span class="s2">&quot;Please rename these columns before using them in formulas. Example:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  data = data.rename(columns=</span><span class="se">{{</span><span class="s2">&#39;</span><span class="si">{</span><span class="n">raw_cols_with_spaces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;: &#39;</span><span class="si">{</span><span class="n">raw_cols_with_spaces</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;</span><span class="se">}}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Or use: data.columns = data.columns.str.replace(&#39; &#39;, &#39;_&#39;)&quot;</span>
+        <span class="p">)</span>
+
     <span class="c1"># Patsy doesn&#39;t support &#39;.&#39; notation, so we expand it manually</span>
     <span class="n">expanded_formula</span> <span class="o">=</span> <span class="n">_expand_dot_formula</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="c1"># Validate only columns referenced in the expanded formula have no spaces</span>
+    <span class="c1"># Extract column names from expanded formula</span>
+    <span class="n">referenced_cols</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Extract from Q() wrapped names: Q(&quot;column name&quot;)</span>
+    <span class="n">q_wrapped</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Q\([&quot;</span><span class="se">\&#39;</span><span class="s1">](.+?)[&quot;</span><span class="se">\&#39;</span><span class="s1">]\)&#39;</span><span class="p">,</span> <span class="n">expanded_formula</span><span class="p">)</span>
+    <span class="n">referenced_cols</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">q_wrapped</span><span class="p">)</span>
+
+    <span class="c1"># Extract regular Python identifiers (exclude Q to avoid duplicates)</span>
+    <span class="n">regular_ids</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\b[a-zA-Z_][a-zA-Z0-9_]*\b&#39;</span><span class="p">,</span> <span class="n">expanded_formula</span><span class="p">)</span>
+    <span class="c1"># Filter to only actual column names in the data</span>
+    <span class="n">referenced_cols</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">regular_ids</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="n">col</span> <span class="o">!=</span> <span class="s1">&#39;Q&#39;</span><span class="p">])</span>
+
+    <span class="c1"># Remove duplicates and check for spaces</span>
+    <span class="n">referenced_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">referenced_cols</span><span class="p">))</span>
+    <span class="n">invalid_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">referenced_cols</span> <span class="k">if</span> <span class="s1">&#39; &#39;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">invalid_cols</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Column names used in formula cannot contain spaces. Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">invalid_cols</span><span class="p">)</span><span class="si">}</span><span class="s2"> invalid column(s):</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">invalid_cols</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>  <span class="c1"># Show first 5</span>
+            <span class="sa">f</span><span class="s2">&quot;Please rename these columns before using them in formulas. Example:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  data = data.rename(columns=</span><span class="se">{{</span><span class="s2">&#39;</span><span class="si">{</span><span class="n">invalid_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;: &#39;</span><span class="si">{</span><span class="n">invalid_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;</span><span class="se">}}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Or use: data.columns = data.columns.str.replace(&#39; &#39;, &#39;_&#39;)&quot;</span>
+        <span class="p">)</span>
 
     <span class="c1"># Parse formula and create design matrices using patsy</span>
     <span class="k">try</span><span class="p">:</span>

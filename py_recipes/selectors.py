@@ -380,6 +380,112 @@ def difference(
     return selector
 
 
+# Predictor/Outcome Selectors
+
+def all_predictors() -> Callable[[pd.DataFrame], List[str]]:
+    """
+    Select all predictor columns (excludes outcome columns).
+
+    This requires the selector to be used within a Recipe context
+    where roles are defined. Outside recipe context, returns all columns.
+
+    Returns:
+        Function that takes a DataFrame and returns predictor column names
+
+    Examples:
+        >>> # Within a recipe context
+        >>> rec = recipe(data, "y ~ x1 + x2 + x3")
+        >>> rec = rec.step_normalize(all_predictors())
+    """
+    def selector(data: pd.DataFrame) -> List[str]:
+        # Placeholder - actual role resolution happens in recipe context
+        # For now, exclude common outcome names
+        outcome_names = {'y', 'target', 'outcome'}
+        return [col for col in data.columns if col not in outcome_names]
+
+    # Attach role metadata for recipe to use
+    selector.role = "predictor"  # type: ignore
+    return selector
+
+
+def all_outcomes() -> Callable[[pd.DataFrame], List[str]]:
+    """
+    Select all outcome columns (target variables).
+
+    This requires the selector to be used within a Recipe context
+    where roles are defined. Outside recipe context, looks for common names.
+
+    Returns:
+        Function that takes a DataFrame and returns outcome column names
+
+    Examples:
+        >>> # Within a recipe context
+        >>> rec = recipe(data, "y ~ x1 + x2 + x3")
+        >>> rec = rec.step_log(all_outcomes())
+    """
+    def selector(data: pd.DataFrame) -> List[str]:
+        # Placeholder - actual role resolution happens in recipe context
+        # For now, look for common outcome names
+        outcome_names = {'y', 'target', 'outcome'}
+        return [col for col in data.columns if col in outcome_names]
+
+    # Attach role metadata for recipe to use
+    selector.role = "outcome"  # type: ignore
+    return selector
+
+
+def all_numeric_predictors() -> Callable[[pd.DataFrame], List[str]]:
+    """
+    Select all numeric predictor columns (excludes outcome columns).
+
+    Combines numeric type filtering with predictor role filtering.
+
+    Returns:
+        Function that takes a DataFrame and returns numeric predictor column names
+
+    Examples:
+        >>> # Within a recipe context
+        >>> rec = recipe(data, "y ~ x1 + x2 + category")
+        >>> rec = rec.step_normalize(all_numeric_predictors())
+    """
+    def selector(data: pd.DataFrame) -> List[str]:
+        # Get numeric columns
+        numeric_cols = set(data.select_dtypes(include=[np.number]).columns)
+        # Exclude common outcome names
+        outcome_names = {'y', 'target', 'outcome'}
+        return [col for col in data.columns if col in numeric_cols and col not in outcome_names]
+
+    # Attach role metadata for recipe to use
+    selector.role = "numeric_predictor"  # type: ignore
+    return selector
+
+
+def all_nominal_predictors() -> Callable[[pd.DataFrame], List[str]]:
+    """
+    Select all nominal (categorical) predictor columns (excludes outcome columns).
+
+    Combines categorical type filtering with predictor role filtering.
+
+    Returns:
+        Function that takes a DataFrame and returns nominal predictor column names
+
+    Examples:
+        >>> # Within a recipe context
+        >>> rec = recipe(data, "y ~ x1 + x2 + category")
+        >>> rec = rec.step_dummy(all_nominal_predictors())
+    """
+    def selector(data: pd.DataFrame) -> List[str]:
+        # Get non-numeric columns
+        nominal_cols = set(data.select_dtypes(exclude=[np.number]).columns)
+        # Exclude common outcome names
+        outcome_names = {'y', 'target', 'outcome'}
+        return [col for col in data.columns if col in nominal_cols and col not in outcome_names]
+
+    # Attach role metadata for recipe to use
+    selector.role = "nominal_predictor"  # type: ignore
+    return selector
+
+
 # Role Selector
 
 def has_role(role: str) -> Callable[[pd.DataFrame], List[str]]:

@@ -372,9 +372,35 @@ def fit_resamples(
             predictions = wf_fit.predict(test_data)
 
             # Calculate metrics
-            # Get outcome column (assume first formula term is outcome)
+            # Get outcome column from either formula or fitted workflow's blueprint
+            outcome = None
+
             if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, str):
+                # Formula-based workflow
                 outcome = workflow.preprocessor.split('~')[0].strip()
+            else:
+                # Recipe-based or other workflow
+                # The outcome is stored in the model's blueprint after fitting
+                from py_recipes import Recipe
+                if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, Recipe):
+                    # For recipes, workflow.fit() auto-detects outcome and builds a formula
+                    # The ModelFit stores the blueprint with outcome info
+                    blueprint = wf_fit.fit.blueprint
+
+                    # Try multiple ways to extract outcome from blueprint
+                    if hasattr(blueprint, 'outcome_name'):
+                        outcome = blueprint.outcome_name
+                    elif hasattr(blueprint, 'roles') and 'outcome' in blueprint.roles:
+                        outcome = blueprint.roles['outcome'][0] if blueprint.roles['outcome'] else None
+                    elif isinstance(blueprint, dict):
+                        outcome = blueprint.get('outcome_name') or blueprint.get('y_name')
+                        # If dict blueprint has formula_data, extract from formula
+                        if outcome is None and 'formula_data' in blueprint:
+                            formula_str = str(blueprint.get('formula', ''))
+                            if '~' in formula_str:
+                                outcome = formula_str.split('~')[0].strip()
+
+            if outcome and outcome in test_data.columns:
                 truth = test_data[outcome]
                 estimate = predictions['.pred']
 
@@ -396,6 +422,9 @@ def fit_resamples(
                 metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
                 metric_results['.config'] = "config_001"
                 all_metrics.append(metric_results)
+            else:
+                # Could not determine outcome - log warning
+                print(f"Warning: Fold {fold_idx+1} could not determine outcome column from workflow")
 
             # Save predictions if requested
             if save_pred:

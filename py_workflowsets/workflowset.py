@@ -36,8 +36,9 @@ class WorkflowSet:
         Create WorkflowSet from a list of workflows.
 
         Args:
-            workflows: List of Workflow objects
+            workflows: List of Workflow objects OR list of (id, workflow) tuples
             ids: Optional list of IDs for workflows (auto-generated if None)
+                 Ignored if workflows is a list of tuples
 
         Returns:
             WorkflowSet instance
@@ -45,8 +46,17 @@ class WorkflowSet:
         Examples:
             >>> wf1 = workflow().add_formula("y ~ x1").add_model(linear_reg())
             >>> wf2 = workflow().add_formula("y ~ x1 + x2").add_model(rand_forest())
+            >>> # Method 1: Separate workflows and IDs
             >>> wf_set = WorkflowSet.from_workflows([wf1, wf2], ids=["linear", "rf"])
+            >>> # Method 2: List of tuples
+            >>> wf_set = WorkflowSet.from_workflows([("linear", wf1), ("rf", wf2)])
         """
+        # Check if workflows is a list of tuples (id, workflow)
+        if workflows and isinstance(workflows[0], tuple) and len(workflows[0]) == 2:
+            # Extract IDs and workflows from tuples
+            ids = [wf_id for wf_id, _ in workflows]
+            workflows = [wf for _, wf in workflows]
+
         if ids is None:
             ids = [f"workflow_{i+1}" for i in range(len(workflows))]
 
@@ -384,53 +394,72 @@ class WorkflowSetResults:
         return pd.concat(all_preds, ignore_index=True)
 
     def rank_results(self,
-                     rank_metric: str,
+                     rank_metric: Optional[str] = None,
+                     metric: Optional[str] = None,
                      select_best: bool = False,
                      n: int = 10) -> pd.DataFrame:
         """
         Rank workflows by a specific metric.
 
         Args:
-            rank_metric: Metric name to rank by (e.g., "rmse")
+            rank_metric: Metric name to rank by (e.g., "rmse") - deprecated, use 'metric' instead
+            metric: Metric name to rank by (e.g., "rmse")
             select_best: If True, return only the best workflow per model type
             n: Number of top workflows to return (if select_best=False)
 
         Returns:
-            DataFrame with ranked workflows
+            DataFrame with ranked workflows (wide format with metric-specific columns)
 
         Examples:
             >>> # Get top 5 workflows by RMSE
-            >>> top5 = results.rank_results("rmse", n=5)
+            >>> top5 = results.rank_results(metric="rmse", n=5)
             >>>
             >>> # Get best workflow for each model type
-            >>> best = results.rank_results("rmse", select_best=True)
+            >>> best = results.rank_results(metric="rmse", select_best=True)
         """
+        # Handle both 'metric' and 'rank_metric' parameter names
+        if metric is not None:
+            rank_metric = metric
+        elif rank_metric is None:
+            raise ValueError("Must provide either 'metric' or 'rank_metric' parameter")
+
         # Get summarized metrics
         metrics_df = self.collect_metrics(summarize=True)
 
-        # Filter for the specified metric
-        metric_data = metrics_df[metrics_df["metric"] == rank_metric].copy()
+        # Pivot to wide format: one column per metric (rmse_mean, mae_mean, etc.)
+        wide_metrics = metrics_df.pivot_table(
+            index=["wflow_id", "preprocessor", "model"],
+            columns="metric",
+            values=["mean", "std", "n"]
+        )
+
+        # Flatten multi-level columns: (mean, rmse) -> rmse_mean
+        wide_metrics.columns = [f"{metric}_{stat}" for stat, metric in wide_metrics.columns]
+        wide_metrics = wide_metrics.reset_index()
 
         # Determine if we want to minimize or maximize
-        # (assume minimization for error metrics, maximization for accuracy/R²)
         minimize_metrics = {"rmse", "mae", "mape", "smape", "mse", "log_loss", "brier_score"}
         ascending = rank_metric.lower() in minimize_metrics
 
-        # Sort by mean value
-        metric_data = metric_data.sort_values("mean", ascending=ascending)
+        # Sort by the specified metric mean
+        sort_col = f"{rank_metric}_mean"
+        if sort_col not in wide_metrics.columns:
+            raise ValueError(f"Metric '{rank_metric}' not found in results")
+
+        wide_metrics = wide_metrics.sort_values(sort_col, ascending=ascending)
 
         if select_best:
             # Get best workflow for each model type
-            metric_data = metric_data.groupby("model").first().reset_index()
-            metric_data = metric_data.sort_values("mean", ascending=ascending)
+            wide_metrics = wide_metrics.groupby("model").first().reset_index()
+            wide_metrics = wide_metrics.sort_values(sort_col, ascending=ascending)
         else:
             # Get top n
-            metric_data = metric_data.head(n)
+            wide_metrics = wide_metrics.head(n)
 
         # Add rank column
-        metric_data["rank"] = range(1, len(metric_data) + 1)
+        wide_metrics.insert(0, "rank", range(1, len(wide_metrics) + 1))
 
-        return metric_data[["rank", "wflow_id", "preprocessor", "model", "mean", "std", "n"]]
+        return wide_metrics
 
     def autoplot(self,
                  metric: Optional[str] = None,

@@ -551,3 +551,186 @@ class TestImputationEdgeCases:
 
         # All NaN should be filled with 5
         assert all(transformed['x'] == 5.0)
+
+
+class TestImputationWithSelectors:
+    """Test imputation steps with resolve_selector integration"""
+
+    @pytest.fixture
+    def mixed_data(self):
+        """Create data with numeric and categorical columns with missing values"""
+        return pd.DataFrame({
+            'num_1': [1.0, np.nan, 3.0, 4.0, 5.0],
+            'num_2': [10.0, 20.0, np.nan, 40.0, np.nan],
+            'num_3': [100.0, 200.0, 300.0, 400.0, 500.0],  # No missing
+            'cat_1': ['A', np.nan, 'C', 'D', 'E'],
+            'cat_2': ['X', 'Y', 'Z', 'X', 'Y']  # No missing
+        })
+
+    def test_impute_mean_with_string_selector(self, mixed_data):
+        """Test mean imputation with single column name string"""
+        from py_recipes.selectors import resolve_selector
+
+        rec = recipe().step_impute_mean(columns='num_1')
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Only num_1 should be imputed
+        assert not transformed['num_1'].isna().any()
+        # num_2 should still have missing values
+        assert transformed['num_2'].isna().any()
+
+    def test_impute_median_with_list_selector(self, mixed_data):
+        """Test median imputation with explicit column list"""
+        rec = recipe().step_impute_median(columns=['num_1', 'num_2'])
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Both num_1 and num_2 should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+        # num_3 should be unchanged
+        assert transformed['num_3'].equals(mixed_data['num_3'])
+
+    def test_impute_mean_with_all_numeric_selector(self, mixed_data):
+        """Test mean imputation with all_numeric() selector"""
+        from py_recipes.selectors import all_numeric
+
+        rec = recipe().step_impute_mean(columns=all_numeric())
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # All numeric columns with missing should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+        # Categorical should be unchanged
+        assert transformed['cat_1'].isna().any()
+
+    def test_impute_mode_with_all_nominal_selector(self, mixed_data):
+        """Test mode imputation with all_nominal() selector"""
+        from py_recipes.selectors import all_nominal
+
+        rec = recipe().step_impute_mode(columns=all_nominal())
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Categorical columns with missing should be imputed
+        assert not transformed['cat_1'].isna().any()
+        # Numeric columns should be unchanged
+        assert transformed['num_1'].isna().any()
+        assert transformed['num_2'].isna().any()
+
+    def test_impute_knn_with_where_selector(self, mixed_data):
+        """Test KNN imputation with where() selector"""
+        from py_recipes.selectors import where
+
+        # Select numeric columns with missing values
+        selector = where(lambda s: pd.api.types.is_numeric_dtype(s) and s.isna().any())
+        rec = recipe().step_impute_knn(columns=selector)
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Only numeric columns with missing should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+        # num_3 has no missing, should be unchanged
+        assert transformed['num_3'].equals(mixed_data['num_3'])
+
+    def test_impute_linear_with_starts_with_selector(self, mixed_data):
+        """Test linear imputation with starts_with() selector"""
+        from py_recipes.selectors import starts_with
+
+        rec = recipe().step_impute_linear(columns=starts_with('num'))
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # All numeric columns starting with 'num' should be processed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+
+    def test_impute_median_with_union_selector(self, mixed_data):
+        """Test median imputation with union() selector"""
+        from py_recipes.selectors import union, starts_with, one_of
+
+        # Select columns starting with 'num_' or specifically 'cat_1'
+        selector = union(starts_with('num_1'), one_of('num_2'))
+        rec = recipe().step_impute_median(columns=selector)
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Both num_1 and num_2 should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+
+    def test_impute_mean_with_intersection_selector(self, mixed_data):
+        """Test mean imputation with intersection() selector"""
+        from py_recipes.selectors import intersection, all_numeric, starts_with
+
+        # Select columns that are both numeric AND start with 'num_2'
+        selector = intersection(all_numeric(), starts_with('num_2'))
+        rec = recipe().step_impute_mean(columns=selector)
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Only num_2 should be imputed
+        assert not transformed['num_2'].isna().any()
+        # num_1 should still have missing
+        assert transformed['num_1'].isna().any()
+
+    def test_impute_mode_with_difference_selector(self, mixed_data):
+        """Test mode imputation with difference() selector"""
+        from py_recipes.selectors import difference, everything, starts_with
+
+        # Select all columns except those starting with 'num_'
+        selector = difference(everything(), starts_with('num'))
+        rec = recipe().step_impute_mode(columns=selector)
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Categorical columns should be imputed
+        assert not transformed['cat_1'].isna().any()
+        # Numeric columns should be unchanged
+        assert transformed['num_1'].isna().any()
+
+    def test_impute_default_none_selector(self, mixed_data):
+        """Test imputation with None (default) uses automatic selection"""
+        # For mean imputation, None should select numeric columns with missing
+        rec = recipe().step_impute_mean(columns=None)
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Only numeric columns with missing should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+        # num_3 has no missing, should be unchanged
+        assert transformed['num_3'].equals(mixed_data['num_3'])
+        # Categorical should be unchanged
+        assert transformed['cat_1'].isna().any()
+
+
+    def test_selector_with_empty_result(self, mixed_data):
+        """Test imputation when selector returns empty list"""
+        from py_recipes.selectors import starts_with
+
+        # Select columns starting with 'xyz' (none exist)
+        rec = recipe().step_impute_mean(columns=starts_with('xyz'))
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # Data should be unchanged
+        pd.testing.assert_frame_equal(transformed, mixed_data)
+
+    def test_multiple_impute_steps_with_selectors(self, mixed_data):
+        """Test chaining multiple imputation steps with different selectors"""
+        from py_recipes.selectors import all_numeric, all_nominal
+
+        rec = (recipe()
+               .step_impute_median(columns=all_numeric())
+               .step_impute_mode(columns=all_nominal()))
+        rec_fit = rec.prep(mixed_data)
+        transformed = rec_fit.bake(mixed_data)
+
+        # All columns with missing should be imputed
+        assert not transformed['num_1'].isna().any()
+        assert not transformed['num_2'].isna().any()
+        assert not transformed['cat_1'].isna().any()

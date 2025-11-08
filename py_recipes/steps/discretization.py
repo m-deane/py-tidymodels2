@@ -5,9 +5,11 @@ Provides binning and cutting of continuous variables into categories.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union, Callable
 import pandas as pd
 import numpy as np
+
+from py_recipes.selectors import resolve_selector, all_numeric
 
 
 @dataclass
@@ -20,13 +22,13 @@ class StepDiscretize:
     in linear models.
 
     Attributes:
-        columns: Columns to discretize (None = all numeric)
+        columns: Column selector (None = all numeric, can be string, list, or selector function)
         num_breaks: Number of bins (default: 4)
         method: Binning method ('quantile' or 'width')
         labels: Custom bin labels (None = auto-generate)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     num_breaks: int = 4
     method: str = "quantile"
     labels: Optional[List[str]] = None
@@ -42,10 +44,9 @@ class StepDiscretize:
         Returns:
             PreparedStepDiscretize with bin edges
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Resolve selector to column list
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Calculate bin edges for each column
         bin_edges = {}
@@ -241,12 +242,12 @@ class StepPercentile:
     useful for normalizing distributions and creating rank-based features.
 
     Attributes:
-        columns: Columns to convert (None = all numeric)
+        columns: Column selector (None = all numeric, can be string, list, or selector function)
         num_breaks: Number of percentile bins (default: 100 for 0-100 scale)
         as_integer: Return integer percentiles (default: True)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     num_breaks: int = 100
     as_integer: bool = True
 
@@ -261,10 +262,9 @@ class StepPercentile:
         Returns:
             PreparedStepPercentile with percentile breakpoints
         """
-        if self.columns is None:
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = [col for col in self.columns if col in data.columns]
+        # Resolve selector to column list
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Calculate percentile breakpoints for each column
         percentile_breaks = {}

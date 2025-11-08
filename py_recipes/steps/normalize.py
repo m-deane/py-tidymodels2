@@ -5,7 +5,7 @@ Wraps sklearn StandardScaler and MinMaxScaler for centering and scaling.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Union, Optional, Any, Callable
 import pandas as pd
 import numpy as np
 
@@ -19,11 +19,15 @@ class StepNormalize:
     (zscore) or to a fixed range (minmax).
 
     Attributes:
-        columns: Columns to normalize (None = all numeric)
+        columns: Columns to normalize. Can be:
+            - None: defaults to all_numeric() selector
+            - str: single column name
+            - List[str]: list of column names
+            - Callable: selector function (e.g., all_numeric(), starts_with('temp'))
         method: "zscore" (StandardScaler) or "minmax" (MinMaxScaler)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable[[pd.DataFrame], List[str]]] = None
     method: str = "zscore"
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepNormalize":
@@ -40,12 +44,11 @@ class StepNormalize:
         Returns:
             PreparedStepNormalize with fitted scaler
         """
-        # Determine columns to normalize
-        if self.columns is None:
-            # Auto-select numeric columns
-            cols = data.select_dtypes(include=[np.number]).columns.tolist()
-        else:
-            cols = self.columns
+        from py_recipes.selectors import resolve_selector, all_numeric
+
+        # Use resolve_selector with all_numeric() as default
+        selector = self.columns if self.columns is not None else all_numeric()
+        cols = resolve_selector(selector, data)
 
         # Exclude datetime columns from normalization
         # Datetime columns should be processed by step_date() or similar instead

@@ -189,7 +189,8 @@ def test_rank_results_basic(sample_data, sample_workflows):
     assert isinstance(ranked, pd.DataFrame)
     assert "rank" in ranked.columns
     assert "wflow_id" in ranked.columns
-    assert "mean" in ranked.columns
+    assert "rmse_mean" in ranked.columns  # Wide format: metric_stat
+    assert "rmse_std" in ranked.columns
     assert len(ranked) == 2  # Both workflows
 
 

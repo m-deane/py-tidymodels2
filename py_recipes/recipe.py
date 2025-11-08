@@ -6,7 +6,7 @@ They are fitted on training data (prep) and then applied to new data (bake).
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Protocol
+from typing import List, Dict, Any, Optional, Protocol, Union, Callable
 import pandas as pd
 import numpy as np
 
@@ -118,6 +118,58 @@ class Recipe:
         """
         self.steps.append(step)
         return self
+
+    def step_rm(
+        self,
+        columns: Union[str, List[str], Callable]
+    ) -> "Recipe":
+        """
+        Remove/drop columns from the dataset.
+
+        This step removes specified columns from the data. Useful for
+        removing columns that shouldn't be used in modeling (like IDs, dates,
+        or other non-predictive features).
+
+        Args:
+            columns: Column(s) to remove. Can be a string, list of strings,
+                    or selector function
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> # Remove single column
+            >>> rec = recipe().step_rm("date")
+            >>>
+            >>> # Remove multiple columns
+            >>> rec = recipe().step_rm(["id", "date", "timestamp"])
+        """
+        from py_recipes.steps.remove import StepRm
+        return self.add_step(StepRm(columns=columns))
+
+    def step_select(
+        self,
+        columns: Union[str, List[str], Callable]
+    ) -> "Recipe":
+        """
+        Select (keep) only specified columns from the dataset.
+
+        This is the inverse of step_rm() - it keeps only the specified
+        columns and removes everything else.
+
+        Args:
+            columns: Column(s) to keep. Can be a string, list of strings,
+                    or selector function
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> # Keep only specific columns
+            >>> rec = recipe().step_select(["feature1", "feature2", "target"])
+        """
+        from py_recipes.steps.remove import StepSelect
+        return self.add_step(StepSelect(columns=columns))
 
     def step_normalize(
         self,
@@ -385,6 +437,45 @@ class Recipe:
         from py_recipes.steps.feature_selection import StepPCA
         return self.add_step(StepPCA(columns=columns, num_comp=num_comp, threshold=threshold))
 
+    def step_corr(
+        self,
+        threshold: float = 0.9,
+        columns: Optional[List[str]] = None,
+        method: str = "pearson"
+    ) -> "Recipe":
+        """
+        Remove highly correlated features.
+
+        Identifies pairs of features with correlation above the threshold and removes
+        one from each pair. For each correlated pair, keeps the feature with lower
+        mean absolute correlation with all other features.
+
+        This is useful for removing multicollinearity among predictors before modeling.
+
+        Args:
+            threshold: Correlation threshold (default 0.9). Pairs with abs(correlation) > threshold are flagged
+            columns: Columns to check (None = all numeric)
+            method: Correlation method ('pearson', 'spearman', 'kendall')
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> # Remove features with correlation > 0.9 (default)
+            >>> rec = Recipe().step_corr()
+            >>>
+            >>> # Use custom threshold
+            >>> rec = Recipe().step_corr(threshold=0.8)
+            >>>
+            >>> # Check specific columns
+            >>> rec = Recipe().step_corr(columns=['x1', 'x2', 'x3'], threshold=0.95)
+            >>>
+            >>> # Use Spearman correlation for non-linear relationships
+            >>> rec = Recipe().step_corr(threshold=0.9, method='spearman')
+        """
+        from py_recipes.steps.feature_selection import StepCorr
+        return self.add_step(StepCorr(threshold=threshold, columns=columns, method=method))
+
     def step_select_corr(
         self,
         outcome: str,
@@ -421,7 +512,8 @@ class Recipe:
         columns: Optional[List[str]] = None,
         base: float = np.e,
         offset: float = 0.0,
-        signed: bool = False
+        signed: bool = False,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Apply logarithmic transformation.
@@ -431,33 +523,37 @@ class Recipe:
             base: Logarithm base (default: natural log)
             offset: Value added before transformation (default: 0)
             signed: If True, preserves sign (default: False)
+            inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.transformations import StepLog
-        return self.add_step(StepLog(columns=columns, base=base, offset=offset, signed=signed))
+        return self.add_step(StepLog(columns=columns, base=base, offset=offset, signed=signed, inplace=inplace))
 
     def step_sqrt(
         self,
-        columns: Optional[List[str]] = None
+        columns: Optional[List[str]] = None,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Apply square root transformation.
 
         Args:
             columns: Columns to transform (None = all numeric)
+            inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.transformations import StepSqrt
-        return self.add_step(StepSqrt(columns=columns))
+        return self.add_step(StepSqrt(columns=columns, inplace=inplace))
 
     def step_boxcox(
         self,
         columns: Optional[List[str]] = None,
-        lambdas: Optional[Dict[str, float]] = None
+        lambdas: Optional[Dict[str, float]] = None,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Apply Box-Cox power transformation.
@@ -465,17 +561,19 @@ class Recipe:
         Args:
             columns: Columns to transform (None = all numeric)
             lambdas: Optional dict of lambda parameters
+            inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.transformations import StepBoxCox
-        return self.add_step(StepBoxCox(columns=columns, lambdas=lambdas))
+        return self.add_step(StepBoxCox(columns=columns, lambdas=lambdas, inplace=inplace))
 
     def step_yeojohnson(
         self,
         columns: Optional[List[str]] = None,
-        lambdas: Optional[Dict[str, float]] = None
+        lambdas: Optional[Dict[str, float]] = None,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Apply Yeo-Johnson power transformation.
@@ -483,17 +581,19 @@ class Recipe:
         Args:
             columns: Columns to transform (None = all numeric)
             lambdas: Optional dict of lambda parameters
+            inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.transformations import StepYeoJohnson
-        return self.add_step(StepYeoJohnson(columns=columns, lambdas=lambdas))
+        return self.add_step(StepYeoJohnson(columns=columns, lambdas=lambdas, inplace=inplace))
 
     def step_inverse(
         self,
         columns: Optional[List[str]] = None,
-        offset: float = 0.0
+        offset: float = 0.0,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Apply inverse transformation (1/x).
@@ -501,12 +601,13 @@ class Recipe:
         Args:
             columns: Columns to transform (None = all numeric)
             offset: Value added before inversion to avoid division by zero (default: 0)
+            inplace: If True, replace original columns; if False, create new columns with suffix (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.transformations import StepInverse
-        return self.add_step(StepInverse(columns=columns, offset=offset))
+        return self.add_step(StepInverse(columns=columns, offset=offset, inplace=inplace))
 
     # ========== Scaling Steps ==========
 
@@ -635,6 +736,145 @@ class Recipe:
         """
         from py_recipes.steps.filters import StepFilterMissing
         return self.add_step(StepFilterMissing(columns=columns, threshold=threshold))
+
+    def step_filter_anova(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        use_pvalue: bool = True
+    ) -> "Recipe":
+        """
+        Filter features using ANOVA F-test.
+
+        Args:
+            outcome: Outcome column name
+            threshold: Minimum score to keep (either F-statistic or -log10(p-value))
+            top_n: Keep top N features
+            top_p: Keep top proportion of features (0-1)
+            use_pvalue: Use -log10(p-value) if True, else F-statistic
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.filter_supervised import StepFilterAnova
+        return self.add_step(StepFilterAnova(
+            outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p, use_pvalue=use_pvalue
+        ))
+
+    def step_filter_rf_importance(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        trees: int = 100,
+        mtry: Optional[int] = None,
+        min_n: int = 2
+    ) -> "Recipe":
+        """
+        Filter features using Random Forest feature importance.
+
+        Args:
+            outcome: Outcome column name
+            threshold: Minimum importance score to keep
+            top_n: Keep top N features
+            top_p: Keep top proportion of features (0-1)
+            trees: Number of trees in random forest
+            mtry: Number of variables to sample at each split
+            min_n: Minimum number of samples in leaf nodes
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.filter_supervised import StepFilterRfImportance
+        return self.add_step(StepFilterRfImportance(
+            outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p,
+            trees=trees, mtry=mtry, min_n=min_n
+        ))
+
+    def step_filter_mutual_info(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        n_neighbors: int = 3
+    ) -> "Recipe":
+        """
+        Filter features using mutual information (information gain).
+
+        Args:
+            outcome: Outcome column name
+            threshold: Minimum mutual information score to keep
+            top_n: Keep top N features
+            top_p: Keep top proportion of features (0-1)
+            n_neighbors: Number of neighbors for MI estimation
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.filter_supervised import StepFilterMutualInfo
+        return self.add_step(StepFilterMutualInfo(
+            outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p, n_neighbors=n_neighbors
+        ))
+
+    def step_filter_roc_auc(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        multiclass_strategy: str = 'ovr'
+    ) -> "Recipe":
+        """
+        Filter features using ROC AUC scores (classification only).
+
+        Args:
+            outcome: Outcome column name
+            threshold: Minimum ROC AUC score to keep
+            top_n: Keep top N features
+            top_p: Keep top proportion of features (0-1)
+            multiclass_strategy: 'ovr' (one-vs-rest) or 'ovo' (one-vs-one)
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.filter_supervised import StepFilterRocAuc
+        return self.add_step(StepFilterRocAuc(
+            outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p,
+            multiclass_strategy=multiclass_strategy
+        ))
+
+    def step_filter_chisq(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        method: str = 'chisq',
+        use_pvalue: bool = True
+    ) -> "Recipe":
+        """
+        Filter features using chi-squared or Fisher exact test.
+
+        Args:
+            outcome: Outcome column name
+            threshold: Minimum score to keep
+            top_n: Keep top N features
+            top_p: Keep top proportion of features (0-1)
+            method: 'chisq' or 'fisher'
+            use_pvalue: Use -log10(p-value) if True, else test statistic
+
+        Returns:
+            Self for method chaining
+        """
+        from py_recipes.steps.filter_supervised import StepFilterChisq
+        return self.add_step(StepFilterChisq(
+            outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p,
+            method=method, use_pvalue=use_pvalue
+        ))
 
     def step_naomit(
         self,
@@ -903,20 +1143,28 @@ class Recipe:
 
     def step_interact(
         self,
-        interactions: List[tuple],
+        interactions: Union[List[tuple], List[str]],
         separator: str = "_x_"
     ) -> "Recipe":
         """
         Create interaction features between columns.
 
         Args:
-            interactions: List of column pairs to interact
+            interactions: Either a list of column pairs [(col1, col2), ...] or
+                         a list of columns [col1, col2, ...] to create all pairwise interactions
             separator: Separator for interaction names
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.interactions import StepInteract
+        from itertools import combinations
+
+        # Check if interactions is a list of tuples or a list of strings
+        if interactions and isinstance(interactions[0], str):
+            # Generate all pairwise combinations
+            interactions = list(combinations(interactions, 2))
+
         return self.add_step(StepInteract(interactions=interactions, separator=separator))
 
     def step_ratio(

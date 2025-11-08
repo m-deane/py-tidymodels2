@@ -312,6 +312,351 @@ Recursive ML Forecasting
 
    outputs, _, stats = fit.extract_outputs()
 
+Using ML Models for Time Series Regression
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**When to Use ML Models vs Traditional Time Series Models:**
+
+Machine learning models (Random Forest, XGBoost, k-NN, Neural Networks, etc.) are excellent for time series when:
+
+* You have rich feature sets (exogenous variables)
+* Relationships are non-linear
+* You need to capture complex interactions
+* Multiple seasonalities or irregular patterns exist
+* You're doing supervised regression (not pure forecasting)
+
+Traditional models (ARIMA, Prophet) are better when:
+
+* You have univariate time series with limited features
+* You need probabilistic forecasts with prediction intervals
+* The data shows clear trend/seasonality patterns
+* You need interpretable decomposition
+
+**Date-Indexed Outputs:**
+
+All models in py-tidymodels return date-indexed outputs from ``extract_outputs()`` when the data contains a date column. This enables proper visualization and time series analysis.
+
+Random Forest Example
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_parsnip import rand_forest
+   from py_rsample import initial_time_split, training, testing
+
+   # Prepare time series data (must include 'date' column)
+   data = pd.DataFrame({
+       'date': pd.date_range('2020-01-01', periods=1000, freq='D'),
+       'sales': [...],
+       'price': [...],
+       'promotion': [...],
+       'temperature': [...]
+   })
+
+   # Time-based split (chronological order preserved)
+   split = initial_time_split(
+       data,
+       date_column="date",
+       train_end="2022-09-30",
+       test_start="2022-10-01"
+   )
+
+   train = training(split)
+   test = testing(split)
+
+   # Random Forest for time series regression
+   spec_rf = rand_forest(
+       trees=500,
+       mtry=3,      # Number of features to consider
+       min_n=10     # Minimum samples per leaf
+   ).set_mode('regression')
+
+   # Fit model - date column automatically handled
+   # Date is NOT used as predictor (excluded from formula)
+   fit_rf = spec_rf.fit(train, "sales ~ price + promotion + temperature")
+
+   # Evaluate on test set
+   fit_rf = fit_rf.evaluate(test)
+
+   print("Random Forest fitted successfully!")
+
+   # Extract date-indexed outputs
+   outputs_rf, coefs_rf, stats_rf = fit_rf.extract_outputs()
+
+   # outputs_rf is indexed by date:
+   # Columns: date, actuals, fitted, forecast, residuals, split
+   print(outputs_rf.head())
+   #          date   actuals    fitted   forecast  residuals  split
+   # 0  2020-01-01     245.3     243.1      243.1       2.2   train
+   # 1  2020-01-02     251.7     249.3      249.3       2.4   train
+   # ...
+
+   # Filter to test period only
+   test_outputs = outputs_rf[outputs_rf['split'] == 'test']
+
+   # Visualize forecast
+   import matplotlib.pyplot as plt
+   plt.figure(figsize=(12, 6))
+   plt.plot(test_outputs['date'], test_outputs['actuals'], label='Actual', marker='o')
+   plt.plot(test_outputs['date'], test_outputs['fitted'], label='Predicted', marker='x')
+   plt.xlabel('Date')
+   plt.ylabel('Sales')
+   plt.title('Random Forest Time Series Forecast')
+   plt.legend()
+   plt.show()
+
+Gradient Boosting Example (XGBoost/LightGBM/CatBoost)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_parsnip import boost_tree
+
+   # XGBoost for time series
+   spec_xgb = boost_tree(
+       trees=1000,
+       tree_depth=6,
+       learn_rate=0.01,
+       min_n=5
+   ).set_engine('xgboost')
+
+   fit_xgb = spec_xgb.fit(train, "sales ~ price + promotion + temperature")
+   fit_xgb = fit_xgb.evaluate(test)
+
+   outputs_xgb, coefs_xgb, stats_xgb = fit_xgb.extract_outputs()
+
+   # LightGBM for time series (faster training)
+   spec_lgbm = boost_tree(
+       trees=1000,
+       tree_depth=6,
+       learn_rate=0.01
+   ).set_engine('lightgbm')
+
+   fit_lgbm = spec_lgbm.fit(train, "sales ~ price + promotion + temperature")
+   fit_lgbm = fit_lgbm.evaluate(test)
+
+   outputs_lgbm, coefs_lgbm, stats_lgbm = fit_lgbm.extract_outputs()
+
+   # CatBoost for time series (handles categoricals well)
+   spec_cat = boost_tree(
+       trees=1000,
+       tree_depth=6,
+       learn_rate=0.01
+   ).set_engine('catboost')
+
+   fit_cat = spec_cat.fit(train, "sales ~ price + promotion + temperature")
+   fit_cat = fit_cat.evaluate(test)
+
+   outputs_cat, coefs_cat, stats_cat = fit_cat.extract_outputs()
+
+Support Vector Machines Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_parsnip import svm_rbf, svm_linear
+
+   # SVM with RBF kernel
+   spec_svm = svm_rbf(
+       cost=1.0,
+       rbf_sigma=0.1
+   ).set_mode('regression')
+
+   fit_svm = spec_svm.fit(train, "sales ~ price + promotion + temperature")
+   fit_svm = fit_svm.evaluate(test)
+
+   outputs_svm, coefs_svm, stats_svm = fit_svm.extract_outputs()
+
+   # Outputs indexed by date
+   print(f"SVM Test RMSE: {stats_svm[stats_svm['split']=='test']['rmse'].values[0]:.2f}")
+
+k-Nearest Neighbors Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_parsnip import nearest_neighbor
+
+   # k-NN with k=10 and distance weighting
+   spec_knn = nearest_neighbor(
+       neighbors=10,
+       weight_func='distance'  # Weight by inverse distance
+   ).set_mode('regression')
+
+   fit_knn = spec_knn.fit(train, "sales ~ price + promotion + temperature")
+   fit_knn = fit_knn.evaluate(test)
+
+   outputs_knn, coefs_knn, stats_knn = fit_knn.extract_outputs()
+
+Neural Network (MLP) Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_parsnip import mlp
+
+   # Multi-layer perceptron
+   spec_mlp = mlp(
+       hidden_units=50,
+       epochs=200,
+       learn_rate=0.01
+   ).set_mode('regression')
+
+   fit_mlp = spec_mlp.fit(train, "sales ~ price + promotion + temperature")
+   fit_mlp = fit_mlp.evaluate(test)
+
+   outputs_mlp, coefs_mlp, stats_mlp = fit_mlp.extract_outputs()
+
+Feature Engineering for ML Time Series Models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ML models need engineered features to capture temporal patterns:
+
+.. code-block:: python
+
+   from py_recipes import recipe
+   from py_workflows import workflow
+   from py_parsnip import boost_tree
+
+   # Comprehensive feature engineering for time series
+   rec = (
+       recipe()
+       # 1. Lagged features (autoregressive)
+       .step_lag(["sales"], lags=[1, 7, 14, 28])
+
+       # 2. Rolling statistics
+       .step_mutate(
+           sales_ma7="sales.rolling(7).mean()",
+           sales_ma28="sales.rolling(28).mean()",
+           sales_std7="sales.rolling(7).std()"
+       )
+
+       # 3. Time-based features
+       .step_timeseries_signature(["date"])  # year, month, day, dow, etc.
+
+       # 4. Differencing (if needed for stationarity)
+       .step_diff(["price"], lag=1)
+
+       # 5. Encoding categorical features
+       .step_dummy(["date_month", "date_dow", "promotion_type"])
+
+       # 6. Normalization
+       .step_normalize()
+
+       # 7. Handle missing values from lagging
+       .step_impute_median()
+
+       # 8. Remove correlated features
+       .step_corr(threshold=0.95)
+   )
+
+   # Use in workflow
+   wf = (
+       workflow()
+       .add_recipe(rec)
+       .add_model(boost_tree(trees=500).set_engine('xgboost'))
+   )
+
+   fit = wf.fit(train)
+   fit = fit.evaluate(test)
+
+   outputs, coefs, stats = fit.extract_outputs()
+
+   # outputs is STILL indexed by date even after all preprocessing!
+   print(outputs[outputs['split']=='test'][['date', 'actuals', 'fitted']].head(10))
+
+Understanding the Three-DataFrame Output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All models return three DataFrames from ``extract_outputs()``:
+
+**1. outputs** - Observation-level results (date-indexed):
+
+.. code-block:: python
+
+   # Columns in outputs DataFrame:
+   # - date: Original date from input data
+   # - actuals: True values
+   # - fitted: Model predictions
+   # - forecast: Combined series (actuals where available, fitted elsewhere)
+   # - residuals: actuals - fitted
+   # - split: 'train', 'test', or 'forecast'
+   # - model: Model name
+   # - model_group_name: Model group identifier
+   # - group: Group identifier (for panel models)
+
+   outputs_rf.head()
+
+**2. coefficients** - Model parameters/importances:
+
+.. code-block:: python
+
+   # For tree models: feature importances
+   # Columns: variable, importance, model, model_group_name, group
+
+   coefs_rf.head()
+   #     variable  importance     model  model_group_name  group
+   # 0      price      0.453  rand_forest      default      all
+   # 1  promotion      0.321  rand_forest      default      all
+   # 2temperature      0.226  rand_forest      default      all
+
+**3. stats** - Model-level metrics by split:
+
+.. code-block:: python
+
+   # Columns: metric, value, split, model, model_group_name, group
+
+   stats_rf[stats_rf['split']=='test']
+   #    metric   value  split       model  model_group_name  group
+   # 0    rmse   12.34   test  rand_forest      default      all
+   # 1     mae    9.87   test  rand_forest      default      all
+   # 2 r_squared  0.892   test  rand_forest      default      all
+
+Comparing Multiple ML Models
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   from py_workflowsets import WorkflowSet
+   from py_yardstick import metric_set, rmse, mae, r_squared
+
+   # Define multiple models
+   models = [
+       ("rf", rand_forest(trees=500).set_mode('regression')),
+       ("xgb", boost_tree(trees=500).set_engine('xgboost')),
+       ("svm", svm_rbf().set_mode('regression')),
+       ("knn", nearest_neighbor(neighbors=10).set_mode('regression'))
+   ]
+
+   # Create workflow set
+   wf_set = WorkflowSet.from_workflows([
+       (name, workflow().add_formula("sales ~ price + promotion + temperature").add_model(model))
+       for name, model in models
+   ])
+
+   # Evaluate all models
+   from py_rsample import vfold_cv
+   folds = vfold_cv(train, v=5)
+
+   results = wf_set.fit_resamples(
+       resamples=folds,
+       metrics=metric_set(rmse, mae, r_squared)
+   )
+
+   # Rank models
+   rankings = results.rank_results("rmse")
+   print(rankings)
+
+   # Select best model and fit on full training set
+   best_wf_id = rankings.iloc[0]["wflow_id"]
+   best_wf = wf_set[best_wf_id]
+
+   best_fit = best_wf.fit(train)
+   best_fit = best_fit.evaluate(test)
+
+   # Extract date-indexed outputs from best model
+   outputs, coefs, stats = best_fit.extract_outputs()
+
 Panel/Grouped Time Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

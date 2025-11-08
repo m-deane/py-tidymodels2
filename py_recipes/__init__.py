@@ -59,6 +59,20 @@ from py_recipes.steps.timeseries import (
     StepDate,
 )
 
+# Import supervised filter steps
+from py_recipes.steps.filter_supervised import (
+    step_filter_anova,
+    step_filter_rf_importance,
+    step_filter_mutual_info,
+    step_filter_roc_auc,
+    step_filter_chisq,
+    StepFilterAnova,
+    StepFilterRfImportance,
+    StepFilterMutualInfo,
+    StepFilterRocAuc,
+    StepFilterChisq,
+)
+
 # Import selectors
 from py_recipes.selectors import (
     # Type selectors
@@ -68,6 +82,11 @@ from py_recipes.selectors import (
     all_float,
     all_string,
     all_datetime,
+    # Predictor/Outcome selectors
+    all_predictors,
+    all_outcomes,
+    all_numeric_predictors,
+    all_nominal_predictors,
     # Pattern selectors
     starts_with,
     ends_with,
@@ -99,6 +118,17 @@ __all__ = [
     "StepMutate",
     "StepLag",
     "StepDate",
+    # Supervised filter steps
+    "step_filter_anova",
+    "step_filter_rf_importance",
+    "step_filter_mutual_info",
+    "step_filter_roc_auc",
+    "step_filter_chisq",
+    "StepFilterAnova",
+    "StepFilterRfImportance",
+    "StepFilterMutualInfo",
+    "StepFilterRocAuc",
+    "StepFilterChisq",
     # Selectors
     "all_numeric",
     "all_nominal",
@@ -106,6 +136,10 @@ __all__ = [
     "all_float",
     "all_string",
     "all_datetime",
+    "all_predictors",
+    "all_outcomes",
+    "all_numeric_predictors",
+    "all_nominal_predictors",
     "starts_with",
     "ends_with",
     "contains",

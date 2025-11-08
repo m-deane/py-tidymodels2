@@ -185,6 +185,17 @@
 <li class="toctree-l3"><a class="reference internal" href="user_guide/time_series.html#prophet-forecasting">Prophet Forecasting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="user_guide/time_series.html#arima-with-auto-selection">ARIMA with Auto Selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="user_guide/time_series.html#recursive-ml-forecasting">Recursive ML Forecasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/time_series.html#using-ml-models-for-time-series-regression">Using ML Models for Time Series Regression</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#random-forest-example">Random Forest Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#gradient-boosting-example-xgboost-lightgbm-catboost">Gradient Boosting Example (XGBoost/LightGBM/CatBoost)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#support-vector-machines-example">Support Vector Machines Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#k-nearest-neighbors-example">k-Nearest Neighbors Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#neural-network-mlp-example">Neural Network (MLP) Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#feature-engineering-for-ml-time-series-models">Feature Engineering for ML Time Series Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#understanding-the-three-dataframe-output">Understanding the Three-DataFrame Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="user_guide/time_series.html#comparing-multiple-ml-models">Comparing Multiple ML Models</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="user_guide/time_series.html#panel-grouped-time-series">Panel/Grouped Time Series</a></li>
 </ul>
 </li>
@@ -236,9 +247,112 @@
 <li class="toctree-l2"><a class="reference internal" href="user_guide/workflows.html#see-also">See Also</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide/visualization.html">Visualization Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#basic-usage-pattern">Basic Usage Pattern</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#forecast-visualization">Forecast Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/visualization.html#plot-forecast">plot_forecast()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/visualization.html#plot-forecast-multi">plot_forecast_multi()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#residual-diagnostics">Residual Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/visualization.html#plot-residuals">plot_residuals()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#model-comparison">Model Comparison</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/visualization.html#plot-model-comparison">plot_model_comparison()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#hyperparameter-tuning-visualization">Hyperparameter Tuning Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="user_guide/visualization.html#plot-tune-results">plot_tune_results()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#saving-and-exporting-plots">Saving and Exporting Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#advanced-customization">Advanced Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide/visualization.html#examples">Examples</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html">Complete API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#linear-generalized-models">Linear &amp; Generalized Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#linear-reg">linear_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#poisson-reg">poisson_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#gen-additive-mod">gen_additive_mod()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#tree-based-models">Tree-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#decision-tree">decision_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#rand-forest">rand_forest()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#boost-tree">boost_tree()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#support-vector-machines">Support Vector Machines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#svm-rbf">svm_rbf()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#svm-linear">svm_linear()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#instance-based-models">Instance-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#nearest-neighbor">nearest_neighbor()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#mars">mars()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#mlp">mlp()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#time-series-models">Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#arima-reg">arima_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#prophet-reg">prophet_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#exp-smoothing">exp_smoothing()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#seasonal-reg">seasonal_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#recursive-reg">recursive_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#varmax-reg">varmax_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#hybrid-time-series-models">Hybrid Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#arima-boost">arima_boost()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#prophet-boost">prophet_boost()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#generic-hybrid-models">Generic Hybrid Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#hybrid-model">hybrid_model()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#baseline-models">Baseline Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#null-model">null_model()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#naive-reg">naive_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#manual-coefficient-models">Manual Coefficient Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#manual-reg">manual_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#cross-cutting-concepts">Cross-Cutting Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#engine-selection">Engine Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#mode-setting">Mode Setting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#tunable-parameters">Tunable Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#prediction-types">Prediction Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#output-structure">Output Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#formula-syntax">Formula Syntax</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#model-selection-guide">Model Selection Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#computational-complexity">Computational Complexity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#memory-usage">Memory Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#parallelization">Parallelization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="complete_api_reference.html#common-workflows">Common Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#basic-regression">Basic Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#time-series-forecasting">Time Series Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#hyperparameter-tuning">Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="complete_api_reference.html#multi-model-comparison">Multi-Model Comparison</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/hardhat.html">py-hardhat: Data Preprocessing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/hardhat.html#core-classes">Core Classes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/hardhat.html#py_hardhat.Blueprint"><code class="docutils literal notranslate"><span class="pre">Blueprint</span></code></a><ul>
@@ -541,6 +655,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -616,6 +731,10 @@
 <li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.union"><code class="docutils literal notranslate"><span class="pre">union()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.difference"><code class="docutils literal notranslate"><span class="pre">difference()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.all_predictors"><code class="docutils literal notranslate"><span class="pre">all_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.all_outcomes"><code class="docutils literal notranslate"><span class="pre">all_outcomes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.all_numeric_predictors"><code class="docutils literal notranslate"><span class="pre">all_numeric_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.all_nominal_predictors"><code class="docutils literal notranslate"><span class="pre">all_nominal_predictors()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.has_role"><code class="docutils literal notranslate"><span class="pre">has_role()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/recipes.html#py_recipes.selectors.resolve_selector"><code class="docutils literal notranslate"><span class="pre">resolve_selector()</span></code></a></li>
 </ul>
@@ -1035,11 +1154,19 @@
 </li>
       <li><a href="api/recipes.html#py_recipes.selectors.all_integer">all_integer() (in module py_recipes.selectors)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/recipes.html#py_recipes.selectors.all_nominal">all_nominal() (in module py_recipes.selectors)</a>
 </li>
+      <li><a href="api/recipes.html#py_recipes.selectors.all_nominal_predictors">all_nominal_predictors() (in module py_recipes.selectors)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/recipes.html#py_recipes.selectors.all_numeric">all_numeric() (in module py_recipes.selectors)</a>
+</li>
+      <li><a href="api/recipes.html#py_recipes.selectors.all_numeric_predictors">all_numeric_predictors() (in module py_recipes.selectors)</a>
+</li>
+      <li><a href="api/recipes.html#py_recipes.selectors.all_outcomes">all_outcomes() (in module py_recipes.selectors)</a>
+</li>
+      <li><a href="api/recipes.html#py_recipes.selectors.all_predictors">all_predictors() (in module py_recipes.selectors)</a>
 </li>
       <li><a href="api/recipes.html#py_recipes.selectors.all_string">all_string() (in module py_recipes.selectors)</a>
 </li>
@@ -1517,6 +1644,8 @@
       <li><a href="api/recipes.html#py_recipes.Recipe.step_bs">step_bs() (py_recipes.Recipe method)</a>
 </li>
       <li><a href="api/recipes.html#py_recipes.Recipe.step_center">step_center() (py_recipes.Recipe method)</a>
+</li>
+      <li><a href="api/recipes.html#py_recipes.Recipe.step_corr">step_corr() (py_recipes.Recipe method)</a>
 </li>
       <li><a href="api/recipes.html#py_recipes.Recipe.step_cut">step_cut() (py_recipes.Recipe method)</a>
 </li>

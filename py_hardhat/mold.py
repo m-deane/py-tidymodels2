@@ -151,9 +151,53 @@ def mold(
         ValueError: If formula is invalid or references missing columns
     """
 
-    # Expand '.' wildcard in formula if present
+    # Early validation: Check if formula references columns with spaces
+    # This catches cases where outcome column has spaces before patsy parsing
+    import re
+
+    # Extract potential column names from raw formula (before expansion)
+    # Look for multi-word tokens that might be column names
+    raw_tokens = re.findall(r'[\w\s]+', formula)
+    raw_cols_with_spaces = [token.strip() for token in raw_tokens
+                            if ' ' in token.strip() and token.strip() in data.columns]
+
+    if raw_cols_with_spaces:
+        raise ValueError(
+            f"Column names used in formula cannot contain spaces. Found {len(raw_cols_with_spaces)} invalid column(s):\n"
+            f"  {raw_cols_with_spaces[:5]}\n"  # Show first 5
+            f"Please rename these columns before using them in formulas. Example:\n"
+            f"  data = data.rename(columns={{'{raw_cols_with_spaces[0]}': '{raw_cols_with_spaces[0].replace(' ', '_')}'}})\n"
+            f"Or use: data.columns = data.columns.str.replace(' ', '_')"
+        )
+
     # Patsy doesn't support '.' notation, so we expand it manually
     expanded_formula = _expand_dot_formula(formula, data)
+
+    # Validate only columns referenced in the expanded formula have no spaces
+    # Extract column names from expanded formula
+    referenced_cols = []
+
+    # Extract from Q() wrapped names: Q("column name")
+    q_wrapped = re.findall(r'Q\(["\'](.+?)["\']\)', expanded_formula)
+    referenced_cols.extend(q_wrapped)
+
+    # Extract regular Python identifiers (exclude Q to avoid duplicates)
+    regular_ids = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', expanded_formula)
+    # Filter to only actual column names in the data
+    referenced_cols.extend([col for col in regular_ids if col in data.columns and col != 'Q'])
+
+    # Remove duplicates and check for spaces
+    referenced_cols = list(set(referenced_cols))
+    invalid_cols = [col for col in referenced_cols if ' ' in col]
+
+    if invalid_cols:
+        raise ValueError(
+            f"Column names used in formula cannot contain spaces. Found {len(invalid_cols)} invalid column(s):\n"
+            f"  {invalid_cols[:5]}\n"  # Show first 5
+            f"Please rename these columns before using them in formulas. Example:\n"
+            f"  data = data.rename(columns={{'{invalid_cols[0]}': '{invalid_cols[0].replace(' ', '_')}'}})\n"
+            f"Or use: data.columns = data.columns.str.replace(' ', '_')"
+        )
 
     # Parse formula and create design matrices using patsy
     try:

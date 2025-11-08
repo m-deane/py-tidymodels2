@@ -5,7 +5,7 @@ Provides advanced time series features including holiday detection and Fourier t
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 import pandas as pd
 import numpy as np
 
@@ -19,13 +19,13 @@ class StepHoliday:
     Useful for capturing holiday effects in time series models.
 
     Attributes:
-        date_column: Column containing dates
+        date_column: Column containing dates. Can be a string or list of strings (first element is used).
         country: Country code for holidays (e.g., 'US', 'UK', 'CA')
         holidays: List of specific holidays to include (None = all major holidays)
         prefix: Prefix for created columns (default: 'holiday_')
     """
 
-    date_column: str
+    date_column: Union[str, List[str]]
     country: str = "US"
     holidays: Optional[List[str]] = None
     prefix: str = "holiday_"
@@ -41,9 +41,17 @@ class StepHoliday:
         Returns:
             PreparedStepHoliday ready to create features
         """
-        if self.date_column not in data.columns:
+        # Normalize date_column to string
+        if isinstance(self.date_column, list):
+            if len(self.date_column) == 0:
+                raise ValueError("date_column list cannot be empty")
+            date_col = self.date_column[0]  # Take first element
+        else:
+            date_col = self.date_column
+
+        if date_col not in data.columns:
             return PreparedStepHoliday(
-                date_column=self.date_column,
+                date_column=date_col,
                 country=self.country,
                 holidays=self.holidays or [],
                 prefix=self.prefix,
@@ -76,7 +84,7 @@ class StepHoliday:
             feature_names.append(f"{self.prefix}{clean_name}")
 
         return PreparedStepHoliday(
-            date_column=self.date_column,
+            date_column=date_col,
             country=self.country,
             holidays=holidays_to_use,
             prefix=self.prefix,
@@ -231,13 +239,13 @@ class StepFourier:
     seasonal patterns in time series data.
 
     Attributes:
-        date_column: Column containing dates or numeric time index
+        date_column: Column containing dates or numeric time index. Can be a string or list of strings (first element is used).
         period: Period of seasonality (e.g., 365 for yearly, 12 for monthly)
         K: Number of Fourier term pairs to include (default: 5)
         prefix: Prefix for created columns (default: 'fourier_')
     """
 
-    date_column: str
+    date_column: Union[str, List[str]]
     period: float
     K: int = 5
     prefix: str = "fourier_"
@@ -253,9 +261,17 @@ class StepFourier:
         Returns:
             PreparedStepFourier ready to create features
         """
-        if self.date_column not in data.columns:
+        # Normalize date_column to string
+        if isinstance(self.date_column, list):
+            if len(self.date_column) == 0:
+                raise ValueError("date_column list cannot be empty")
+            date_col = self.date_column[0]  # Take first element
+        else:
+            date_col = self.date_column
+
+        if date_col not in data.columns:
             return PreparedStepFourier(
-                date_column=self.date_column,
+                date_column=date_col,
                 period=self.period,
                 K=self.K,
                 prefix=self.prefix,
@@ -269,7 +285,7 @@ class StepFourier:
             feature_names.append(f"{self.prefix}cos_{k}")
 
         return PreparedStepFourier(
-            date_column=self.date_column,
+            date_column=date_col,
             period=self.period,
             K=self.K,
             prefix=self.prefix,
@@ -421,12 +437,12 @@ class StepTimeseriesSignature:
     - Month/quarter start/end indicators
 
     Attributes:
-        date_column: Column containing dates
+        date_column: Column containing dates. Can be a string or list of strings (first element is used).
         features: List of features to extract (None = all)
         prefix: Prefix for created columns (default: '')
     """
 
-    date_column: str
+    date_column: Union[str, List[str]]
     features: Optional[List[str]] = None
     prefix: str = ""
 
@@ -441,9 +457,17 @@ class StepTimeseriesSignature:
         Returns:
             PreparedStepTimeseriesSignature ready to extract features
         """
-        if self.date_column not in data.columns:
+        # Normalize date_column to string
+        if isinstance(self.date_column, list):
+            if len(self.date_column) == 0:
+                raise ValueError("date_column list cannot be empty")
+            date_col = self.date_column[0]  # Take first element
+        else:
+            date_col = self.date_column
+
+        if date_col not in data.columns:
             return PreparedStepTimeseriesSignature(
-                date_column=self.date_column,
+                date_column=date_col,
                 features=self.features or [],
                 prefix=self.prefix,
                 feature_names=[]
@@ -464,7 +488,7 @@ class StepTimeseriesSignature:
         feature_names = [f"{self.prefix}{feat}" for feat in available_features]
 
         return PreparedStepTimeseriesSignature(
-            date_column=self.date_column,
+            date_column=date_col,
             features=available_features,
             prefix=self.prefix,
             feature_names=feature_names

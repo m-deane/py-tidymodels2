@@ -84,6 +84,7 @@ def hybrid_model(
         blend_predictions: For custom_data strategy - how to combine predictions
             - "weighted": weight1 * pred1 + weight2 * pred2 (default)
             - "avg": simple average (0.5 * pred1 + 0.5 * pred2)
+            - "sum": sum of predictions (pred1 + pred2)
             - "model1": use only model1 predictions
             - "model2": use only model2 predictions
         engine: Computational engine (default "generic_hybrid")
@@ -176,7 +177,7 @@ def hybrid_model(
 
     # Validate blend_predictions for custom_data
     if strategy == "custom_data":
-        valid_blend_types = ["weighted", "avg", "model1", "model2"]
+        valid_blend_types = ["weighted", "avg", "sum", "model1", "model2"]
         if blend_predictions not in valid_blend_types:
             raise ValueError(
                 f"blend_predictions must be one of {valid_blend_types}, got '{blend_predictions}'"

@@ -452,6 +452,60 @@ if pd.api.types.is_datetime64_any_dtype(data[predictor]):
 - `py_parsnip/engines/prophet_engine.py:44` - fit_raw() implementation
 - `py_parsnip/engines/statsmodels_arima.py:44` - fit_raw() implementation with datetime detection
 
+### Datetime Columns in Auto-Generated Formulas
+**Problem:** When using workflows with recipes (no explicit formula), datetime columns were included in auto-generated formulas, causing categorical encoding errors during prediction.
+
+**User Error Example:**
+```python
+# Data with date column
+data = pd.DataFrame({
+    'date': pd.date_range('2020-01-01', periods=100),
+    'x1': [...],'x2': [...], 'target': [...]
+})
+
+# Recipe without explicit formula
+rec = recipe().step_normalize()
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+fit = wf.fit(train_data)  # Train dates: 2020-01 to 2023-09
+fit = fit.evaluate(test_data)  # Test dates: 2023-10+
+
+# ERROR: "observation with value Timestamp('2023-10-01') does not match
+# any of the expected levels" - Patsy treated date as categorical!
+```
+
+**Root Cause:** Workflow auto-generated formula `"target ~ date + x1 + x2"` included the datetime column. Patsy treats datetime as categorical, failing when test data has new dates.
+
+**Solution:** Auto-generated formulas now automatically exclude datetime columns:
+```python
+# In py_workflows/workflow.py:216-225
+predictor_cols = [
+    col for col in processed_data.columns
+    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
+]
+formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
+```
+
+**Result:**
+```python
+# Same code now works!
+rec = recipe().step_normalize()
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+fit = wf.fit(train_data)  # Auto-formula: "target ~ x1 + x2" (date excluded)
+fit = fit.evaluate(test_data)  # ✅ Works with new dates!
+```
+
+**Important Notes:**
+- Only affects AUTO-generated formulas (when recipe used without explicit formula)
+- If user provides explicit formula via `.add_formula()`, it's used as-is
+- Multiple datetime columns are all excluded automatically
+- Non-time-series data (no datetime columns) unaffected
+
+**Code References:**
+- `py_workflows/workflow.py:216-225` - Datetime column exclusion logic
+- `tests/test_workflows/test_datetime_exclusion.py` - 5 comprehensive tests
+
 ### Recursive Forecasting with skforecast
 **Purpose:** Multi-step time series forecasting using lagged features and recursive prediction.
 

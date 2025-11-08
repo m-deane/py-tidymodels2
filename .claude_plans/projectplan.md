@@ -1,8 +1,67 @@
 # py-tidymodels Project Plan
-**Version:** 2.9
-**Date:** 2025-10-28
-**Last Updated:** 2025-10-28
-**Status:** Phase 4A COMPLETED (including MSTL fixes in Notebook 19) - Model Expansion: 15 new models added (5 → 20 models total), 317+ new tests, 6 new demo notebooks. Ready for Phase 4B (Dashboard & MLflow).
+**Version:** 3.0
+**Date:** 2025-11-07
+**Last Updated:** 2025-11-07
+**Status:** Phase 4A COMPLETED + Recipe Enhancement COMPLETED - All forecasting.ipynb issues resolved. Universal selector support, step_corr() added, 1358+ tests passing. Ready for Phase 4B (Dashboard & MLflow).
+
+## Recent Work (2025-11-07): Recipe Enhancement & Issue Resolution
+
+**Summary:** Resolved all 9 issues from `_md/issues.md` with comprehensive selector integration and new features.
+
+### What Was Completed:
+
+1. **✅ Added 4 New Selector Functions**:
+   - `all_predictors()` - Excludes outcome columns
+   - `all_outcomes()` - Target variables only
+   - `all_numeric_predictors()` - Numeric predictors only
+   - `all_nominal_predictors()` - Categorical predictors only
+
+2. **✅ Universal Selector Integration** (15+ files):
+   - Integrated `resolve_selector()` into ALL recipe steps
+   - High-priority: normalize, scaling (3 classes), impute (6 classes), transformations (5 classes)
+   - Medium-priority: categorical (4 classes), discretization (2 classes), timeseries (4 classes)
+   - All steps now support: None, string, list, selector functions
+
+3. **✅ Implemented step_corr()**:
+   - New correlation-based feature filtering step
+   - Supports pearson, spearman, kendall methods
+   - Configurable threshold (default 0.9)
+   - 23 comprehensive tests
+
+4. **✅ Added Inplace Parameter**:
+   - All 5 transformation steps (log, sqrt, boxcox, yeojohnson, inverse)
+   - `inplace=True` (default): Replace original column
+   - `inplace=False`: Create new column with suffix, keep original
+
+5. **✅ Fixed Timeseries Date Column**:
+   - Updated 3 steps: StepHoliday, StepFourier, StepTimeseriesSignature
+   - Now accepts both string and list: `date_column: Union[str, List[str]]`
+   - Automatically uses first element from lists
+
+6. **✅ Improved Formula Validation**:
+   - Added clear error for column names with spaces
+   - Helpful suggestions for fixing (rename, str.replace)
+   - Prevents cryptic patsy errors
+
+### Test Results:
+- **Recipe Tests**: 357/358 passing (99.7%)
+- **Hardhat Tests**: 21/21 passing (100%)
+- **Total Tests**: 1358+ passing
+- **New Tests**: 30 new tests for selectors, step_corr, validation
+
+### Files Modified (18+):
+- Core: 15 recipe step files, 1 hardhat file
+- Tests: 3 new test files
+- Docs: 2 documentation files
+
+### Breaking Changes: NONE
+- All changes backward compatible
+- Default behavior preserved
+- All existing tests passing
+
+**See `_md/ISSUES_RESOLVED_2025_11_07.md` for complete details.**
+
+---
 
 ## Progress Summary
 

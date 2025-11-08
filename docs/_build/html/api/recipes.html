@@ -188,6 +188,17 @@
 <li class="toctree-l3"><a class="reference internal" href="../user_guide/time_series.html#prophet-forecasting">Prophet Forecasting</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../user_guide/time_series.html#arima-with-auto-selection">ARIMA with Auto Selection</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../user_guide/time_series.html#recursive-ml-forecasting">Recursive ML Forecasting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/time_series.html#using-ml-models-for-time-series-regression">Using ML Models for Time Series Regression</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#random-forest-example">Random Forest Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#gradient-boosting-example-xgboost-lightgbm-catboost">Gradient Boosting Example (XGBoost/LightGBM/CatBoost)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#support-vector-machines-example">Support Vector Machines Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#k-nearest-neighbors-example">k-Nearest Neighbors Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#neural-network-mlp-example">Neural Network (MLP) Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#feature-engineering-for-ml-time-series-models">Feature Engineering for ML Time Series Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#understanding-the-three-dataframe-output">Understanding the Three-DataFrame Output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/time_series.html#comparing-multiple-ml-models">Comparing Multiple ML Models</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../user_guide/time_series.html#panel-grouped-time-series">Panel/Grouped Time Series</a></li>
 </ul>
 </li>
@@ -239,9 +250,112 @@
 <li class="toctree-l2"><a class="reference internal" href="../user_guide/workflows.html#see-also">See Also</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/visualization.html">Visualization Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#basic-usage-pattern">Basic Usage Pattern</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#forecast-visualization">Forecast Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/visualization.html#plot-forecast">plot_forecast()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/visualization.html#plot-forecast-multi">plot_forecast_multi()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#residual-diagnostics">Residual Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/visualization.html#plot-residuals">plot_residuals()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#model-comparison">Model Comparison</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/visualization.html#plot-model-comparison">plot_model_comparison()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#hyperparameter-tuning-visualization">Hyperparameter Tuning Visualization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../user_guide/visualization.html#plot-tune-results">plot_tune_results()</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#saving-and-exporting-plots">Saving and Exporting Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#advanced-customization">Advanced Customization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#best-practices">Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#api-reference">API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user_guide/visualization.html#examples">Examples</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html">Complete API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#linear-generalized-models">Linear &amp; Generalized Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#linear-reg">linear_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#poisson-reg">poisson_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#gen-additive-mod">gen_additive_mod()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#tree-based-models">Tree-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#decision-tree">decision_tree()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#rand-forest">rand_forest()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#boost-tree">boost_tree()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#support-vector-machines">Support Vector Machines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#svm-rbf">svm_rbf()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#svm-linear">svm_linear()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#instance-based-models">Instance-Based Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#nearest-neighbor">nearest_neighbor()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#mars">mars()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#mlp">mlp()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#time-series-models">Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#arima-reg">arima_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#prophet-reg">prophet_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#exp-smoothing">exp_smoothing()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#seasonal-reg">seasonal_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#recursive-reg">recursive_reg()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#varmax-reg">varmax_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#hybrid-time-series-models">Hybrid Time Series Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#arima-boost">arima_boost()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#prophet-boost">prophet_boost()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#generic-hybrid-models">Generic Hybrid Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#hybrid-model">hybrid_model()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#baseline-models">Baseline Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#null-model">null_model()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#naive-reg">naive_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#manual-coefficient-models">Manual Coefficient Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#manual-reg">manual_reg()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#cross-cutting-concepts">Cross-Cutting Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#engine-selection">Engine Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#mode-setting">Mode Setting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#tunable-parameters">Tunable Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#prediction-types">Prediction Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#output-structure">Output Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#formula-syntax">Formula Syntax</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#performance-considerations">Performance Considerations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#model-selection-guide">Model Selection Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#computational-complexity">Computational Complexity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#memory-usage">Memory Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#parallelization">Parallelization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../complete_api_reference.html#common-workflows">Common Workflows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#basic-regression">Basic Regression</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#time-series-forecasting">Time Series Forecasting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#hyperparameter-tuning">Hyperparameter Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../complete_api_reference.html#multi-model-comparison">Multi-Model Comparison</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="hardhat.html">py-hardhat: Data Preprocessing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="hardhat.html#core-classes">Core Classes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="hardhat.html#py_hardhat.Blueprint"><code class="docutils literal notranslate"><span class="pre">Blueprint</span></code></a><ul>
@@ -544,6 +658,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -619,6 +734,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.union"><code class="docutils literal notranslate"><span class="pre">union()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.intersection"><code class="docutils literal notranslate"><span class="pre">intersection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.difference"><code class="docutils literal notranslate"><span class="pre">difference()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.all_predictors"><code class="docutils literal notranslate"><span class="pre">all_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.all_outcomes"><code class="docutils literal notranslate"><span class="pre">all_outcomes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.all_numeric_predictors"><code class="docutils literal notranslate"><span class="pre">all_numeric_predictors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.all_nominal_predictors"><code class="docutils literal notranslate"><span class="pre">all_nominal_predictors()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.has_role"><code class="docutils literal notranslate"><span class="pre">has_role()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#py_recipes.selectors.resolve_selector"><code class="docutils literal notranslate"><span class="pre">resolve_selector()</span></code></a></li>
 </ul>
@@ -1329,6 +1448,47 @@ Options: “year”, “month”, “day”, “dayofweek”, “dayofyear”, �
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="py_recipes.Recipe.step_corr">
+<span class="sig-name descname"><span class="pre">step_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_corr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_corr" title="Link to this definition"></a></dt>
+<dd><p>Remove highly correlated features.</p>
+<p>Identifies pairs of features with correlation above the threshold and removes
+one from each pair. For each correlated pair, keeps the feature with lower
+mean absolute correlation with all other features.</p>
+<p>This is useful for removing multicollinearity among predictors before modeling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threshold</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Correlation threshold (default 0.9). Pairs with abs(correlation) &gt; threshold are flagged</p></li>
+<li><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to check (None = all numeric)</p></li>
+<li><p><strong>method</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Correlation method (‘pearson’, ‘spearman’, ‘kendall’)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#py_recipes.Recipe" title="py_recipes.recipe.Recipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Recipe</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Self for method chaining</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Remove features with correlation &gt; 0.9 (default)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">()</span><span class="o">.</span><span class="n">step_corr</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use custom threshold</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">()</span><span class="o">.</span><span class="n">step_corr</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Check specific columns</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">()</span><span class="o">.</span><span class="n">step_corr</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="s1">&#39;x2&#39;</span><span class="p">,</span> <span class="s1">&#39;x3&#39;</span><span class="p">],</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.95</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use Spearman correlation for non-linear relationships</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">Recipe</span><span class="p">()</span><span class="o">.</span><span class="n">step_corr</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;spearman&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_select_corr">
 <span class="sig-name descname"><span class="pre">step_select_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outcome</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'multicollinearity'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_select_corr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_select_corr" title="Link to this definition"></a></dt>
 <dd><p>Select features based on correlation.</p>
@@ -1362,7 +1522,7 @@ high correlation with other predictors (multicollinearity).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_log">
-<span class="sig-name descname"><span class="pre">step_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.718281828459045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_log" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.718281828459045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_log" title="Link to this definition"></a></dt>
 <dd><p>Apply logarithmic transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1371,6 +1531,7 @@ high correlation with other predictors (multicollinearity).</p>
 <li><p><strong>base</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Logarithm base (default: natural log)</p></li>
 <li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Value added before transformation (default: 0)</p></li>
 <li><p><strong>signed</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, preserves sign (default: False)</p></li>
+<li><p><strong>inplace</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, replace original columns; if False, create new columns with suffix (default: True)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1384,11 +1545,14 @@ high correlation with other predictors (multicollinearity).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_sqrt">
-<span class="sig-name descname"><span class="pre">step_sqrt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_sqrt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_sqrt" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step_sqrt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_sqrt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_sqrt" title="Link to this definition"></a></dt>
 <dd><p>Apply square root transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to transform (None = all numeric)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to transform (None = all numeric)</p></li>
+<li><p><strong>inplace</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, replace original columns; if False, create new columns with suffix (default: True)</p></li>
+</ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#py_recipes.Recipe" title="py_recipes.recipe.Recipe"><code class="xref py py-class docutils literal notranslate"><span class="pre">Recipe</span></code></a></span></p>
@@ -1401,13 +1565,14 @@ high correlation with other predictors (multicollinearity).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_boxcox">
-<span class="sig-name descname"><span class="pre">step_boxcox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_boxcox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_boxcox" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step_boxcox</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_boxcox"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_boxcox" title="Link to this definition"></a></dt>
 <dd><p>Apply Box-Cox power transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to transform (None = all numeric)</p></li>
 <li><p><strong>lambdas</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]]</span>) – Optional dict of lambda parameters</p></li>
+<li><p><strong>inplace</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, replace original columns; if False, create new columns with suffix (default: True)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1421,13 +1586,14 @@ high correlation with other predictors (multicollinearity).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_yeojohnson">
-<span class="sig-name descname"><span class="pre">step_yeojohnson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_yeojohnson"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_yeojohnson" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step_yeojohnson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_yeojohnson"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_yeojohnson" title="Link to this definition"></a></dt>
 <dd><p>Apply Yeo-Johnson power transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to transform (None = all numeric)</p></li>
 <li><p><strong>lambdas</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]]</span>) – Optional dict of lambda parameters</p></li>
+<li><p><strong>inplace</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, replace original columns; if False, create new columns with suffix (default: True)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1441,13 +1607,14 @@ high correlation with other predictors (multicollinearity).</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="py_recipes.Recipe.step_inverse">
-<span class="sig-name descname"><span class="pre">step_inverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_inverse" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">step_inverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/recipe.html#Recipe.step_inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.Recipe.step_inverse" title="Link to this definition"></a></dt>
 <dd><p>Apply inverse transformation (1/x).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>columns</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span>) – Columns to transform (None = all numeric)</p></li>
 <li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a></span>) – Value added before inversion to avoid division by zero (default: 0)</p></li>
+<li><p><strong>inplace</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – If True, replace original columns; if False, create new columns with suffix (default: True)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -2910,6 +3077,100 @@ Inspired by tidymodels recipes::selections.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">selector</span> <span class="o">=</span> <span class="n">difference</span><span class="p">(</span><span class="n">all_numeric</span><span class="p">(),</span> <span class="n">one_of</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">))</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">selector</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 <span class="go">[&#39;x&#39;, &#39;z&#39;]</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="py_recipes.selectors.all_predictors">
+<span class="sig-prename descclassname"><span class="pre">py_recipes.selectors.</span></span><span class="sig-name descname"><span class="pre">all_predictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/selectors.html#all_predictors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.selectors.all_predictors" title="Link to this definition"></a></dt>
+<dd><p>Select all predictor columns (excludes outcome columns).</p>
+<p>This requires the selector to be used within a Recipe context
+where roles are defined. Outside recipe context, returns all columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Function that takes a DataFrame and returns predictor column names</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Within a recipe context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">recipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;y ~ x1 + x2 + x3&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">rec</span><span class="o">.</span><span class="n">step_normalize</span><span class="p">(</span><span class="n">all_predictors</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="py_recipes.selectors.all_outcomes">
+<span class="sig-prename descclassname"><span class="pre">py_recipes.selectors.</span></span><span class="sig-name descname"><span class="pre">all_outcomes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/selectors.html#all_outcomes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.selectors.all_outcomes" title="Link to this definition"></a></dt>
+<dd><p>Select all outcome columns (target variables).</p>
+<p>This requires the selector to be used within a Recipe context
+where roles are defined. Outside recipe context, looks for common names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Function that takes a DataFrame and returns outcome column names</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Within a recipe context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">recipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;y ~ x1 + x2 + x3&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">rec</span><span class="o">.</span><span class="n">step_log</span><span class="p">(</span><span class="n">all_outcomes</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="py_recipes.selectors.all_numeric_predictors">
+<span class="sig-prename descclassname"><span class="pre">py_recipes.selectors.</span></span><span class="sig-name descname"><span class="pre">all_numeric_predictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/selectors.html#all_numeric_predictors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.selectors.all_numeric_predictors" title="Link to this definition"></a></dt>
+<dd><p>Select all numeric predictor columns (excludes outcome columns).</p>
+<p>Combines numeric type filtering with predictor role filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Function that takes a DataFrame and returns numeric predictor column names</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Within a recipe context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">recipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;y ~ x1 + x2 + category&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">rec</span><span class="o">.</span><span class="n">step_normalize</span><span class="p">(</span><span class="n">all_numeric_predictors</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="py_recipes.selectors.all_nominal_predictors">
+<span class="sig-prename descclassname"><span class="pre">py_recipes.selectors.</span></span><span class="sig-name descname"><span class="pre">all_nominal_predictors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_recipes/selectors.html#all_nominal_predictors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_recipes.selectors.all_nominal_predictors" title="Link to this definition"></a></dt>
+<dd><p>Select all nominal (categorical) predictor columns (excludes outcome columns).</p>
+<p>Combines categorical type filtering with predictor role filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></a>[[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Function that takes a DataFrame and returns nominal predictor column names</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Within a recipe context</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">recipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;y ~ x1 + x2 + category&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rec</span> <span class="o">=</span> <span class="n">rec</span><span class="o">.</span><span class="n">step_dummy</span><span class="p">(</span><span class="n">all_nominal_predictors</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>

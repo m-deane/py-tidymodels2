@@ -22,6 +22,7 @@ Features
 * **Workflow Pipelines**: Compose preprocessing + model + postprocessing
 * **Panel Modeling**: Fit separate models per group or global models
 * **Model Ensembling**: Stack models with elastic net meta-learning
+* **Interactive Visualizations**: Plotly-based plots for forecasting, diagnostics, and model comparison
 
 Quick Start
 -----------
@@ -123,11 +124,13 @@ Contents
    user_guide/time_series
    user_guide/tuning
    user_guide/workflows
+   user_guide/visualization
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
 
+   complete_api_reference
    api/hardhat
    api/parsnip
    api/rsample
