@@ -5,7 +5,7 @@ Wraps sklearn OneHotEncoder for creating indicator variables.
 """
 
 from dataclasses import dataclass
-from typing import List, Any
+from typing import List, Any, Union, Callable
 import pandas as pd
 
 
@@ -17,11 +17,11 @@ class StepDummy:
     Converts categorical variables to numeric using one-hot encoding.
 
     Attributes:
-        columns: Categorical columns to encode
+        columns: Categorical columns to encode (list of strings or selector function)
         one_hot: Use one-hot encoding (True) or integer encoding (False)
     """
 
-    columns: List[str]
+    columns: Union[List[str], Callable]
     one_hot: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepDummy":
@@ -36,9 +36,22 @@ class StepDummy:
             PreparedStepDummy with fitted encoder
         """
         from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+        from py_recipes.selectors import resolve_selector
+
+        # Resolve selector to column list
+        if callable(self.columns):
+            cols = resolve_selector(self.columns, data)
+        else:
+            cols = self.columns
 
         # Filter to existing columns
-        existing_cols = [col for col in self.columns if col in data.columns]
+        existing_cols = [col for col in cols if col in data.columns]
+
+        # Exclude datetime columns (cannot be dummy encoded)
+        existing_cols = [
+            c for c in existing_cols
+            if not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         if len(existing_cols) == 0:
             return PreparedStepDummy(

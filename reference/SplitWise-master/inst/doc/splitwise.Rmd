@@ -1,0 +1,86 @@
+---
+title: "Using the SplitWise Package with the mtcars Dataset"
+authors: "Marcell T. Kurbucz, Nikolaos Tzivanakis, Nilufer Sari Aslam, Adam M. Sykulski"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_depth: 2
+    toc_float: true
+vignette: >
+  %\VignetteIndexEntry{Using the SplitWise Package with the mtcars Dataset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r load-package, include = FALSE}
+library(SplitWise)
+```
+
+# Introduction
+
+The `SplitWise` package provides tools for transforming numeric variables in regression models by either applying a single-split dummy encoding or retaining them as linear terms. This vignette demonstrates the application of `SplitWise` using the `mtcars` dataset, showcasing both univariate and iterative transformation approaches.
+
+# The mtcars Dataset
+
+The `mtcars` dataset is a built-in R dataset that comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).
+
+```{r mtcars}
+# Load the mtcars dataset
+data(mtcars)
+```
+
+# Iterative Transformations
+
+The iterative transformation approach evaluates each variable's transformation in the context of variables already added to the model. Here is an example using forward stepwise selection:
+
+```{r iterative-transformation}
+# Apply iterative transformations with forward stepwise selection
+model_iter <- splitwise(
+  mpg ~ .,
+  data = mtcars,
+  transformation_mode = "iterative",
+  direction = "backward",
+  verbose = FALSE
+)
+
+# Display the summary of the model
+summary(model_iter)
+
+# Print the model details
+print(model_iter)
+```
+
+# Univariate Transformations
+
+In the univariate transformation approach, each numeric predictor is transformed independently without considering the context of other variables. Below is an example of applying univariate transformations with backward stepwise selection:
+
+```{r univariate-transformation}
+# Apply univariate transformations with backward stepwise selection
+model_uni <- splitwise(
+  mpg ~ .,
+  data = mtcars,
+  transformation_mode = "univariate",
+  direction = "backward",
+  verbose = FALSE
+)
+
+# Display the summary of the model
+summary(model_uni)
+
+# Print the model details
+print(model_uni)
+```
+
+# Conclusion
+
+This vignette illustrated how to utilize the `SplitWise` package to perform both univariate and iterative transformations on the `mtcars` dataset. Depending on the analysis requirements, users can choose the appropriate transformation approach to enhance their regression models.

@@ -20,8 +20,8 @@ def plot_forecast(
 ) -> go.Figure:
     """Create interactive forecast plot with actual vs predicted values.
 
-    Displays training data, fitted values, and forecasts (if available) with
-    optional prediction intervals.
+    Displays actuals as one continuous line, fitted values split by train/test,
+    and optional prediction intervals.
 
     Parameters
     ----------
@@ -101,46 +101,48 @@ def _plot_forecast_single(
     test_data = outputs[outputs["split"] == "test"].copy() if "test" in outputs["split"].values else pd.DataFrame()
 
     # Determine x-axis (date or index)
-    x_col = "date" if "date" in outputs.columns else outputs.index
+    x_train = train_data["date"] if "date" in train_data.columns else train_data.index
+    x_test = test_data["date"] if "date" in test_data.columns and len(test_data) > 0 else (test_data.index if len(test_data) > 0 else None)
 
-    # Training data (actuals)
-    if len(train_data) > 0:
-        x_train = train_data["date"] if "date" in train_data.columns else train_data.index
+    # 1. ACTUALS - One continuous line (train + test)
+    if len(train_data) > 0 or len(test_data) > 0:
+        # Combine train and test actuals
+        if x_test is not None and len(test_data) > 0:
+            # Check if x values are Series or Index
+            if isinstance(x_train, pd.Series) and isinstance(x_test, pd.Series):
+                x_all = pd.concat([x_train, x_test])
+            else:
+                # For Index objects, convert to list and concatenate
+                x_all = list(x_train) + list(x_test)
+            y_all = pd.concat([train_data["actuals"], test_data["actuals"]])
+        else:
+            x_all = x_train
+            y_all = train_data["actuals"]
+
         fig.add_trace(go.Scatter(
-            x=x_train,
-            y=train_data["actuals"],
-            name="Training Data",
+            x=x_all,
+            y=y_all,
+            name="Actuals",
             mode="lines",
             line=dict(color="#1f77b4", width=2)
         ))
 
-        # Fitted values (training)
+    # 2. FITTED VALUES (TRAIN) - Orange dashed
+    if len(train_data) > 0:
         fig.add_trace(go.Scatter(
             x=x_train,
             y=train_data["fitted"],
-            name="Fitted Values",
+            name="Fitted (Train)",
             mode="lines",
-            line=dict(color="#ff7f0e", width=2, dash="dot")
+            line=dict(color="#ff7f0e", width=2, dash="dash")
         ))
 
-    # Test data (actuals and forecast)
+    # 3. FITTED VALUES (TEST) - Red dashed
     if len(test_data) > 0:
-        x_test = test_data["date"] if "date" in test_data.columns else test_data.index
-
-        # Test actuals
         fig.add_trace(go.Scatter(
             x=x_test,
-            y=test_data["actuals"],
-            name="Test Data",
-            mode="lines",
-            line=dict(color="#2ca02c", width=2)
-        ))
-
-        # Forecast
-        fig.add_trace(go.Scatter(
-            x=x_test,
-            y=test_data["forecast"],
-            name="Forecast",
+            y=test_data["fitted"],
+            name="Fitted (Test)",
             mode="lines",
             line=dict(color="#d62728", width=2, dash="dash")
         ))
@@ -215,58 +217,60 @@ def _plot_forecast_nested(
         group_data = outputs[outputs[group_col] == group].copy()
 
         # Filter by split
-        train_data = group_data[group_data["split"] == "train"]
-        test_data = group_data[group_data["split"] == "test"] if "test" in group_data["split"].values else pd.DataFrame()
+        train_data = group_data[group_data["split"] == "train"].copy()
+        test_data = group_data[group_data["split"] == "test"].copy() if "test" in group_data["split"].values else pd.DataFrame()
 
         # Determine x-axis
         x_train = train_data["date"] if "date" in train_data.columns else train_data.index
-        x_test = test_data["date"] if "date" in test_data.columns and len(test_data) > 0 else (test_data.index if len(test_data) > 0 else [])
+        x_test = test_data["date"] if "date" in test_data.columns and len(test_data) > 0 else (test_data.index if len(test_data) > 0 else None)
 
-        # Training data
-        if len(train_data) > 0:
-            # Actuals
+        # 1. ACTUALS - One continuous line (train + test)
+        if len(train_data) > 0 or len(test_data) > 0:
+            # Combine train and test actuals
+            if x_test is not None and len(test_data) > 0:
+                # Check if x values are Series or Index
+                if isinstance(x_train, pd.Series) and isinstance(x_test, pd.Series):
+                    x_all = pd.concat([x_train, x_test])
+                else:
+                    # For Index objects, convert to list and concatenate
+                    x_all = list(x_train) + list(x_test)
+                y_all = pd.concat([train_data["actuals"], test_data["actuals"]])
+            else:
+                x_all = x_train
+                y_all = train_data["actuals"]
+
             fig.add_trace(go.Scatter(
-                x=x_train,
-                y=train_data["actuals"],
-                name=f"Training ({group})",
+                x=x_all,
+                y=y_all,
+                name="Actuals",
                 mode="lines",
                 line=dict(color="#1f77b4", width=2),
                 showlegend=(i == 1)  # Only show legend for first group
             ), row=i, col=1)
 
-            # Fitted
+        # 2. FITTED VALUES (TRAIN) - Orange dashed
+        if len(train_data) > 0:
             fig.add_trace(go.Scatter(
                 x=x_train,
                 y=train_data["fitted"],
-                name=f"Fitted ({group})",
+                name="Fitted (Train)",
                 mode="lines",
-                line=dict(color="#ff7f0e", width=2, dash="dot"),
+                line=dict(color="#ff7f0e", width=2, dash="dash"),
                 showlegend=(i == 1)
             ), row=i, col=1)
 
-        # Test data
+        # 3. FITTED VALUES (TEST) - Red dashed
         if len(test_data) > 0:
-            # Actuals
             fig.add_trace(go.Scatter(
                 x=x_test,
-                y=test_data["actuals"],
-                name=f"Test ({group})",
-                mode="lines",
-                line=dict(color="#2ca02c", width=2),
-                showlegend=(i == 1)
-            ), row=i, col=1)
-
-            # Forecast
-            fig.add_trace(go.Scatter(
-                x=x_test,
-                y=test_data["forecast"],
-                name=f"Forecast ({group})",
+                y=test_data["fitted"],
+                name="Fitted (Test)",
                 mode="lines",
                 line=dict(color="#d62728", width=2, dash="dash"),
                 showlegend=(i == 1)
             ), row=i, col=1)
 
-            # Prediction intervals
+            # 4. Prediction intervals (if available)
             if prediction_intervals and ".pred_lower" in test_data.columns and ".pred_upper" in test_data.columns:
                 fig.add_trace(go.Scatter(
                     x=x_test,

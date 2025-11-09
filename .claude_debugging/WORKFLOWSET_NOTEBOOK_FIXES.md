@@ -762,3 +762,209 @@ After these fixes, the notebook should:
 
 **Documentation:**
 - `.claude_debugging/WORKFLOWSET_NOTEBOOK_FIXES.md` - This file
+
+---
+
+## Issue 16: Plot Forecast Refactoring
+
+**Date:** 2025-11-08
+**Location:** `forecasting.ipynb`
+**Component:** `py_visualize/forecast.py` - `plot_forecast()` function
+
+### Problem
+
+User requested specific plotting behavior for forecast plots:
+1. **Actuals should be ONE continuous line** (not split by train/test)
+2. **Fitted values should be split by train/test** with different colors:
+   - Train: Orange dashed
+   - Test: Red dashed
+3. **Forecast line should NEVER be plotted** in these plots
+
+### Original Implementation
+
+The original `plot_forecast()` function had:
+- Actuals split by train (blue) and test (green) as separate lines
+- Fitted values only shown for training data (orange dotted)
+- Optional forecast line shown for test data (red dashed)
+- `show_forecast` parameter to toggle forecast display
+
+### Root Cause
+
+The plotting logic didn't match user's visualization requirements for model diagnostic plots. The function was designed for showing forecasts (future predictions), but user wanted diagnostic plots showing model fit quality.
+
+### Fix Applied
+
+**1. Removed `show_forecast` Parameter**
+- Simplified API by removing optional parameter
+- Forecast line never displayed in these diagnostic plots
+
+**2. Refactored `_plot_forecast_single()` (lines 88-180):**
+
+**Before:**
+```python
+# Training data - Actuals (blue line)
+fig.add_trace(go.Scatter(
+    x=x_train,
+    y=train_data["actuals"],
+    name="Training",
+    line=dict(color="#1f77b4")
+))
+
+# Training data - Fitted (orange dotted)
+fig.add_trace(go.Scatter(
+    x=x_train,
+    y=train_data["fitted"],
+    name="Fitted",
+    line=dict(color="#ff7f0e", dash="dot")
+))
+
+# Test data - Actuals (green line)
+fig.add_trace(go.Scatter(
+    x=x_test,
+    y=test_data["actuals"],
+    name="Test",
+    line=dict(color="#2ca02c")
+))
+
+# Test data - Forecast (optional, red dashed)
+if show_forecast:
+    fig.add_trace(go.Scatter(
+        x=x_test,
+        y=test_data["forecast"],
+        name="Forecast",
+        line=dict(color="#d62728", dash="dash")
+    ))
+```
+
+**After:**
+```python
+# 1. ACTUALS - One continuous line (train + test combined)
+if x_test is not None and len(test_data) > 0:
+    # Check if x values are Series or Index
+    if isinstance(x_train, pd.Series) and isinstance(x_test, pd.Series):
+        x_all = pd.concat([x_train, x_test])
+    else:
+        # For Index objects, convert to list and concatenate
+        x_all = list(x_train) + list(x_test)
+    y_all = pd.concat([train_data["actuals"], test_data["actuals"]])
+else:
+    x_all = x_train
+    y_all = train_data["actuals"]
+
+fig.add_trace(go.Scatter(
+    x=x_all,
+    y=y_all,
+    name="Actuals",
+    mode="lines",
+    line=dict(color="#1f77b4", width=2)  # Blue continuous
+))
+
+# 2. FITTED VALUES (TRAIN) - Orange dashed
+fig.add_trace(go.Scatter(
+    x=x_train,
+    y=train_data["fitted"],
+    name="Fitted (Train)",
+    mode="lines",
+    line=dict(color="#ff7f0e", width=2, dash="dash")
+))
+
+# 3. FITTED VALUES (TEST) - Red dashed
+if len(test_data) > 0:
+    fig.add_trace(go.Scatter(
+        x=x_test,
+        y=test_data["fitted"],
+        name="Fitted (Test)",
+        mode="lines",
+        line=dict(color="#d62728", width=2, dash="dash")
+    ))
+```
+
+**3. Refactored `_plot_forecast_nested()` (lines 183-307):**
+
+Applied identical changes for grouped/nested models:
+- One continuous actuals line per group (train + test combined)
+- Fitted values split by train (orange dashed) and test (red dashed)
+- No forecast line
+
+**4. Fixed Index Concatenation Bug:**
+
+When data has no date column, `x_train` and `x_test` are pandas Index objects. The original code tried to use `pd.concat()` which only works with Series/DataFrames.
+
+**Solution:**
+```python
+# Check if x values are Series or Index
+if isinstance(x_train, pd.Series) and isinstance(x_test, pd.Series):
+    x_all = pd.concat([x_train, x_test])
+else:
+    # For Index objects, convert to list and concatenate
+    x_all = list(x_train) + list(x_test)
+```
+
+### Visual Changes
+
+**Before:**
+- 🔵 Blue line (train actuals)
+- 🟢 Green line (test actuals)
+- 🟠 Orange dotted (fitted train)
+- 🔴 Red dashed (forecast - optional)
+
+**After:**
+- 🔵 Blue continuous (actuals - train + test combined)
+- 🟠 Orange dashed (fitted train)
+- 🔴 Red dashed (fitted test)
+- Prediction intervals (if available, gray shaded area)
+
+### Code References
+
+**Modified Files:**
+- `py_visualize/forecast.py:88-180` - `_plot_forecast_single()` refactored
+- `py_visualize/forecast.py:183-307` - `_plot_forecast_nested()` refactored
+
+**Signature Changes:**
+```python
+# Before
+def _plot_forecast_single(..., show_forecast: bool = True)
+def _plot_forecast_nested(..., show_forecast: bool = True)
+
+# After  
+def _plot_forecast_single(..., show_legend: bool = True)
+def _plot_forecast_nested(..., show_legend: bool = True)
+```
+
+### Testing
+
+**Test File:** `tests/test_visualize/test_plot_forecast.py`
+
+**Results:**
+- ✅ `test_forecast_plot_with_prediction_intervals` - PASSED
+- ✅ `test_forecast_plot_customization` - PASSED
+- ✅ `test_nested_without_date_column` - PASSED (fixed Index concatenation bug)
+- ✅ `test_empty_fit` - PASSED
+- ✅ `test_missing_date_column` - PASSED
+- ⚠️ 3 tests have pre-existing patsy datetime issues (not related to this fix)
+
+**Test Coverage:**
+- Single model plots with and without test data
+- Nested/grouped model plots
+- Plots with and without date columns (Index-based)
+- Prediction intervals
+- Custom titles, heights, widths
+
+### Expected Outcome
+
+After this refactoring:
+1. ✅ Actuals shown as one continuous line across train and test splits
+2. ✅ Fitted values clearly distinguished by split (orange train, red test)
+3. ✅ No forecast line confusion
+4. ✅ Works with both date columns and numeric indices
+5. ✅ Prediction intervals still displayed correctly
+6. ✅ Nested/grouped plots follow same pattern
+
+### User Feedback
+
+**Original Request:**
+> "actuals should be one line, not split by train/test, fitted values should be plotted in orange dashed for train and red dashed for test and split by train/test. forecast should never be plotted in these plots"
+
+**Implementation Status:** ✅ Complete
+
+All user requirements implemented and tested.

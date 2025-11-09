@@ -34,9 +34,13 @@ from py_parsnip.models.decision_tree import decision_tree
 from py_parsnip.models.nearest_neighbor import nearest_neighbor
 from py_parsnip.models.svm_rbf import svm_rbf
 from py_parsnip.models.svm_linear import svm_linear
+from py_parsnip.models.svm_poly import svm_poly
 from py_parsnip.models.mlp import mlp
+from py_parsnip.models.bag_tree import bag_tree
 from py_parsnip.models.hybrid_model import hybrid_model
 from py_parsnip.models.manual_reg import manual_reg
+from py_parsnip.models.rule_fit import rule_fit
+from py_parsnip.models.window_reg import window_reg
 
 # Import engines to trigger registration
 import py_parsnip.engines  # noqa: F401
@@ -63,8 +67,12 @@ __all__ = [
     "nearest_neighbor",
     "svm_rbf",
     "svm_linear",
+    "svm_poly",
     "mlp",
+    "bag_tree",
     "hybrid_model",
     "manual_reg",
+    "rule_fit",
+    "window_reg",
 ]
 __version__ = "0.1.0"

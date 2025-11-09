@@ -452,3 +452,234 @@ class TestBagTreeErrors:
 
         with pytest.raises(ValueError, match="type must be"):
             fit.predict(test_data, type="numeric")
+
+
+class TestBagTreeEvaluate:
+    """Test bag_tree evaluate() method"""
+
+    @pytest.fixture
+    def train_test_data(self):
+        """Create train/test split"""
+        np.random.seed(42)
+        train = pd.DataFrame({
+            "y": [100, 200, 150, 300, 250, 180, 220, 280],
+            "x1": [10, 20, 15, 30, 25, 18, 22, 28],
+            "x2": [5, 10, 7, 15, 12, 9, 11, 14],
+        })
+        test = pd.DataFrame({
+            "y": [160, 240, 200],
+            "x1": [16, 24, 20],
+            "x2": [8, 12, 10],
+        })
+        return train, test
+
+    def test_evaluate_basic(self, train_test_data):
+        """Test evaluate() method"""
+        train, test = train_test_data
+
+        spec = bag_tree(trees=10).set_mode("regression")
+        fit = spec.fit(train, "y ~ x1 + x2")
+
+        # Evaluate on test data
+        fit = fit.evaluate(test, "y")
+
+        # Check that evaluation data is stored
+        assert "test_predictions" in fit.evaluation_data
+        assert "test_data" in fit.evaluation_data
+        assert "outcome_col" in fit.evaluation_data
+
+    def test_evaluate_outputs_include_test(self, train_test_data):
+        """Test that evaluate() includes test data in outputs"""
+        train, test = train_test_data
+
+        spec = bag_tree(trees=10).set_mode("regression")
+        fit = spec.fit(train, "y ~ x1 + x2")
+        fit = fit.evaluate(test, "y")
+
+        outputs, _, _ = fit.extract_outputs()
+
+        # Should have both train and test splits
+        assert "train" in outputs["split"].values
+        assert "test" in outputs["split"].values
+        # Test split should have 3 observations
+        test_outputs = outputs[outputs["split"] == "test"]
+        assert len(test_outputs) == 3
+
+    def test_evaluate_stats_include_test(self, train_test_data):
+        """Test that evaluate() includes test metrics in stats"""
+        train, test = train_test_data
+
+        spec = bag_tree(trees=10).set_mode("regression")
+        fit = spec.fit(train, "y ~ x1 + x2")
+        fit = fit.evaluate(test, "y")
+
+        _, _, stats = fit.extract_outputs()
+
+        # Should have metrics for both train and test
+        assert "train" in stats["split"].values
+        assert "test" in stats["split"].values
+        # Check for test RMSE
+        test_stats = stats[stats["split"] == "test"]
+        assert "rmse" in test_stats["metric"].values
+        assert "mae" in test_stats["metric"].values
+
+
+class TestBagTreeParameterTranslation:
+    """Test parameter translation from tidymodels to sklearn"""
+
+    @pytest.fixture
+    def train_data(self):
+        """Create sample training data"""
+        np.random.seed(42)
+        return pd.DataFrame({
+            "y": [100, 200, 150, 300, 250, 180, 220, 280, 160, 240],
+            "x1": [10, 20, 15, 30, 25, 18, 22, 28, 16, 24],
+            "x2": [5, 10, 7, 15, 12, 9, 11, 14, 8, 12],
+        })
+
+    def test_param_translation_trees(self, train_data):
+        """Test trees parameter maps to n_estimators"""
+        spec = bag_tree(trees=30).set_mode("regression")
+        fit = spec.fit(train_data, "y ~ x1 + x2")
+
+        assert fit.fit_data["n_estimators"] == 30
+
+    def test_param_translation_tree_depth(self, train_data):
+        """Test tree_depth parameter maps to max_depth in base estimator"""
+        spec = bag_tree(tree_depth=5, trees=10).set_mode("regression")
+        fit = spec.fit(train_data, "y ~ x1 + x2")
+
+        # Check base estimator has correct max_depth
+        model = fit.extract_fit_engine()
+        base_estimator = model.estimators_[0]
+        assert base_estimator.max_depth == 5
+
+    def test_param_translation_min_n(self, train_data):
+        """Test min_n parameter maps to min_samples_split in base estimator"""
+        spec = bag_tree(min_n=4, trees=10).set_mode("regression")
+        fit = spec.fit(train_data, "y ~ x1 + x2")
+
+        # Check base estimator has correct min_samples_split
+        model = fit.extract_fit_engine()
+        base_estimator = model.estimators_[0]
+        assert base_estimator.min_samples_split == 4
+
+
+class TestBagTreeIntegration:
+    """Integration tests for full workflow"""
+
+    def test_full_workflow_regression(self):
+        """Test complete regression workflow"""
+        # Training data
+        train = pd.DataFrame({
+            "sales": [100, 200, 150, 300, 250, 180, 220, 280, 160, 240],
+            "price": [10, 20, 15, 30, 25, 18, 22, 28, 16, 24],
+            "advertising": [5, 10, 7, 15, 12, 9, 11, 14, 8, 12],
+        })
+
+        # Create spec and fit
+        spec = bag_tree(trees=15, tree_depth=5).set_mode("regression")
+        fit = spec.fit(train, "sales ~ price + advertising")
+
+        # Test data
+        test = pd.DataFrame({
+            "price": [12, 22, 28],
+            "advertising": [6, 11, 14],
+        })
+
+        # Predict
+        predictions = fit.predict(test)
+
+        # Verify
+        assert len(predictions) == 3
+        assert ".pred" in predictions.columns
+        assert all(predictions[".pred"] > 0)  # Sales should be positive
+
+        # Extract outputs
+        outputs, coefs, stats = fit.extract_outputs()
+        assert len(outputs) == 10  # Training observations
+        assert len(coefs) == 2  # price, advertising
+        assert len(stats) > 0
+
+    def test_full_workflow_classification(self):
+        """Test complete classification workflow"""
+        # Training data
+        train = pd.DataFrame({
+            "species": ["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"],
+            "sepal_length": [5.1, 7.0, 4.9, 6.4, 5.0, 6.9, 5.4, 6.5, 4.6, 6.8],
+            "sepal_width": [3.5, 3.2, 3.0, 3.2, 3.6, 3.1, 3.9, 2.8, 3.1, 2.8],
+        })
+
+        # Create spec and fit
+        spec = bag_tree(trees=15).set_mode("classification")
+        fit = spec.fit(train, "species ~ sepal_length + sepal_width")
+
+        # Test data
+        test = pd.DataFrame({
+            "sepal_length": [5.2, 6.7, 4.8],
+            "sepal_width": [3.4, 3.0, 3.2],
+        })
+
+        # Predict class
+        predictions = fit.predict(test, type="class")
+        assert ".pred_class" in predictions.columns
+        assert all(p in ["A", "B"] for p in predictions[".pred_class"])
+
+        # Predict probabilities
+        probs = fit.predict(test, type="prob")
+        assert ".pred_A" in probs.columns
+        assert ".pred_B" in probs.columns
+        # Probabilities should sum to 1
+        prob_sum = probs[[".pred_A", ".pred_B"]].sum(axis=1)
+        np.testing.assert_array_almost_equal(prob_sum, np.ones(3))
+
+    def test_workflow_with_evaluate(self):
+        """Test workflow with evaluate()"""
+        train = pd.DataFrame({
+            "y": [100, 200, 150, 300, 250, 180, 220, 280],
+            "x1": [10, 20, 15, 30, 25, 18, 22, 28],
+            "x2": [5, 10, 7, 15, 12, 9, 11, 14],
+        })
+
+        test = pd.DataFrame({
+            "y": [160, 240, 200],
+            "x1": [16, 24, 20],
+            "x2": [8, 12, 10],
+        })
+
+        spec = bag_tree(trees=15, tree_depth=5).set_mode("regression")
+        fit = spec.fit(train, "y ~ x1 + x2")
+        fit = fit.evaluate(test, "y")
+
+        # Extract outputs should include both train and test
+        outputs, coefs, stats = fit.extract_outputs()
+
+        assert len(outputs) == 11  # 8 train + 3 test
+        assert "train" in outputs["split"].values
+        assert "test" in outputs["split"].values
+
+        # Stats should include test metrics
+        test_stats = stats[stats["split"] == "test"]
+        assert len(test_stats) > 0
+        assert "rmse" in test_stats["metric"].values
+
+    def test_feature_importance_ordering(self):
+        """Test that feature importance correctly identifies most important features"""
+        # Create data where x1 is clearly more predictive than x2
+        np.random.seed(42)
+        train = pd.DataFrame({
+            "y": np.array([10, 20, 15, 30, 25, 18, 22, 28, 16, 24]) * 10,  # Strong relationship with x1
+            "x1": [10, 20, 15, 30, 25, 18, 22, 28, 16, 24],
+            "x2": np.random.randn(10),  # Random noise
+        })
+
+        spec = bag_tree(trees=20).set_mode("regression")
+        fit = spec.fit(train, "y ~ x1 + x2")
+
+        _, coefs, _ = fit.extract_outputs()
+
+        # x1 should have higher importance than x2
+        x1_importance = coefs[coefs["variable"] == "x1"]["coefficient"].iloc[0]
+        x2_importance = coefs[coefs["variable"] == "x2"]["coefficient"].iloc[0]
+
+        assert x1_importance > x2_importance

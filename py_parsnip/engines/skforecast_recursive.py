@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
-from py_parsnip.utils import _infer_date_column, _parse_ts_formula
+from py_parsnip.utils import _infer_date_column, _parse_ts_formula, _expand_dot_notation
 
 
 @register_engine("recursive_reg", "skforecast")
@@ -57,20 +57,14 @@ class SkforecastRecursiveEngine(Engine):
         # Parse formula to get outcome and exogenous variables
         outcome_name, exog_vars = _parse_ts_formula(formula, inferred_date_col)
 
+        # Expand "." notation to all columns except outcome and date
+        exog_vars = _expand_dot_notation(exog_vars, data, outcome_name, inferred_date_col)
+
         if outcome_name not in data.columns:
             raise ValueError(
                 f"Outcome '{outcome_name}' not found in data. "
                 f"Available columns: {list(data.columns)}"
             )
-
-        # Handle "." notation (all columns except outcome and date)
-        if exog_vars == ['.']:
-            if inferred_date_col == '__index__':
-                # Only exclude outcome (date is index)
-                exog_vars = [col for col in data.columns if col != outcome_name]
-            else:
-                # Exclude both outcome and date column
-                exog_vars = [col for col in data.columns if col != outcome_name and col != inferred_date_col]
 
         # Extract parameters
         args = dict(spec.args)

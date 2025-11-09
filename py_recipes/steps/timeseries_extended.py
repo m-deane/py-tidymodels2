@@ -279,10 +279,13 @@ class StepFourier:
             )
 
         # Generate feature names
+        # Format: {prefix}p{period}_k{k}_sin / cos
+        # Example: fourier_p12_k1_sin, fourier_p12_k1_cos
         feature_names = []
+        period_label = str(int(self.period)) if self.period == int(self.period) else f"{self.period:.1f}"
         for k in range(1, self.K + 1):
-            feature_names.append(f"{self.prefix}sin_{k}")
-            feature_names.append(f"{self.prefix}cos_{k}")
+            feature_names.append(f"{self.prefix}p{period_label}_k{k}_sin")
+            feature_names.append(f"{self.prefix}p{period_label}_k{k}_cos")
 
         return PreparedStepFourier(
             date_column=date_col,
@@ -354,9 +357,10 @@ class PreparedStepFourier:
                 )
 
                 # Extract Fourier features
+                period_label = str(int(self.period)) if self.period == int(self.period) else f"{self.period:.1f}"
                 for k in range(1, self.K + 1):
-                    sin_name = f"{self.prefix}sin_{k}"
-                    cos_name = f"{self.prefix}cos_{k}"
+                    sin_name = f"{self.prefix}p{period_label}_k{k}_sin"
+                    cos_name = f"{self.prefix}p{period_label}_k{k}_cos"
 
                     # pytimetk might use different naming
                     sin_cols = [col for col in fourier_df.columns if f'sin' in col.lower() and f'{k}' in col]
@@ -374,9 +378,10 @@ class PreparedStepFourier:
 
             except Exception:
                 # Fallback to manual creation
+                period_label = str(int(self.period)) if self.period == int(self.period) else f"{self.period:.1f}"
                 for k in range(1, self.K + 1):
-                    sin_name = f"{self.prefix}sin_{k}"
-                    cos_name = f"{self.prefix}cos_{k}"
+                    sin_name = f"{self.prefix}p{period_label}_k{k}_sin"
+                    cos_name = f"{self.prefix}p{period_label}_k{k}_cos"
                     result[sin_name] = self._create_fourier_term(time_idx, k, 'sin')
                     result[cos_name] = self._create_fourier_term(time_idx, k, 'cos')
 
@@ -391,9 +396,10 @@ class PreparedStepFourier:
                 dates = pd.to_datetime(result[self.date_column])
                 time_idx = (dates - dates.min()).dt.total_seconds() / (24 * 3600)
 
+            period_label = str(int(self.period)) if self.period == int(self.period) else f"{self.period:.1f}"
             for k in range(1, self.K + 1):
-                sin_name = f"{self.prefix}sin_{k}"
-                cos_name = f"{self.prefix}cos_{k}"
+                sin_name = f"{self.prefix}p{period_label}_k{k}_sin"
+                cos_name = f"{self.prefix}p{period_label}_k{k}_cos"
                 result[sin_name] = self._create_fourier_term(time_idx, k, 'sin')
                 result[cos_name] = self._create_fourier_term(time_idx, k, 'cos')
 

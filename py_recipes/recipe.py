@@ -198,7 +198,7 @@ class Recipe:
 
     def step_dummy(
         self,
-        columns: List[str],
+        columns: Union[List[str], Callable],
         one_hot: bool = True
     ) -> "Recipe":
         """
@@ -208,7 +208,7 @@ class Recipe:
         or integer encoding.
 
         Args:
-            columns: Categorical columns to encode
+            columns: Categorical columns to encode (list or selector function)
             one_hot: Use one-hot encoding (True) or integer encoding (False)
 
         Returns:
@@ -216,6 +216,7 @@ class Recipe:
 
         Examples:
             >>> rec = Recipe().step_dummy(["category", "group"])
+            >>> rec = Recipe().step_dummy(all_nominal_predictors())
         """
         from py_recipes.steps.dummy import StepDummy
         return self.add_step(StepDummy(columns=columns, one_hot=one_hot))
@@ -436,45 +437,6 @@ class Recipe:
         """
         from py_recipes.steps.feature_selection import StepPCA
         return self.add_step(StepPCA(columns=columns, num_comp=num_comp, threshold=threshold))
-
-    def step_corr(
-        self,
-        threshold: float = 0.9,
-        columns: Optional[List[str]] = None,
-        method: str = "pearson"
-    ) -> "Recipe":
-        """
-        Remove highly correlated features.
-
-        Identifies pairs of features with correlation above the threshold and removes
-        one from each pair. For each correlated pair, keeps the feature with lower
-        mean absolute correlation with all other features.
-
-        This is useful for removing multicollinearity among predictors before modeling.
-
-        Args:
-            threshold: Correlation threshold (default 0.9). Pairs with abs(correlation) > threshold are flagged
-            columns: Columns to check (None = all numeric)
-            method: Correlation method ('pearson', 'spearman', 'kendall')
-
-        Returns:
-            Self for method chaining
-
-        Examples:
-            >>> # Remove features with correlation > 0.9 (default)
-            >>> rec = Recipe().step_corr()
-            >>>
-            >>> # Use custom threshold
-            >>> rec = Recipe().step_corr(threshold=0.8)
-            >>>
-            >>> # Check specific columns
-            >>> rec = Recipe().step_corr(columns=['x1', 'x2', 'x3'], threshold=0.95)
-            >>>
-            >>> # Use Spearman correlation for non-linear relationships
-            >>> rec = Recipe().step_corr(threshold=0.9, method='spearman')
-        """
-        from py_recipes.steps.feature_selection import StepCorr
-        return self.add_step(StepCorr(threshold=threshold, columns=columns, method=method))
 
     def step_select_corr(
         self,
@@ -876,6 +838,277 @@ class Recipe:
             method=method, use_pvalue=use_pvalue
         ))
 
+    def step_splitwise(
+        self,
+        outcome: str,
+        transformation_mode: str = 'univariate',
+        min_support: float = 0.1,
+        min_improvement: float = 3.0,
+        criterion: str = 'AIC',
+        exclude_vars: Optional[List[str]] = None,
+        columns: Union[None, str, List[str], Callable] = None
+    ) -> "Recipe":
+        """
+        Adaptive dummy encoding for numeric predictors using shallow decision trees.
+
+        SplitWise automatically transforms numeric predictors into either binary
+        dummy variables (with 1 or 2 split points) or keeps them linear based on
+        AIC/BIC improvement. This is a supervised transformation step.
+
+        Args:
+            outcome: Outcome column name (required for supervised transformation)
+            transformation_mode: 'univariate' (independent) or 'iterative' (adaptive)
+            min_support: Minimum fraction of observations in each dummy group (0-0.5)
+            min_improvement: Minimum AIC/BIC improvement to prefer dummy over linear
+            criterion: 'AIC' or 'BIC' for model selection
+            exclude_vars: Variables forced to stay linear (no transformation)
+            columns: Columns to consider (None = all numeric except outcome)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> # Basic usage
+            >>> rec = recipe().step_splitwise(outcome='price')
+            >>>
+            >>> # Custom parameters
+            >>> rec = recipe().step_splitwise(
+            ...     outcome='sales',
+            ...     min_support=0.15,
+            ...     min_improvement=2.0,
+            ...     exclude_vars=['year', 'month']
+            ... )
+
+        References:
+            Kurbucz et al. (2025). SplitWise Regression: Stepwise Modeling with
+            Adaptive Dummy Encoding. arXiv:2505.15423
+        """
+        from py_recipes.steps.splitwise import StepSplitwise
+        return self.add_step(StepSplitwise(
+            outcome=outcome,
+            transformation_mode=transformation_mode,
+            min_support=min_support,
+            min_improvement=min_improvement,
+            criterion=criterion,
+            exclude_vars=exclude_vars,
+            columns=columns
+        ))
+
+    def step_safe(
+        self,
+        surrogate_model,
+        outcome: str,
+        penalty: float = 3.0,
+        pelt_model: str = 'l2',
+        no_changepoint_strategy: str = 'median',
+        keep_original_cols: bool = False,
+        top_n: Optional[int] = None,
+        grid_resolution: int = 1000
+    ) -> "Recipe":
+        """
+        Surrogate Assisted Feature Extraction (SAFE) for interpretable models.
+
+        SAFE uses a complex surrogate model to guide feature transformation,
+        creating interpretable features by:
+        - Detecting changepoints in numeric variable partial dependence plots
+        - Merging similar categorical levels via hierarchical clustering
+
+        The transformed features retain information from the complex surrogate
+        while being more interpretable for simpler models.
+
+        Args:
+            surrogate_model: Pre-fitted surrogate model (e.g., GradientBoostingRegressor)
+                Must implement predict() for regression or predict_proba() for classification
+            outcome: Name of outcome variable (required for supervised transformation)
+            penalty: Penalty for adding changepoints (default: 3.0).
+                Higher values = fewer intervals. Typical range: 0.1-10.0
+            pelt_model: Cost function for Pelt algorithm ('l2', 'l1', 'rbf')
+            no_changepoint_strategy: Strategy when no changepoint detected:
+                - 'median': Create one split at median
+                - 'drop': Remove feature from output
+            keep_original_cols: Whether to keep original columns alongside
+                transformed features (default: False)
+            top_n: If specified, select only top N most important transformed
+                features based on variance explained in surrogate predictions
+            grid_resolution: Number of points for partial dependence grid (default: 1000)
+
+        Returns:
+            Recipe with step_safe added
+
+        Examples:
+            >>> from sklearn.ensemble import GradientBoostingRegressor
+            >>> surrogate = GradientBoostingRegressor(n_estimators=100)
+            >>> surrogate.fit(train_data.drop('target', axis=1), train_data['target'])
+            >>>
+            >>> rec = recipe().step_safe(
+            ...     surrogate_model=surrogate,
+            ...     outcome='target',
+            ...     penalty=3.0
+            ... )
+            >>>
+            >>> # Select top 10 most important SAFE features
+            >>> rec = recipe().step_safe(
+            ...     surrogate_model=surrogate,
+            ...     outcome='target',
+            ...     top_n=10
+            ... )
+
+        Notes:
+            - Requires ruptures, scipy, and kneed packages
+            - Surrogate model must be pre-fitted
+            - Numeric features: changepoint detection via Pelt algorithm
+            - Categorical features: hierarchical clustering (Ward linkage)
+            - Output is one-hot encoded with p-1 scheme
+
+        References:
+            SAFE library: https://github.com/ModelOriented/SAFE
+        """
+        from py_recipes.steps.feature_extraction import StepSafe
+
+        return self.add_step(StepSafe(
+            surrogate_model=surrogate_model,
+            outcome=outcome,
+            penalty=penalty,
+            pelt_model=pelt_model,
+            no_changepoint_strategy=no_changepoint_strategy,
+            keep_original_cols=keep_original_cols,
+            top_n=top_n,
+            grid_resolution=grid_resolution
+        ))
+
+    def step_eix(
+        self,
+        tree_model,
+        outcome: str,
+        option: str = 'both',
+        top_n: Optional[int] = None,
+        min_gain: float = 0.0,
+        create_interactions: bool = True,
+        keep_original_cols: bool = False
+    ) -> "Recipe":
+        """
+        EIX - Explain Interactions in XGBoost/LightGBM for feature selection.
+
+        Analyzes tree structure from XGBoost or LightGBM models to identify
+        important variable interactions and creates interaction features based
+        on tree model gain.
+
+        Args:
+            tree_model: Pre-fitted XGBoost or LightGBM model (REQUIRED)
+            outcome: Outcome variable name (REQUIRED for data validation)
+            option: What to extract - 'variables', 'interactions', or 'both' (default: 'both')
+            top_n: Select top N most important features/interactions (None = keep all)
+            min_gain: Minimum sumGain threshold for keeping features (default: 0.0)
+            create_interactions: Whether to create interaction features (parent × child) (default: True)
+            keep_original_cols: Keep original columns alongside EIX features (default: False)
+
+        Returns:
+            Self for method chaining
+
+        Notes:
+            - Requires pre-fitted XGBoost or LightGBM model
+            - Model must be trained on the same variables in the data
+            - Creates interaction features by multiplying parent × child variables
+            - Interactions are identified where child gain > parent gain
+            - Strong interactions indicate the child variable adds significant
+              information beyond the parent variable
+
+        Algorithm:
+            1. Extract tree structure from XGBoost/LightGBM model
+            2. For each tree, analyze parent-child node relationships
+            3. Identify strong interactions: child gain > parent gain
+            4. Calculate importance metrics: sumGain, frequency, meanGain
+            5. Select top features/interactions by importance
+            6. Create interaction features: parent × child
+
+        Examples:
+            >>> from xgboost import XGBRegressor
+            >>> from py_recipes import recipe
+            >>>
+            >>> # Fit tree model (REQUIRED)
+            >>> tree_model = XGBRegressor(n_estimators=100, max_depth=3)
+            >>> tree_model.fit(X_train, y_train)
+            >>>
+            >>> # Basic usage - find and create top interactions
+            >>> rec = recipe().step_eix(
+            ...     tree_model=tree_model,
+            ...     outcome='target',
+            ...     option='interactions',
+            ...     top_n=10
+            ... )
+            >>>
+            >>> # Conservative - only strong interactions
+            >>> rec = recipe().step_eix(
+            ...     tree_model=tree_model,
+            ...     outcome='sales',
+            ...     option='interactions',
+            ...     min_gain=0.1,
+            ...     top_n=5
+            ... )
+            >>>
+            >>> # Select important variables only (no interactions)
+            >>> rec = recipe().step_eix(
+            ...     tree_model=tree_model,
+            ...     outcome='revenue',
+            ...     option='variables',
+            ...     top_n=15,
+            ...     create_interactions=False
+            ... )
+            >>>
+            >>> # Both variables and interactions
+            >>> rec = recipe().step_eix(
+            ...     tree_model=tree_model,
+            ...     outcome='target',
+            ...     option='both',
+            ...     top_n=20,
+            ...     min_gain=0.05
+            ... )
+            >>>
+            >>> # Inspect importance after prep
+            >>> prepped = rec.prep(train_data)
+            >>> eix_step = prepped.prepared_steps[0]
+            >>>
+            >>> # Get importance table
+            >>> importance = eix_step.get_importance()
+            >>> print(importance)
+            >>>
+            >>> # Get interactions to be created
+            >>> interactions = eix_step.get_interactions()
+            >>> for inter in interactions:
+            ...     print(f"{inter['parent']} × {inter['child']} → {inter['name']}")
+
+        Use cases:
+            - Feature selection based on tree model analysis
+            - Identifying important variable interactions
+            - Creating interaction features for linear models
+            - Transfer knowledge from tree models to simpler models
+            - Understanding which variable pairs are most informative
+
+        Comparison:
+            - vs. step_interact(): EIX uses tree model gain (data-driven),
+              step_interact() creates all pairwise interactions (exhaustive)
+            - vs. step_safe(): EIX uses tree structure directly,
+              SAFE uses partial dependence plots (PDP)
+            - vs. step_poly(): EIX creates multiplicative interactions,
+              step_poly() creates polynomial features
+
+        Dependencies:
+            Requires: xgboost or lightgbm
+
+            >>> pip install xgboost lightgbm
+        """
+        from py_recipes.steps.interaction_detection import StepEIX
+
+        return self.add_step(StepEIX(
+            tree_model=tree_model,
+            outcome=outcome,
+            option=option,
+            top_n=top_n,
+            min_gain=min_gain,
+            create_interactions=create_interactions,
+            keep_original_cols=keep_original_cols
+        ))
+
     def step_naomit(
         self,
         columns: Optional[List[str]] = None
@@ -1103,7 +1336,8 @@ class Recipe:
         self,
         columns: List[str],
         degree: int = 2,
-        include_interactions: bool = False
+        include_interactions: bool = False,
+        inplace: bool = True
     ) -> "Recipe":
         """
         Create polynomial features.
@@ -1112,12 +1346,13 @@ class Recipe:
             columns: Columns to create polynomials for
             degree: Maximum polynomial degree
             include_interactions: Include cross terms
+            inplace: If True, replace original columns; if False, keep originals (default: True)
 
         Returns:
             Self for method chaining
         """
         from py_recipes.steps.basis import StepPoly
-        return self.add_step(StepPoly(columns=columns, degree=degree, include_interactions=include_interactions))
+        return self.add_step(StepPoly(columns=columns, degree=degree, include_interactions=include_interactions, inplace=inplace))
 
     def step_harmonic(
         self,
@@ -1143,28 +1378,35 @@ class Recipe:
 
     def step_interact(
         self,
-        interactions: Union[List[tuple], List[str]],
+        interactions: Union[List[tuple], List[str], Callable],
         separator: str = "_x_"
     ) -> "Recipe":
         """
         Create interaction features between columns.
 
         Args:
-            interactions: Either a list of column pairs [(col1, col2), ...] or
-                         a list of columns [col1, col2, ...] to create all pairwise interactions
-            separator: Separator for interaction names
+            interactions: Can be:
+                - List of column pairs: [("x1", "x2"), ("x1", "x3")]
+                - List of columns: ["x1", "x2", "x3"] (creates all pairwise interactions)
+                - Selector function: all_numeric_predictors() (creates all pairwise interactions)
+            separator: Separator for interaction names (default: "_x_")
 
         Returns:
             Self for method chaining
+
+        Examples:
+            >>> # Specific pairs
+            >>> rec.step_interact([("x1", "x2"), ("x1", "x3")])
+            >>>
+            >>> # All pairs from list
+            >>> rec.step_interact(["x1", "x2", "x3"])
+            >>>
+            >>> # All pairs from selector
+            >>> rec.step_interact(all_numeric_predictors())
         """
         from py_recipes.steps.interactions import StepInteract
-        from itertools import combinations
 
-        # Check if interactions is a list of tuples or a list of strings
-        if interactions and isinstance(interactions[0], str):
-            # Generate all pairwise combinations
-            interactions = list(combinations(interactions, 2))
-
+        # Pass directly to StepInteract - it will handle resolution during prep()
         return self.add_step(StepInteract(interactions=interactions, separator=separator))
 
     def step_ratio(

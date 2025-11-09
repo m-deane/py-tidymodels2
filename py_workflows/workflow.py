@@ -248,7 +248,8 @@ class Workflow:
             workflow=self,
             pre=fitted_preprocessor,
             fit=model_fit,
-            post=self.post
+            post=self.post,
+            formula=formula  # Store formula for easy access
         )
 
     def fit_nested(self, data: pd.DataFrame, group_col: str) -> "NestedWorkflowFit":
@@ -399,6 +400,7 @@ class WorkflowFit:
         pre: Fitted preprocessor (formula or recipe)
         fit: ModelFit object from parsnip
         post: Post-processing steps (future use)
+        formula: Formula used for model fitting (stored for convenience)
 
     Examples:
         >>> wf_fit = workflow().add_formula("y ~ x").add_model(spec).fit(train)
@@ -409,6 +411,7 @@ class WorkflowFit:
     pre: Any  # Fitted preprocessor (formula string or PreparedRecipe)
     fit: ModelFit
     post: Optional[Any] = None
+    formula: Optional[str] = None  # Formula used for model fitting
 
     def predict(
         self,
@@ -537,6 +540,79 @@ class WorkflowFit:
             >>> print(stats[stats["metric"].isin(["rmse", "mae", "r_squared"])])
         """
         return self.fit.extract_outputs()
+
+    def extract_formula(self) -> str:
+        """
+        Extract the formula used for model fitting.
+
+        Returns:
+            Formula string (e.g., "y ~ x1 + x2")
+
+        Examples:
+            >>> wf_fit = workflow().add_formula("sales ~ price").add_model(spec).fit(train)
+            >>> formula = wf_fit.extract_formula()
+            >>> print(formula)
+            'sales ~ price'
+            >>>
+            >>> # For recipes, returns auto-generated formula
+            >>> rec = recipe().step_normalize()
+            >>> wf_fit = workflow().add_recipe(rec).add_model(spec).fit(train)
+            >>> formula = wf_fit.extract_formula()
+            >>> print(formula)
+            'y ~ x1 + x2 + x3'
+        """
+        if self.formula is None:
+            raise ValueError("No formula stored in WorkflowFit")
+        return self.formula
+
+    def extract_preprocessed_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply the fitted preprocessor to data and return transformed data.
+
+        This is a convenience function to get the preprocessed data that would
+        be used by the model, useful for:
+        - Inspecting transformed features
+        - Understanding what the model actually sees
+        - Debugging preprocessing pipelines
+        - Manual analysis of transformed data
+
+        Args:
+            data: Data to preprocess (train or test data)
+
+        Returns:
+            DataFrame with preprocessing applied
+
+        Examples:
+            >>> # With formula
+            >>> wf_fit = workflow().add_formula("y ~ x1 + x2").add_model(spec).fit(train)
+            >>> train_transformed = wf_fit.extract_preprocessed_data(train)
+            >>> test_transformed = wf_fit.extract_preprocessed_data(test)
+            >>>
+            >>> # With recipe
+            >>> rec = recipe().step_normalize().step_dummy()
+            >>> wf_fit = workflow().add_recipe(rec).add_model(spec).fit(train)
+            >>> train_transformed = wf_fit.extract_preprocessed_data(train)
+            >>>
+            >>> # Inspect transformed columns
+            >>> print(train_transformed.columns)
+            >>> print(train_transformed.head())
+        """
+        if isinstance(self.pre, str):
+            # Formula - use mold() to get preprocessed data
+            from py_hardhat import mold
+            molded = mold(self.pre, data)
+            # Return predictors and outcomes combined
+            result = molded.predictors.copy()
+            # Add outcome column(s) if present
+            if molded.outcomes is not None and not molded.outcomes.empty:
+                for col in molded.outcomes.columns:
+                    result[col] = molded.outcomes[col]
+            return result
+        elif isinstance(self.pre, PreparedRecipe):
+            # Recipe - use bake()
+            return self.pre.bake(data)
+        else:
+            raise ValueError(f"Unknown preprocessor type: {type(self.pre)}")
 
 
 @dataclass

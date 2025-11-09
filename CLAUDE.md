@@ -26,12 +26,27 @@ For Jupyter to use the correct kernel:
 python -m ipykernel install --user --name=py-tidymodels2
 ```
 
+### Python Bytecode Cache Management
+**CRITICAL:** When making code changes, clear bytecode cache to ensure updates load properly:
+
+```bash
+# Clear all __pycache__ directories
+find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null
+
+# Force reinstall package
+pip install -e . --force-reinstall --no-deps
+```
+
+**After package updates, ALWAYS restart Jupyter kernel** before running notebooks:
+- In Jupyter: **Kernel** → **Restart & Clear Output**
+- Re-run cells from beginning
+
 ### Running Tests
 ```bash
 # Activate venv first
 source py-tidymodels2/bin/activate
 
-# All tests (900+ tests passing as of 2025-10-27)
+# All tests (762+ tests passing as of 2025-11-09)
 python -m pytest tests/ -v
 
 # Specific test modules
@@ -43,6 +58,9 @@ python -m pytest tests/test_tune/test_tune.py -v
 
 # With coverage
 python -m pytest tests/ --cov=py_hardhat --cov=py_parsnip --cov=py_recipes --cov=py_yardstick --cov=py_tune --cov-report=html
+
+# Get exact test count
+python -m pytest tests/ --collect-only -q | tail -1
 ```
 
 ### Testing Notebooks
@@ -249,6 +267,11 @@ The project follows a layered architecture inspired by R's tidymodels:
 - `predict()` - Make predictions with automatic preprocessing
 - `evaluate()` - Train/test evaluation
 - `extract_outputs()` - Get three-DataFrame outputs (includes group column for nested models)
+- `extract_fit_parsnip()` - Get underlying ModelFit object
+- `extract_preprocessor()` - Get fitted preprocessor (formula or PreparedRecipe)
+- `extract_spec_parsnip()` - Get model specification
+- `extract_formula()` - **NEW:** Get formula used for model fitting
+- `extract_preprocessed_data(data)` - **NEW:** Apply preprocessing to data, return transformed DataFrame
 
 **Panel/Grouped Modeling:**
 - **Nested approach** (`fit_nested()`): Fit independent model per group
@@ -274,11 +297,17 @@ The project follows a layered architecture inspired by R's tidymodels:
   - Imputation (median, mean, mode, KNN, bag, linear)
   - Normalization (normalize, range, center, scale)
   - Encoding (dummy, one-hot, target, ordinal, bin, date)
-  - Feature engineering (polynomial, interactions, splines, PCA, log, sqrt, BoxCox, YeoJohnson)
+  - Feature engineering (polynomial, interactions, splines, PCA, ICA, kernel PCA, PLS, log, sqrt, BoxCox, YeoJohnson)
   - Filtering (correlation, variance, missing, outliers, zero-variance)
   - Row operations (sample, filter, slice, arrange, shuffle)
   - Transformations (mutate, discretize)
   - Selectors (all_predictors, all_outcomes, all_numeric, all_nominal, has_role, has_type)
+
+**Recent Recipe Enhancements (2025-11-09):**
+- **Datetime exclusion**: `step_dummy()` and discretization steps (`step_discretize()`, `step_cut()`) automatically exclude datetime columns to prevent formula parsing errors
+- **Infinity handling**: `step_naomit()` now removes rows with both NaN and ±Inf values
+- **Selector support for reduction steps**: `step_ica()`, `step_kpca()`, `step_pls()` now support selector functions like `all_numeric_predictors()`
+- **step_corr() removed**: Use `step_select_corr(method='multicollinearity')` instead for the same functionality plus more options
 
 **Key Pattern:**
 ```python
@@ -505,6 +534,107 @@ fit = fit.evaluate(test_data)  # ✅ Works with new dates!
 **Code References:**
 - `py_workflows/workflow.py:216-225` - Datetime column exclusion logic
 - `tests/test_workflows/test_datetime_exclusion.py` - 5 comprehensive tests
+
+### Dot Notation Formula Expansion
+**Purpose:** Support R-style `"target ~ ."` formulas that automatically use all columns except outcome.
+
+**Problem:** The dot notation in formulas like `"target ~ ."` needs special handling to:
+1. Expand `.` to all columns except outcome
+2. Exclude datetime columns (which cause patsy categorical errors on new dates)
+3. Work consistently across all model types (time series and standard)
+
+**Solution:** Two-tier expansion system based on model path:
+
+#### For Time Series Models (fit_raw path):
+**File:** `py_parsnip/utils/time_series_utils.py:266-299`
+```python
+def _expand_dot_notation(exog_vars: List[str], data: pd.DataFrame,
+                        outcome_name: str, date_col: str) -> List[str]:
+    """Expand patsy's "." notation to all columns except outcome and date."""
+    if exog_vars == ['.']:
+        return [col for col in data.columns
+                if col != outcome_name and col != date_col and col != '__index__']
+    return exog_vars
+```
+
+**Applied to 9 time series engines:**
+- Prophet, ARIMA, Auto ARIMA, VARMAX, Seasonal Reg (STL), ETS
+- Prophet Boost, ARIMA Boost, Recursive Forecasting
+
+**Usage:**
+```python
+from py_parsnip import prophet_reg
+
+# Training data with date + 3 features
+spec = prophet_reg()
+fit = spec.fit(data, "target ~ .")  # ✅ Expands to x1, x2, x3 (excludes target, date)
+```
+
+#### For Standard Models (mold/forge path):
+**File:** `py_parsnip/model_spec.py:201-247`
+```python
+# In ModelSpec.fit(), BEFORE calling mold():
+if ' . ' in formula or formula.endswith(' .') or ' ~ .' in formula:
+    # Parse formula and expand dot notation
+    predictor_cols = [
+        col for col in data.columns
+        if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(data[col])
+    ]
+    expanded_formula = f"{outcome_str} ~ {' + '.join(predictor_cols)}"
+    formula = expanded_formula
+
+molded = mold(formula, data)  # Receives expanded formula with date excluded
+```
+
+**Applied to all standard models:**
+- linear_reg, rand_forest, decision_tree, svm_rbf, svm_linear, nearest_neighbor, etc.
+
+**Usage:**
+```python
+from py_parsnip import linear_reg
+
+# Training: Apr 2020 - Sep 2023
+spec = linear_reg()
+fit = spec.fit(train_data, "target ~ .")  # ✅ Expands to all except target, date
+
+# Test: Oct 2023+ (NEW dates not in training)
+fit = fit.evaluate(test_data)  # ✅ Works! Date was excluded from formula
+```
+
+**Supported Patterns:**
+```python
+# Pure dot notation
+"target ~ ."                    # All columns except target and date
+
+# Dot with additions
+"target ~ . + I(x1*x2)"         # All columns + interaction term
+
+# Terms before dot
+"target ~ x1 + ."               # x1 + all other columns (no duplication)
+```
+
+**Why Datetime Exclusion is Critical:**
+```python
+# WITHOUT datetime exclusion:
+fit = spec.fit(train_data, "target ~ .")
+# Internally becomes: "target ~ date + x1 + x2 + x3"
+# Patsy treats date as CATEGORICAL with training date levels
+fit.evaluate(test_data)  # ❌ PatsyError: New dates don't match training levels
+
+# WITH datetime exclusion (current behavior):
+fit = spec.fit(train_data, "target ~ .")
+# Internally becomes: "target ~ x1 + x2 + x3"  (date excluded)
+# Patsy only sees numeric/categorical predictors
+fit.evaluate(test_data)  # ✅ SUCCESS: No date-related categorical errors
+```
+
+**Code References:**
+- Time series: `py_parsnip/utils/time_series_utils.py:266-299` - _expand_dot_notation()
+- Standard models: `py_parsnip/model_spec.py:201-247` - Dot expansion in fit()
+- Time series tests: `.claude_debugging/test_dot_notation_verification.py` - 4 tests
+- Standard model tests: `.claude_debugging/test_standard_model_dot_notation.py` - 3 tests
+- Documentation: `.claude_debugging/DOT_NOTATION_FIX.md` - Time series implementation
+- Documentation: `.claude_debugging/STANDARD_MODEL_DOT_NOTATION_FIX.md` - Standard model implementation
 
 ### Recursive Forecasting with skforecast
 **Purpose:** Multi-step time series forecasting using lagged features and recursive prediction.
@@ -904,11 +1034,18 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 ## Project Status and Planning
 
 **Current Status:** All Issues Complete (1-8), 762+ Tests Passing
-**Last Updated:** 2025-11-07 (Issues 7-8: hybrid_model and manual_reg)
+**Last Updated:** 2025-11-09 (Recent: workflow extract methods + recipe enhancements)
 **Total Tests Passing:** 762+ tests across all packages (714 base + 48 new)
 **Total Models:** 23 production-ready models (21 fitted + 1 hybrid + 1 manual)
 **Total Engines:** 30+ engine implementations
 **All Issues Completed:** ✅ Issues 1-8 from backlog
+
+**Recent Enhancements (2025-11-09):**
+- ✅ **WorkflowFit extract methods**: Added `extract_formula()` and `extract_preprocessed_data()` for debugging and inspection
+- ✅ **Recipe datetime safety**: Discretization and dummy encoding now automatically exclude datetime columns
+- ✅ **Recipe infinity handling**: `step_naomit()` removes both NaN and ±Inf values
+- ✅ **Recipe selector support**: Reduction steps (ICA, KPCA, PLS) now support selector functions
+- ✅ **Recipe cleanup**: Removed redundant `step_corr()` (use `step_select_corr()` instead)
 
 **Phase 1 - COMPLETED (Foundation):**
 - ✅ py-hardhat: 14 tests - Data preprocessing with mold/forge
@@ -1081,6 +1218,42 @@ This ensures consistency across engines and proper date alignment in visualizati
 - sklearn: `py_parsnip/engines/sklearn_linear_reg.py:247-292` (extract_outputs with combine_first)
 
 ## Common Patterns
+
+### Using WorkflowFit Extract Methods (NEW)
+
+Extract formula and preprocessed data for debugging and inspection:
+
+```python
+# Fit workflow
+wf = workflow().add_recipe(recipe().step_normalize()).add_model(linear_reg())
+fit = wf.fit(train_data)
+
+# Extract formula used (works with both explicit formulas and recipes)
+formula = fit.extract_formula()
+print(formula)  # e.g., "y ~ x1 + x2 + x3"
+
+# Extract preprocessed/transformed data
+train_transformed = fit.extract_preprocessed_data(train_data)
+test_transformed = fit.extract_preprocessed_data(test_data)
+
+# Inspect what the model actually sees
+print(train_transformed.columns)  # Shows normalized features, dummy variables, etc.
+print(train_transformed.head())
+
+# Verify transformations (e.g., check normalization)
+print(f"x1 mean: {train_transformed['x1'].mean():.4f}")  # Should be ≈ 0
+print(f"x1 std: {train_transformed['x1'].std():.4f}")    # Should be ≈ 1
+```
+
+**Use cases:**
+- Debug preprocessing pipelines (verify normalization, PCA components, dummy variables)
+- Understand model inputs (what features the model actually sees)
+- Manual analysis on transformed features
+- Reproducibility (save formula for documentation)
+
+**Code References:**
+- `py_workflows/workflow.py:544-615` - extract_formula() and extract_preprocessed_data() methods
+- `.claude_debugging/WORKFLOW_EXTRACT_METHODS.md` - Full documentation
 
 ### Adding a New Model Type
 

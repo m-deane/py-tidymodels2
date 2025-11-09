@@ -5,9 +5,10 @@ Provides ICA, kernel PCA, and PLS transformations.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union, Callable
 import pandas as pd
 import numpy as np
+from py_recipes.selectors import resolve_selector
 
 
 @dataclass
@@ -19,13 +20,13 @@ class StepIca:
     Useful for blind source separation and feature extraction.
 
     Attributes:
-        columns: Columns to apply ICA to (None = all numeric)
+        columns: Columns to apply ICA to (None = all numeric, supports selectors)
         num_comp: Number of components to extract
         algorithm: ICA algorithm ('parallel', 'deflation')
         max_iter: Maximum iterations (default: 200)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable] = None
     num_comp: Optional[int] = None
     algorithm: str = "parallel"
     max_iter: int = 200
@@ -46,7 +47,9 @@ class StepIca:
         if self.columns is None:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
-            cols = [col for col in self.columns if col in data.columns]
+            cols = resolve_selector(self.columns, data)
+            # Filter to numeric only
+            cols = [col for col in cols if pd.api.types.is_numeric_dtype(data[col])]
 
         if len(cols) == 0:
             return PreparedStepIca(
@@ -129,13 +132,13 @@ class StepKpca:
     Can capture non-linear relationships in data.
 
     Attributes:
-        columns: Columns to apply kernel PCA to (None = all numeric)
+        columns: Columns to apply kernel PCA to (None = all numeric, supports selectors)
         num_comp: Number of components to keep
         kernel: Kernel type ('linear', 'poly', 'rbf', 'sigmoid')
         gamma: Kernel coefficient (None = auto)
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable] = None
     num_comp: Optional[int] = None
     kernel: str = "rbf"
     gamma: Optional[float] = None
@@ -156,7 +159,9 @@ class StepKpca:
         if self.columns is None:
             cols = data.select_dtypes(include=[np.number]).columns.tolist()
         else:
-            cols = [col for col in self.columns if col in data.columns]
+            cols = resolve_selector(self.columns, data)
+            # Filter to numeric only
+            cols = [col for col in cols if pd.api.types.is_numeric_dtype(data[col])]
 
         if len(cols) == 0:
             return PreparedStepKpca(
@@ -240,12 +245,12 @@ class StepPls:
     maximally correlated with the outcome variable.
 
     Attributes:
-        columns: Predictor columns (None = all numeric except outcome)
+        columns: Predictor columns (None = all numeric except outcome, supports selectors)
         outcome: Outcome column name
         num_comp: Number of components to extract
     """
 
-    columns: Optional[List[str]] = None
+    columns: Union[None, str, List[str], Callable] = None
     outcome: str = None
     num_comp: Optional[int] = None
 
@@ -275,7 +280,9 @@ class StepPls:
             numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
             cols = [col for col in numeric_cols if col != self.outcome]
         else:
-            cols = [col for col in self.columns if col in data.columns and col != self.outcome]
+            cols = resolve_selector(self.columns, data)
+            # Filter to numeric only and exclude outcome
+            cols = [col for col in cols if pd.api.types.is_numeric_dtype(data[col]) and col != self.outcome]
 
         if len(cols) == 0:
             return PreparedStepPls(

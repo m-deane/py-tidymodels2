@@ -12,7 +12,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
-from py_parsnip.utils.time_series_utils import _infer_date_column, _parse_ts_formula
+from py_parsnip.utils.time_series_utils import _infer_date_column, _parse_ts_formula, _expand_dot_notation
 
 
 @register_engine("varmax_reg", "statsmodels")
@@ -76,6 +76,18 @@ class StatsmodelsVARMAXEngine(Engine):
         # Parse exogenous variables (excluding date column)
         # We use _parse_ts_formula with first outcome for consistency
         _, exog_vars = _parse_ts_formula(f"{outcome_names[0]} ~ {predictor_part}", date_col)
+
+        # Expand "." notation to all columns except outcomes and date
+        # Note: For VARMAX, we exclude all outcome variables, not just the first one
+        all_outcome_names = outcome_names  # List of all outcome variables
+        # Create a combined exclusion list
+        exclude_cols = set(all_outcome_names)
+        if date_col and date_col != '__index__':
+            exclude_cols.add(date_col)
+
+        # Manual expansion if "." is present
+        if exog_vars == ['.']:
+            exog_vars = [col for col in data.columns if col not in exclude_cols]
 
         # Handle exogenous variables and time index
         if date_col == '__index__':

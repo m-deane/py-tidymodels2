@@ -5,7 +5,7 @@ Provides B-splines, natural splines, polynomial features, and harmonic functions
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union, Callable
 import pandas as pd
 import numpy as np
 
@@ -293,14 +293,16 @@ class StepPoly:
     including interaction terms if requested.
 
     Attributes:
-        columns: Columns to create polynomials for
+        columns: Columns to create polynomials for (supports selectors)
         degree: Maximum polynomial degree (default: 2)
         include_interactions: Include cross terms (default: False)
+        inplace: If True, replace original columns; if False, keep originals and add polynomial features (default: True)
     """
 
-    columns: List[str]
+    columns: Union[List[str], Callable, str, None]
     degree: int = 2
     include_interactions: bool = False
+    inplace: bool = True
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepPoly":
         """
@@ -314,8 +316,10 @@ class StepPoly:
             PreparedStepPoly ready to transform
         """
         from sklearn.preprocessing import PolynomialFeatures
+        from py_recipes.selectors import resolve_selector
 
-        cols = [col for col in self.columns if col in data.columns]
+        # Resolve selector to actual column names
+        cols = resolve_selector(self.columns, data)
 
         if len(cols) == 0:
             return PreparedStepPoly(
@@ -324,21 +328,45 @@ class StepPoly:
                 feature_names=[]
             )
 
-        # Fit polynomial features
-        poly = PolynomialFeatures(
-            degree=self.degree,
-            interaction_only=False,
-            include_bias=False
-        )
-        poly.fit(data[cols])
+        # Determine interaction mode
+        if self.include_interactions:
+            # Create both polynomial and interaction terms
+            poly = PolynomialFeatures(
+                degree=self.degree,
+                interaction_only=False,
+                include_bias=False
+            )
+            poly.fit(data[cols])
+            feature_names = poly.get_feature_names_out(cols)
+        else:
+            # Create ONLY pure polynomial terms (x^2, x^3), NO interactions
+            # sklearn doesn't support this directly, so we create all terms then filter
+            poly = PolynomialFeatures(
+                degree=self.degree,
+                interaction_only=False,
+                include_bias=False
+            )
+            poly.fit(data[cols])
+            all_feature_names = poly.get_feature_names_out(cols)
 
-        # Generate feature names
-        feature_names = poly.get_feature_names_out(cols)
+            # Filter to keep only single-variable polynomial terms (e.g., "x^2", not "x1 x2")
+            # An interaction term contains spaces (e.g., "x1 x2"), pure polynomial doesn't
+            feature_names = [name for name in all_feature_names if ' ' not in name]
+
+            # Update poly to only keep these features
+            feature_indices = [i for i, name in enumerate(all_feature_names) if ' ' not in name]
+            # Store indices for filtering during transform
+            poly._feature_indices = feature_indices
+
+        # Replace spaces with underscores for formula compatibility
+        # sklearn uses spaces like "x1 x2" but we need "x1_x2"
+        feature_names = [name.replace(' ', '_') for name in feature_names]
 
         return PreparedStepPoly(
             columns=cols,
             poly_transformer=poly,
-            feature_names=list(feature_names)
+            feature_names=list(feature_names),
+            inplace=self.inplace
         )
 
 
@@ -351,11 +379,13 @@ class PreparedStepPoly:
         columns: Original columns
         poly_transformer: Fitted PolynomialFeatures
         feature_names: Names for polynomial features
+        inplace: Whether to replace original columns or keep them
     """
 
     columns: List[str]
     poly_transformer: Any
     feature_names: List[str]
+    inplace: bool = True
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -375,12 +405,21 @@ class PreparedStepPoly:
         # Transform
         poly_data = self.poly_transformer.transform(result[self.columns])
 
-        # Add polynomial features
-        for i, name in enumerate(self.feature_names):
-            result[name] = poly_data[:, i]
+        # Check if we need to filter features (when include_interactions=False)
+        if hasattr(self.poly_transformer, '_feature_indices'):
+            # Only use selected feature columns
+            feature_indices = self.poly_transformer._feature_indices
+            for i, name in enumerate(self.feature_names):
+                actual_index = feature_indices[i]
+                result[name] = poly_data[:, actual_index]
+        else:
+            # Use all features (include_interactions=True)
+            for i, name in enumerate(self.feature_names):
+                result[name] = poly_data[:, i]
 
-        # Remove original columns
-        result = result.drop(columns=self.columns)
+        # Remove original columns if inplace=True
+        if self.inplace:
+            result = result.drop(columns=self.columns)
 
         return result
 

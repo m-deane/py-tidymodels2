@@ -26,8 +26,11 @@ from py_parsnip.engines import sklearn_decision_tree  # noqa: F401
 from py_parsnip.engines import sklearn_nearest_neighbor  # noqa: F401
 from py_parsnip.engines import sklearn_svm_rbf  # noqa: F401
 from py_parsnip.engines import sklearn_svm_linear  # noqa: F401
+from py_parsnip.engines import sklearn_svm_poly  # noqa: F401
 from py_parsnip.engines import sklearn_mlp  # noqa: F401
 from py_parsnip.engines import sklearn_pls  # noqa: F401
 from py_parsnip.engines import sklearn_bag_tree  # noqa: F401
 from py_parsnip.engines import generic_hybrid  # noqa: F401
 from py_parsnip.engines import parsnip_manual_reg  # noqa: F401
+from py_parsnip.engines import imodels_rule_fit  # noqa: F401
+from py_parsnip.engines import parsnip_window_reg  # noqa: F401

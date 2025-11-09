@@ -263,6 +263,42 @@ def _parse_ts_formula(formula: str, date_col: str) -> Tuple[str, List[str]]:
     return (outcome_str, exog_vars)
 
 
+def _expand_dot_notation(exog_vars: List[str], data: pd.DataFrame, outcome_name: str, date_col: str) -> List[str]:
+    """
+    Expand patsy's "." notation to all columns except outcome and date.
+
+    Parameters
+    ----------
+    exog_vars : list of str
+        Exogenous variable names from _parse_ts_formula. May contain ['.'].
+    data : pd.DataFrame
+        The data containing all columns.
+    outcome_name : str
+        Name of the outcome variable to exclude.
+    date_col : str
+        Name of the date column to exclude. Use '__index__' for DatetimeIndex.
+
+    Returns
+    -------
+    list of str
+        Expanded list of column names, or original list if no '.' found.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'date': ['2020-01-01'], 'x1': [1], 'x2': [2], 'y': [3]})
+    >>> _expand_dot_notation(['.'], df, 'y', 'date')
+    ['x1', 'x2']
+    >>> _expand_dot_notation(['x1'], df, 'y', 'date')
+    ['x1']
+    """
+    if exog_vars == ['.']:
+        # Expand to all columns except outcome and date
+        return [col for col in data.columns
+                if col != outcome_name and col != date_col and col != '__index__']
+    return exog_vars
+
+
 def _validate_frequency(
     series: pd.Series,
     require_freq: bool = True,

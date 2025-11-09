@@ -17,7 +17,7 @@ import numpy as np
 from py_parsnip.engine_registry import Engine, register_engine
 from py_parsnip.model_spec import ModelSpec, ModelFit
 from py_hardhat import MoldedData
-from py_parsnip.utils.time_series_utils import _infer_date_column, _parse_ts_formula
+from py_parsnip.utils.time_series_utils import _infer_date_column, _parse_ts_formula, _expand_dot_notation
 
 
 @register_engine("seasonal_reg", "statsmodels")
@@ -65,6 +65,9 @@ class StatsmodelsSeasonalRegEngine(Engine):
 
         # Parse formula to extract outcome (exog_vars will be empty for STL)
         outcome_name, exog_vars = _parse_ts_formula(formula, date_col)
+
+        # Expand "." notation to all columns except outcome and date
+        exog_vars = _expand_dot_notation(exog_vars, data, outcome_name, date_col)
 
         # Validate outcome exists
         if outcome_name not in data.columns:

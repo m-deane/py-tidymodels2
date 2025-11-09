@@ -5,7 +5,7 @@ Provides interaction terms and ratio features.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union, Callable
 import pandas as pd
 import numpy as np
 
@@ -19,11 +19,14 @@ class StepInteract:
     capturing non-additive relationships.
 
     Attributes:
-        interactions: List of column pairs to interact (e.g., [("x1", "x2"), ("x1", "x3")])
+        interactions: Can be:
+            - List of column pairs: [("x1", "x2"), ("x1", "x3")]
+            - List of columns: ["x1", "x2", "x3"] (creates all pairwise interactions)
+            - Selector function: all_numeric_predictors() (creates all pairwise interactions)
         separator: Separator for interaction names (default: "_x_")
     """
 
-    interactions: List[tuple]
+    interactions: Union[List[tuple], List[str], Callable]
     separator: str = "_x_"
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedStepInteract":
@@ -37,11 +40,26 @@ class StepInteract:
         Returns:
             PreparedStepInteract ready to create interactions
         """
-        # Validate that columns exist
+        from itertools import combinations
+        from py_recipes.selectors import resolve_selector
+
+        # Resolve interactions to column pairs
+        if callable(self.interactions):
+            # Selector function - resolve to columns then create all pairs
+            cols = resolve_selector(self.interactions, data)
+            column_pairs = list(combinations(cols, 2))
+        elif self.interactions and isinstance(self.interactions[0], str):
+            # List of column names - create all pairs
+            column_pairs = list(combinations(self.interactions, 2))
+        else:
+            # Already a list of tuples
+            column_pairs = self.interactions
+
+        # Validate that columns exist and create feature names
         valid_interactions = []
         feature_names = []
 
-        for col1, col2 in self.interactions:
+        for col1, col2 in column_pairs:
             if col1 in data.columns and col2 in data.columns:
                 valid_interactions.append((col1, col2))
                 feature_names.append(f"{col1}{self.separator}{col2}")

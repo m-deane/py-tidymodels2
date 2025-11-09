@@ -48,6 +48,12 @@ class StepDiscretize:
         selector = self.columns if self.columns is not None else all_numeric()
         cols = resolve_selector(selector, data)
 
+        # Exclude datetime columns (cannot be discretized)
+        cols = [
+            c for c in cols
+            if not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
+
         # Calculate bin edges for each column
         bin_edges = {}
 
@@ -159,6 +165,12 @@ class StepCut:
         """
         cols = [col for col in self.columns if col in data.columns]
 
+        # Exclude datetime columns (cannot be discretized)
+        cols = [
+            c for c in cols
+            if not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
+
         # Validate breaks
         valid_breaks = {}
         valid_labels = {}
@@ -265,6 +277,12 @@ class StepPercentile:
         # Resolve selector to column list
         selector = self.columns if self.columns is not None else all_numeric()
         cols = resolve_selector(selector, data)
+
+        # Exclude datetime columns (cannot be converted to percentiles)
+        cols = [
+            c for c in cols
+            if not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         # Calculate percentile breakpoints for each column
         percentile_breaks = {}

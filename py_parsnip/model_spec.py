@@ -198,6 +198,52 @@ class ModelSpec:
                 # Pass dict as original_training_data and minimal molded for formula
                 fit_data = engine.fit(self, minimal_molded, original_training_data=data)
             elif formula is not None:
+                # Expand dot notation before molding (if present)
+                # This prevents datetime columns from being included, which causes
+                # patsy to treat them as categorical and fail on new dates in test data
+                if ' . ' in formula or formula.endswith(' .') or ' ~ .' in formula:
+                    # Parse formula to extract outcome
+                    if '~' in formula:
+                        outcome_str, predictor_str = formula.split('~', 1)
+                        outcome_str = outcome_str.strip()
+                        predictor_str = predictor_str.strip()
+
+                        # Check if using dot notation
+                        if predictor_str == '.' or predictor_str.startswith('. +') or ' + .' in predictor_str:
+                            # Expand dot notation to all columns except outcome and datetime
+                            # Get all columns except outcome
+                            all_cols = [col for col in data.columns if col != outcome_str]
+
+                            # Exclude datetime columns (they cause patsy categorical errors on new dates)
+                            predictor_cols = [
+                                col for col in all_cols
+                                if not pd.api.types.is_datetime64_any_dtype(data[col])
+                            ]
+
+                            # Handle different dot notation patterns
+                            if predictor_str == '.':
+                                # Pure dot notation: "y ~ ."
+                                expanded_formula = f"{outcome_str} ~ {' + '.join(predictor_cols)}"
+                            elif predictor_str.startswith('. +'):
+                                # Dot notation with additions: "y ~ . + I(x1*x2)"
+                                extra_terms = predictor_str[2:].strip()  # Remove ". +"
+                                if predictor_cols:
+                                    expanded_formula = f"{outcome_str} ~ {' + '.join(predictor_cols)} + {extra_terms}"
+                                else:
+                                    expanded_formula = f"{outcome_str} ~ {extra_terms}"
+                            elif ' + .' in predictor_str:
+                                # Additions before dot: "y ~ x1 + ."
+                                prefix_terms = predictor_str.split(' + .')[0].strip()
+                                if predictor_cols:
+                                    expanded_formula = f"{outcome_str} ~ {prefix_terms} + {' + '.join(predictor_cols)}"
+                                else:
+                                    expanded_formula = f"{outcome_str} ~ {prefix_terms}"
+                            else:
+                                # Shouldn't reach here, but use original formula
+                                expanded_formula = formula
+
+                            formula = expanded_formula
+
                 molded = mold(formula, data)
                 # Pass original_training_data to engine.fit() for datetime column extraction
                 # If not provided, use data itself (direct fit() calls have original data)

@@ -31,8 +31,6 @@ from py_recipes.steps.timeseries import (
 from py_recipes.steps.feature_selection import (
     StepPCA,
     PreparedStepPCA,
-    StepCorr,
-    PreparedStepCorr,
     StepSelectCorr,
     PreparedStepSelectCorr,
 )
@@ -70,6 +68,15 @@ from py_recipes.steps.filter_supervised import (
     StepFilterMutualInfo,
     StepFilterRocAuc,
     StepFilterChisq,
+)
+from py_recipes.steps.splitwise import (
+    StepSplitwise,
+)
+from py_recipes.steps.feature_extraction import (
+    StepSafe,
+)
+from py_recipes.steps.interaction_detection import (
+    StepEIX,
 )
 from py_recipes.steps.naomit import (
     StepNaOmit,
@@ -178,8 +185,6 @@ __all__ = [
     # Feature selection steps
     "StepPCA",
     "PreparedStepPCA",
-    "StepCorr",
-    "PreparedStepCorr",
     "StepSelectCorr",
     "PreparedStepSelectCorr",
     # Transformation steps
@@ -215,6 +220,11 @@ __all__ = [
     "StepFilterMutualInfo",
     "StepFilterRocAuc",
     "StepFilterChisq",
+    # Adaptive transformation steps
+    "StepSplitwise",
+    # Feature extraction steps
+    "StepSafe",
+    "StepEIX",
     # Extended categorical steps
     "StepOther",
     "PreparedStepOther",

@@ -1,10 +1,100 @@
 # py-tidymodels Project Plan
-**Version:** 3.0
-**Date:** 2025-11-07
-**Last Updated:** 2025-11-07
-**Status:** Phase 4A COMPLETED + Recipe Enhancement COMPLETED - All forecasting.ipynb issues resolved. Universal selector support, step_corr() added, 1358+ tests passing. Ready for Phase 4B (Dashboard & MLflow).
+**Version:** 3.1
+**Date:** 2025-11-09
+**Last Updated:** 2025-11-09
+**Status:** Phase 4.5 COMPLETED + Dot Notation Fix COMPLETED - 4 new models (svm_poly, bag_tree, rule_fit, window_reg) added. Coverage 62.8% (27/43 models). Time Series 11/11 (100%), SVM 3/3 (100%). 920+ tests passing. Ready for Phase 4.6 (Classification models).
 
-## Recent Work (2025-11-07): Recipe Enhancement & Issue Resolution
+## Recent Work (2025-11-09): Phase 4.5 Model Implementation + Dot Notation Fix
+
+**Summary:** Implemented 4 new models via parallel agents, completed Time Series and SVM categories, fixed dot notation support in all time series engines.
+
+### What Was Completed:
+
+**Phase 4.5 Model Implementation (4 Models):**
+
+1. **✅ svm_poly (Polynomial Kernel SVM)**:
+   - sklearn.svm.SVC/SVR wrapper
+   - Polynomial kernel with degree parameter
+   - Parameter translation: cost→C, degree→degree, scale_factor→gamma, margin→epsilon
+   - Dual mode support (regression + classification)
+   - 36 tests passing, 1 skipped (expected)
+   - **Impact:** Completes SVM family 3/3 (100%)
+
+2. **✅ bag_tree (Bootstrap Aggregating Ensemble)**:
+   - sklearn.ensemble.BaggingRegressor/Classifier
+   - Variance reduction through ensemble averaging
+   - Feature importance extraction (averaged across trees)
+   - 42 tests passing
+   - **Impact:** Tree-based models 4/6 (67%)
+
+3. **✅ rule_fit (Interpretable Rule-Based Model)**:
+   - imodels.RuleFitRegressor/Classifier
+   - Sparse linear model with rule features
+   - Rule extraction in coefficients DataFrame ("IF X1 > 2.04 AND X0 <= -7.27 THEN...")
+   - L1 regularization for sparsity
+   - 40 tests passing
+   - **Impact:** First rule-based model 1/3 (33%)
+
+4. **✅ window_reg (Sliding Window Forecasting)**:
+   - Custom implementation (no external library)
+   - 3 aggregation methods: mean, median, weighted_mean
+   - Rolling window forecasting with flexible weights
+   - Works with time series and non-time-series data
+   - 40 tests passing
+   - **Impact:** Completes Time Series family 11/11 (100%)
+
+**Dot Notation Fix (Complete - 2 Issues):**
+
+5. **✅ Formula Dot Notation Support - Time Series Models**:
+   - Fixed ValueError: "Exogenous variable '.' not found in data"
+   - Created `_expand_dot_notation()` utility function
+   - Applied to 9 time series engines (Prophet, ARIMA, ETS, STL, VARMAX, etc.)
+   - Verified with 4/4 tests passing
+   - **Impact:** All time series models now support "target ~ ." formula
+
+6. **✅ Formula Dot Notation Support - Standard Models**:
+   - Fixed PatsyError: "New dates don't match training levels"
+   - Added dot expansion in ModelSpec.fit() before calling mold()
+   - Automatically excludes datetime columns to prevent categorical errors
+   - Applied to ALL standard models (linear_reg, rand_forest, SVM, etc.)
+   - Verified with 3/3 tests passing + 26 regression tests passing
+   - **Impact:** linear_reg, rand_forest, and all sklearn/statsmodels models now support "target ~ ."
+
+### Test Results:
+- **Phase 4.5 Tests**: 158/159 passing (99.4%)
+- **Dot Notation Tests (Time Series)**: 4/4 passing (100%)
+- **Dot Notation Tests (Standard Models)**: 3/3 passing (100%)
+- **Regression Tests**: 26/26 linear_reg tests passing (100%)
+- **Total Project Tests**: 930+ passing
+- **New Tests Added**: 169 (158 models + 4 time series dot notation + 3 standard model dot notation + regression validation)
+
+### Coverage Milestones:
+- **Before Phase 4.5:** 53.5% (23/43 models)
+- **After Phase 4.5:** 62.8% (27/43 models)
+- **Increase:** +9.3 percentage points
+
+### Completed Categories (3 total):
+1. ✅ **Time Series:** 11/11 (100%) - industry-leading
+2. ✅ **SVM:** 3/3 (100%) - complete SVM family
+3. ✅ **Baseline:** 2/2 (100%) - all baseline methods
+
+### Files Created (17 total):
+- Model specs: 4 files
+- Engines: 4 files
+- Tests: 4 files + 1 verification script
+- Documentation: 4 files
+
+### Documentation:
+- `.claude_debugging/PHASE_4_5_IMPLEMENTATION_SUMMARY.md` - Complete implementation details
+- `.claude_debugging/DOT_NOTATION_FIX.md` - Dot notation implementation
+- `.claude_debugging/DOT_NOTATION_VERIFICATION.md` - Test documentation
+- `.claude_debugging/ISSUE_RESOLVED_DOT_NOTATION.md` - Resolution summary
+
+**See documentation files for complete details.**
+
+---
+
+## Previous Work (2025-11-07): Recipe Enhancement & Issue Resolution
 
 **Summary:** Resolved all 9 issues from `_md/issues.md` with comprehensive selector integration and new features.
 

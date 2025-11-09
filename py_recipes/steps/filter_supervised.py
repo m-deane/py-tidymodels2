@@ -327,7 +327,11 @@ class StepFilterRfImportance:
         else:
             score_cols = list(self.columns)
 
-        score_cols = [c for c in score_cols if c != self.outcome]
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
@@ -530,7 +534,11 @@ class StepFilterMutualInfo:
         else:
             score_cols = list(self.columns)
 
-        score_cols = [c for c in score_cols if c != self.outcome]
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
@@ -697,7 +705,11 @@ class StepFilterRocAuc:
         else:
             score_cols = list(self.columns)
 
-        score_cols = [c for c in score_cols if c != self.outcome]
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
@@ -889,7 +901,11 @@ class StepFilterChisq:
         else:
             score_cols = list(self.columns)
 
-        score_cols = [c for c in score_cols if c != self.outcome]
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
 
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
