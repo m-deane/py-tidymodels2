@@ -440,18 +440,21 @@ final_wf = finalize_workflow(workflow, best)
 
 **Key Classes:**
 - **WorkflowSet**: Collection of workflows for comparison
-- **WorkflowSetResults**: Results from evaluating all workflows
+- **WorkflowSetResults**: Results from evaluating all workflows (via CV)
+- **WorkflowSetNestedResults**: Results from grouped/panel modeling (NEW - 2025-11-11)
 
 **Key Methods:**
 - **WorkflowSet.from_cross()**: Create all combinations of preprocessors × models
   - Example: 5 formulas × 4 models = 20 workflows
 - **WorkflowSet.from_workflows()**: Create from explicit workflow list
 - **fit_resamples()**: Evaluate all workflows across CV folds
-- **collect_metrics()**: Aggregate metrics across resamples
+- **fit_nested()**: Fit all workflows across all groups (panel/grouped data)
+- **fit_global()**: Fit all workflows globally with group as feature
+- **collect_metrics()**: Aggregate metrics across resamples or groups
 - **rank_results()**: Rank workflows by performance
 - **autoplot()**: Automatic visualization of results
 
-**Key Pattern:**
+**Standard Workflow Comparison (CV-based):**
 ```python
 # Define multiple preprocessing strategies
 formulas = [
@@ -482,17 +485,58 @@ best_wf_id = top_models.iloc[0]["wflow_id"]
 best_wf = wf_set[best_wf_id].fit(train_data)
 ```
 
-**Features:**
+**Grouped/Panel Workflow Comparison (NEW - 2025-11-11):**
+```python
+# Same workflow set creation
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Fit ALL workflows across ALL groups (e.g., 20 workflows × 10 countries = 200 models)
+results = wf_set.fit_nested(train_data, group_col='country')
+
+# Collect metrics per group or averaged
+metrics_by_group = results.collect_metrics(by_group=True, split='test')
+metrics_avg = results.collect_metrics(by_group=False, split='test')
+
+# Rank workflows overall or per group
+ranked = results.rank_results('rmse', by_group=False, n=5)  # Overall ranking
+ranked_by_group = results.rank_results('rmse', by_group=True, n=3)  # Per-group ranking
+
+# Extract best workflow(s)
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)  # Overall best
+best_by_group = results.extract_best_workflow('rmse', by_group=True)  # Best per group
+
+# Visualize comparison
+fig = results.autoplot('rmse', by_group=False, top_n=10)  # Average with error bars
+fig.show()
+
+# Get all outputs for analysis
+outputs_df = results.collect_outputs()  # Includes predictions, actuals, forecasts for all groups
+```
+
+**WorkflowSetNestedResults Methods:**
+1. **`collect_metrics(by_group, split)`**: Get metrics per-group or averaged across groups
+2. **`rank_results(metric, split, by_group, n)`**: Rank workflows by specified metric
+3. **`extract_best_workflow(metric, split, by_group)`**: Get best workflow ID or per-group DataFrame
+4. **`collect_outputs()`**: Collect all predictions, actuals, forecasts for all workflows and groups
+5. **`autoplot(metric, split, by_group, top_n)`**: Visualize comparison with error bars or subplots
+
+**Key Features:**
 - Parallel workflow evaluation for speed
 - Automatic ID generation (e.g., "minimal_linear_reg_1")
 - Consistent result format with `collect_metrics()`
 - Visual comparison with `autoplot()`
 - Access individual workflows: `wf_set["workflow_id"]`
+- **NEW**: Group-aware comparison (fit all workflows on all groups simultaneously)
+- **NEW**: Per-group ranking and selection
+- **NEW**: Identify heterogeneous patterns (different groups prefer different workflows)
 
 **Files:**
-- `py_workflowsets/workflowset.py` - WorkflowSet and results classes
-- `tests/test_workflowsets/` - Tests for multi-model comparison
-- `examples/11_workflowsets_demo.ipynb` - Demo notebook
+- `py_workflowsets/workflowset.py` - WorkflowSet, WorkflowSetResults, and WorkflowSetNestedResults classes
+- `tests/test_workflowsets/` - 40 tests passing (20 general + 20 grouped modeling)
+- `examples/11_workflowsets_demo.ipynb` - Standard CV-based demo
+- `_md/forecasting_workflowsets_grouped.ipynb` - Grouped modeling demo (NEW)
+- `_md/forecasting_workflowsets_cv_grouped.ipynb` - CV with grouped data demo (NEW)
+- `_md/forecasting_advanced_workflow_grouped.ipynb` - Advanced grouped workflow demo (NEW)
 
 ## Critical Implementation Notes
 
@@ -1139,14 +1183,24 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 
 ## Project Status and Planning
 
-**Current Status:** All Issues Complete (1-8), 762+ Tests Passing
-**Last Updated:** 2025-11-09 (Recent: workflow extract methods + recipe enhancements)
-**Total Tests Passing:** 762+ tests across all packages (714 base + 48 new)
+**Current Status:** All Issues Complete (1-8), 782+ Tests Passing, WorkflowSet Grouped Modeling COMPLETE
+**Last Updated:** 2025-11-11 (Latest: WorkflowSet grouped/panel modeling support)
+**Total Tests Passing:** 782+ tests across all packages (762 base + 20 WorkflowSet grouped)
 **Total Models:** 23 production-ready models (21 fitted + 1 hybrid + 1 manual)
 **Total Engines:** 30+ engine implementations
 **All Issues Completed:** ✅ Issues 1-8 from backlog
 
-**Recent Enhancements (2025-11-09):**
+**Recent Enhancements (2025-11-11):**
+- ✅ **WorkflowSet grouped modeling**: `fit_nested()` and `fit_global()` for multi-model comparison across groups
+  - Fit ALL workflows across ALL groups with single method call
+  - `WorkflowSetNestedResults` with 5 key methods (collect_metrics, rank_results, extract_best_workflow, collect_outputs, autoplot)
+  - Group-aware ranking and visualization
+  - Three demonstration notebooks updated
+  - 20 comprehensive tests (all passing)
+  - Code: `py_workflowsets/workflowset.py:313-1058`
+  - Docs: `.claude_plans/WORKFLOWSET_GROUPED_IMPLEMENTATION_COMPLETE.md`
+
+**Previous Enhancements (2025-11-09):**
 - ✅ **WorkflowFit extract methods**: Added `extract_formula()` and `extract_preprocessed_data()` for debugging and inspection
 - ✅ **Recipe datetime safety**: Discretization and dummy encoding now automatically exclude datetime columns
 - ✅ **Recipe infinity handling**: `step_naomit()` removes both NaN and ±Inf values
@@ -1285,6 +1339,11 @@ See `PHASE_4A_NOTEBOOK_TESTING_REPORT.md` and `NOTEBOOK_TESTING_REPORT.md` for d
 - 11_workflowsets_demo.ipynb - Multi-model comparison (20 workflows)
 - 12_recursive_forecasting_demo.ipynb - Recursive/autoregressive forecasting
 - 13_panel_models_demo.ipynb - Panel/grouped models (nested and global)
+
+**WorkflowSet Grouped Modeling Notebooks (_md/ directory):**
+- forecasting_workflowsets_grouped.ipynb - All workflows across all groups (NEW)
+- forecasting_workflowsets_cv_grouped.ipynb - CV with group-aware evaluation (NEW)
+- forecasting_advanced_workflow_grouped.ipynb - Advanced preprocessing strategies (NEW)
 
 **Detailed Plan:** See `.claude_plans/projectplan.md` for full roadmap and architecture decisions.
 

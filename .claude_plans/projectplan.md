@@ -1,10 +1,90 @@
 # py-tidymodels Project Plan
-**Version:** 3.6
+**Version:** 3.8
 **Date:** 2025-11-11
-**Last Updated:** 2025-11-11 (Phase 3 Complete)
-**Status:** Phase 3 COMPLETE - All 7 advanced selection steps implemented and tested (24/24 tests passing). Recipe library now has 78 steps total. Documentation updated. Ready for Phase 4.
+**Last Updated:** 2025-11-11 (WorkflowSet Grouped Modeling COMPLETE)
+**Status:** WorkflowSet Grouped Modeling COMPLETE ✅ - Added `fit_nested()` and `fit_global()` methods for multi-model comparison across groups. 20 new tests passing (40/40 total). Three demonstration notebooks updated. Phase 3 COMPLETE - All 7 advanced selection steps implemented and tested. Phase 6 Planning COMPLETE - As-of-date backtesting architecture documented.
 
-## Recent Work (2025-11-11): Phase 3 Advanced Selection Steps COMPLETE ✅
+## Recent Work (2025-11-11 - Part 2): WorkflowSet Grouped Modeling COMPLETE ✅
+
+**Summary:** Successfully implemented grouped/panel modeling support for WorkflowSet, enabling users to fit ALL workflows across ALL groups simultaneously, compare performance group-wise, and select best workflows either overall or per-group. This completes the multi-model comparison framework for panel data.
+
+### What Was Completed:
+
+**Core Implementation** (Commit df301ed):
+1. **`WorkflowSet.fit_nested(data, group_col, per_group_prep, min_group_size)`** (lines 313-395)
+   - Fits all workflows across all groups independently
+   - Error handling for individual workflow failures
+   - Returns `WorkflowSetNestedResults` object
+   - Supports per-group preprocessing via parameter
+
+2. **`WorkflowSet.fit_global(data, group_col)`** (lines 397-462)
+   - Fits all workflows globally with group as feature
+   - Returns standard `WorkflowSetResults`
+   - More efficient when groups share similar patterns
+
+3. **`WorkflowSetNestedResults` class** (lines 690-1058)
+   - **`collect_metrics(by_group, split)`**: Per-group or averaged metrics
+   - **`rank_results(metric, split, by_group, n)`**: Rank workflows
+   - **`extract_best_workflow(metric, split, by_group)`**: Select best workflow(s)
+   - **`collect_outputs()`**: Collect all predictions/actuals/forecasts
+   - **`autoplot(metric, split, by_group, top_n)`**: Visualize comparison
+
+**Files Modified**:
+- `py_workflowsets/workflowset.py` (+371 lines)
+- `py_workflowsets/__init__.py` (+3 lines)
+- `tests/test_workflowsets/test_grouped_workflowset.py` (+570 lines, 20 tests)
+
+**Documentation Updates** (Commit f6b3593):
+- `_md/forecasting_workflowsets_grouped.ipynb` - Updated with fit_nested() demonstration
+- `_md/forecasting_workflowsets_cv_grouped.ipynb` - Updated with group-aware evaluation
+- `_md/forecasting_advanced_workflow_grouped.ipynb` - Updated with advanced workflow screening
+- `_md/update_workflowset_notebooks.py` (NEW, +570 lines) - Systematic update script
+
+**Documentation Files**:
+- `.claude_plans/WORKFLOWSET_GROUPED_IMPLEMENTATION_COMPLETE.md` - Full implementation details
+- `.claude_plans/WORKFLOWSET_NOTEBOOKS_UPDATED.md` - Notebook update summary
+- `.claude_plans/SESSION_SUMMARY_WORKFLOWSET_GROUPED_2025_11_11.md` - Complete session summary
+
+**Test Results**:
+- ✅ 20/20 new WorkflowSet grouped tests passing (100%)
+- ✅ 40/40 total WorkflowSet tests passing (no regressions)
+- ✅ Backward compatible - all existing tests pass
+
+**Key Benefits**:
+1. **Simplified Workflow**: Fit all workflows on all groups with single method call
+2. **Group-Aware Comparison**: Compare models both overall and per-group
+3. **Flexible Ranking**: Rank by overall average or within each group
+4. **Production Ready**: Handles heterogeneous patterns, error handling for failures
+5. **Consistent API**: Mirrors individual Workflow.fit_nested() pattern
+
+**Usage Pattern**:
+```python
+# Create WorkflowSet (e.g., 5 formulas × 4 models = 20 workflows)
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Fit ALL workflows across ALL groups (e.g., 20 workflows × 10 countries = 200 models)
+results = wf_set.fit_nested(train_data, group_col='country')
+
+# Compare and select
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+ranked = results.rank_results('rmse', by_group=False, n=5)
+fig = results.autoplot('rmse', by_group=False, top_n=10)
+```
+
+**Total New Code**:
+- Implementation + Tests: ~1,084 lines
+- Documentation: ~1,000 lines
+- Total: ~2,084 lines
+
+**Next Steps** (Optional Enhancements):
+- Parallel workflow fitting (n_jobs parameter)
+- Workflow filtering before fitting
+- Heatmap visualization (workflows × groups)
+- Export to DataFrame for reporting
+
+---
+
+## Earlier Work (2025-11-11 - Part 1): Phase 3 Advanced Selection Steps COMPLETE ✅
 
 **Summary:** Successfully implemented and tested all 7 advanced selection steps for Phase 3 of the recipe expansion plan. All 24 tests passing, comprehensive documentation created, COMPLETE_RECIPE_REFERENCE.md updated with full examples.
 
@@ -4184,15 +4264,366 @@ Expected 96 from C header, got 88 from PyObject
 
 ---
 
+## Phase 6: As-of-Date Backtesting Extension (2025-11-11 - PLANNED)
+
+**Version:** 1.0
+**Status:** Planning Complete - Architecture and Implementation Roadmap Defined
+**Documentation:** `.claude_plans/AS_OF_DATE_BACKTESTING_PLAN.md`
+
+### Overview
+
+Phase 6 introduces comprehensive as-of-date backtesting capabilities for time series forecasting, enabling point-in-time forecast evaluation with temporal leakage prevention. This is critical for commodity forward curves, fundamental forecasts, and any scenario where predictions are made at different as-of-dates for various future target dates.
+
+**Business Context:**
+- Oil/gas forward curve forecasting (Brent, WTI, Dubai, etc.)
+- Fundamental price forecasts with multiple horizons
+- Forecast revision analysis as as-of-date approaches target date
+- Forecast bias detection over time
+- Multi-commodity comparison and model selection
+
+**Target Users:**
+- Commodity traders and analysts
+- Energy market forecasters
+- Financial forecasters with term structure data
+- Anyone working with point-in-time forecasting data
+
+---
+
+### Key Components
+
+**1. New Package: py_backtest**
+- Core backtesting infrastructure
+- Results analysis and visualization
+- Forecast bias and revision tracking
+- Integration with existing py-tidymodels ecosystem
+
+**2. Extended Package: py_rsample**
+- New resampling method: `as_of_date_cv()`
+- AsOfDateSplit class for point-in-time splits
+- Temporal leakage prevention built-in
+- Support for grouped/ungrouped time series
+
+**3. New Result Class: BacktestResults**
+- Standardized backtest output structure
+- Metrics by split (as-of-date)
+- Metrics by horizon (1-day, 1-week, 1-month ahead)
+- Forecast bias and revision analysis methods
+- Automatic plotting capabilities
+
+---
+
+### Data Structure Specification
+
+**Recommended Format: Long Format**
+
+```python
+import pandas as pd
+
+# Example: Brent crude oil forward curve forecasting
+data = pd.DataFrame({
+    'as_of_date': pd.to_datetime(['2023-01-01', '2023-01-01', '2023-01-02', '2023-01-02']),
+    'target_date': pd.to_datetime(['2023-01-15', '2023-02-15', '2023-01-16', '2023-02-16']),
+    'horizon': [14, 45, 14, 45],  # Days ahead
+    'commodity': ['Brent', 'Brent', 'Brent', 'Brent'],
+    'forward_price': [85.2, 83.5, 84.8, 83.9],  # Forecast features
+    'spot_price': [83.0, 83.1, 83.5, 83.5],
+    'inventory_level': [320, 320, 318, 318],
+    'actual_price': [84.8, np.nan, 85.1, np.nan],  # Actual outcome (NaN if future)
+})
+```
+
+**Key Properties:**
+- Each row = single forecast observation
+- as_of_date: When the forecast was made
+- target_date: What future date is being forecasted
+- horizon: Days/periods ahead (derived or explicit)
+- Features: Forward prices, spot prices, fundamentals
+- Outcome: Actual realized value (NaN for future dates)
+
+---
+
+### Core API Design
+
+#### 1. Creating As-of-Date Splits
+
+```python
+from py_rsample import as_of_date_cv
+
+splits = as_of_date_cv(
+    data,
+    as_of_col='as_of_date',
+    target_col='target_date',
+    horizon_col='horizon',  # Optional
+    initial="6 months",     # Training window size
+    assess="1 month",       # Assessment window size
+    skip=0,                 # Days to skip between splits
+    step=30,                # Step size (monthly splits)
+    cumulative=True,        # Expanding window
+    lag=0                   # Lag between train end and test start
+)
+
+# Each split contains:
+# - as_of_date: The split point
+# - train_filter: Boolean mask for training data
+# - test_filter: Boolean mask for test data
+# - min_horizon, max_horizon: Horizon range in test set
+```
+
+#### 2. Running Backtests
+
+```python
+from py_backtest import backtest_workflow
+from py_workflows import workflow
+from py_recipes import recipe
+from py_parsnip import linear_reg
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Define preprocessing
+rec = (recipe()
+    .step_normalize(all_numeric())
+    .step_lag(['spot_price'], lags=[1, 7, 30])
+    .step_dummy(['commodity']))
+
+# Define workflow
+wf = (workflow()
+    .add_recipe(rec)
+    .add_model(linear_reg()))
+
+# Run backtest across all splits
+results = backtest_workflow(
+    workflow=wf,
+    data=data,
+    splits=splits,
+    metrics=metric_set(rmse, mae, r_squared),
+    control=backtest_control(
+        save_predictions=True,
+        save_workflow=False
+    )
+)
+```
+
+#### 3. Analyzing Results
+
+```python
+# Overall metrics by split
+results.collect_metrics()
+
+# Best horizon performance
+results.show_best_horizon('rmse', maximize=False)
+
+# Forecast bias analysis
+bias_df = results.forecast_bias_analysis()
+# Returns: as_of_date, horizon, mean_bias, median_bias, bias_std
+
+# Forecast revision analysis
+revision_df = results.revision_analysis()
+# Returns: target_date, as_of_date, horizon, forecast, revision_from_prior
+
+# Grouped analysis (multi-commodity)
+results.collect_metrics_by_group('commodity')
+
+# Visualization
+results.autoplot('metrics_over_time')
+results.autoplot('horizon_accuracy')
+results.autoplot('bias_by_horizon')
+```
+
+---
+
+### Implementation Roadmap
+
+**Phase 6.1: Core Infrastructure (Week 1-2)**
+- Implement AsOfDateSplit dataclass
+- Implement as_of_date_cv() function
+- Add temporal leakage prevention tests
+- Period parsing utilities
+- Estimated: 400-500 LOC
+
+**Phase 6.2: Backtest Execution (Week 3-4)**
+- Implement backtest_workflow() function
+- Implement BacktestResults class
+- Basic metrics collection (by split)
+- Estimated: 500-600 LOC
+
+**Phase 6.3: Analysis & Metrics (Week 5-6)**
+- Forecast bias analysis methods
+- Forecast revision tracking
+- Horizon-specific metrics
+- Grouped analysis support
+- Estimated: 400-500 LOC
+
+**Phase 6.4: Visualization (Week 7)**
+- autoplot() implementations
+- Metrics over time plots
+- Horizon accuracy plots
+- Bias distribution plots
+- Estimated: 300-400 LOC
+
+**Phase 6.5: Documentation & Examples (Week 8)**
+- Comprehensive docstrings
+- Example notebook: Oil forward curve backtesting
+- Example notebook: Multi-commodity comparison
+- User guide documentation
+- Estimated: 200-300 LOC
+
+**Phase 6.6: Testing & Polish**
+- Unit tests for all components (estimated 40-50 tests)
+- Integration tests with existing packages
+- Edge case handling
+- Performance optimization
+- Estimated: 600-800 LOC (tests)
+
+**Total Estimated Scope:**
+- Production code: 2,100-2,600 lines
+- Test code: 600-800 lines
+- Documentation: Comprehensive
+- Timeline: 8 weeks (assuming full-time development)
+
+---
+
+### Integration Points
+
+**With py_rsample:**
+- Extends existing resampling infrastructure
+- Follows similar API patterns as time_series_cv()
+- Reuses period parsing utilities
+
+**With py_workflows:**
+- Works with all 23 model types
+- Supports recipe preprocessing
+- Compatible with grouped modeling (fit_nested)
+
+**With py_yardstick:**
+- Uses existing metric functions
+- Extends metric_set() for horizon-specific metrics
+
+**With py_visualize:**
+- Leverages existing plotting infrastructure
+- Adds backtest-specific plot types
+
+---
+
+### Critical Design Decisions
+
+**1. Long Format Data Structure (Recommended)**
+- Most flexible for varying horizons per as-of-date
+- Natural for grouped data (commodities, regions)
+- Efficient filtering with boolean masks
+- Clear semantic meaning
+
+**2. Boolean Mask Filtering**
+- Memory efficient for large datasets
+- Fast filtering operations
+- Explicit train/test separation
+- No data duplication
+
+**3. Temporal Leakage Prevention**
+- Training filter: `as_of_date <= split_date`
+- Test filter: `as_of_date == split_date AND actual.notna()`
+- Automated validation in tests
+- Critical for valid backtesting
+
+**4. Separate As-of-Date and Target-Date Columns**
+- Explicit semantic clarity
+- Easier horizon calculation
+- Supports variable horizons
+- Better for grouped data
+
+**5. No Modifications to Core Classes**
+- Backward compatible
+- Extension pattern only
+- New package (py_backtest) for specialized functionality
+- Existing packages extended minimally
+
+---
+
+### Success Criteria
+
+**Functional Requirements:**
+- ✅ Point-in-time data handling without leakage
+- ✅ Support for grouped and ungrouped data
+- ✅ Rolling/expanding window backtesting
+- ✅ Horizon-specific accuracy metrics
+- ✅ Forecast bias and revision analysis
+- ✅ Integration with all model types
+- ✅ Comprehensive visualization
+
+**Technical Requirements:**
+- ✅ 90%+ test coverage
+- ✅ Production-ready code (no mocks/stubs)
+- ✅ Comprehensive docstrings
+- ✅ Example notebooks for key use cases
+- ✅ Performance optimized for large datasets
+- ✅ Clear error messages
+
+**Documentation Requirements:**
+- ✅ Architecture documentation
+- ✅ API reference
+- ✅ Usage examples
+- ✅ Edge case handling guide
+- ✅ Best practices guide
+
+---
+
+### Risk Mitigation
+
+**Risk 1: Temporal Leakage**
+- Mitigation: Automated test suite specifically for leakage detection
+- Validation: Boolean mask inspection in every split
+- Testing: Comprehensive temporal integrity tests
+
+**Risk 2: Performance with Large Datasets**
+- Mitigation: Boolean mask filtering (memory efficient)
+- Optimization: Vectorized operations in pandas
+- Testing: Performance benchmarks with realistic data sizes
+
+**Risk 3: Complex Edge Cases**
+- Mitigation: Extensive edge case testing
+- Examples: Sparse data, missing horizons, irregular intervals
+- Testing: Dedicated test class for edge cases
+
+**Risk 4: User Confusion**
+- Mitigation: Clear documentation with examples
+- Examples: Multiple realistic use case notebooks
+- Support: Clear error messages with actionable guidance
+
+---
+
+### Next Actions
+
+**Phase 6 Status: PLANNING COMPLETE** ✅
+
+**Ready for Implementation:**
+1. Architecture plan documented (`.claude_plans/AS_OF_DATE_BACKTESTING_PLAN.md`)
+2. Data structure defined (long format recommended)
+3. API design finalized
+4. Implementation roadmap established (8 phases, 8 weeks)
+5. Success criteria defined
+6. Risk mitigation strategies identified
+
+**Awaiting:**
+- User review and approval of plan
+- Prioritization decision (Phase 6 vs other features)
+- Resource allocation for 8-week implementation
+
+**When Approved, Start With:**
+- Phase 6.1: Core Infrastructure (AsOfDateSplit, as_of_date_cv)
+- Create `py_rsample/as_of_date_split.py`
+- Create `py_rsample/as_of_date_cv.py`
+- Write temporal leakage prevention tests
+
+---
+
 ## Next Steps
 
 1. ✅ Environment setup complete
 2. ✅ Architecture analysis complete
 3. ✅ Phase 1-4A complete
 4. ✅ Phase 5 complete (Advanced Preprocessing & Models)
-5. **Now:** Phase 4B (Dashboard & MLflow) or Phase 6 (Additional Models)
-6. **Next:** User feedback and real-world testing
-7. **Then:** Iterate based on usage patterns
+5. ✅ Phase 6 planning complete (As-of-Date Backtesting)
+6. **Now:** Await user approval for Phase 6 implementation
+7. **Alternative:** Phase 4B (Dashboard & MLflow) or additional models
+8. **Then:** User feedback and real-world testing
 
 ---
 
