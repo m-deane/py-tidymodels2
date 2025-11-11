@@ -240,6 +240,10 @@ class Workflow:
             'StepHStat',
             # Time Series Lag Selection Steps
             'StepBestLag',
+            # Advanced Feature Selection Steps
+            'StepVip',
+            'StepBoruta',
+            'StepRfe',
         }
 
         for step in steps:
