@@ -310,6 +310,157 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def fit_nested(self,
+                   data: pd.DataFrame,
+                   group_col: str,
+                   per_group_prep: bool = False,
+                   min_group_size: int = 30) -> "WorkflowSetNestedResults":
+        """
+        Fit all workflows across all groups independently (nested/panel modeling).
+
+        Fits a separate model for each group within each workflow. This allows
+        different groups to have different model parameters and optionally
+        different preprocessing.
+
+        Args:
+            data: Training data with group column
+            group_col: Column name identifying groups
+            per_group_prep: If True, fit separate recipe for each group (default: False)
+            min_group_size: Minimum samples for group-specific prep (default: 30)
+
+        Returns:
+            WorkflowSetNestedResults with group-aware metrics and outputs
+
+        Examples:
+            >>> # Create workflowset
+            >>> wf_set = WorkflowSet.from_cross(
+            ...     preproc=["y ~ x1", "y ~ x1 + x2"],
+            ...     models=[linear_reg(), rand_forest()]
+            ... )
+            >>>
+            >>> # Fit all workflows on all groups
+            >>> results = wf_set.fit_nested(train_data, group_col='country')
+            >>>
+            >>> # Get metrics by workflow and group
+            >>> metrics = results.collect_metrics(by_group=True)
+            >>>
+            >>> # Rank workflows overall (average across groups)
+            >>> ranked = results.rank_results('rmse', by_group=False, n=5)
+            >>>
+            >>> # Get best workflow per group
+            >>> best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        """
+        all_results = []
+
+        for wf_id, wf in self.workflows.items():
+            print(f"Fitting {wf_id} across all groups...")
+
+            try:
+                # Fit nested workflow
+                nested_fit = wf.fit_nested(
+                    data,
+                    group_col=group_col,
+                    per_group_prep=per_group_prep,
+                    min_group_size=min_group_size
+                )
+
+                # Extract outputs with group column
+                outputs, coefs, stats = nested_fit.extract_outputs()
+
+                # Store results
+                all_results.append({
+                    "wflow_id": wf_id,
+                    "nested_fit": nested_fit,
+                    "outputs": outputs,
+                    "coefs": coefs,
+                    "stats": stats
+                })
+
+            except Exception as e:
+                print(f"  ⚠ Error fitting {wf_id}: {e}")
+                # Store error result with NaN metrics
+                all_results.append({
+                    "wflow_id": wf_id,
+                    "nested_fit": None,
+                    "outputs": None,
+                    "coefs": None,
+                    "stats": None,
+                    "error": str(e)
+                })
+
+        return WorkflowSetNestedResults(
+            results=all_results,
+            workflow_set=self,
+            group_col=group_col
+        )
+
+    def fit_global(self,
+                   data: pd.DataFrame,
+                   group_col: str) -> "WorkflowSetResults":
+        """
+        Fit all workflows globally with group as a feature.
+
+        Fits a single model per workflow using all groups, with the group
+        column included as a predictor. This assumes groups share similar
+        patterns and can be modeled together.
+
+        Args:
+            data: Training data with group column
+            group_col: Column name identifying groups
+
+        Returns:
+            WorkflowSetResults containing global fits
+
+        Examples:
+            >>> # Create workflowset
+            >>> wf_set = WorkflowSet.from_cross(
+            ...     preproc=["y ~ x1", "y ~ x1 + x2"],
+            ...     models=[linear_reg(), rand_forest()]
+            ... )
+            >>>
+            >>> # Fit all workflows globally
+            >>> results = wf_set.fit_global(train_data, group_col='country')
+            >>>
+            >>> # Collect metrics
+            >>> metrics = results.collect_metrics()
+        """
+        all_results = []
+
+        for wf_id, wf in self.workflows.items():
+            print(f"Fitting {wf_id} globally with group feature...")
+
+            try:
+                # Fit global workflow
+                global_fit = wf.fit_global(data, group_col=group_col)
+
+                # Extract outputs
+                outputs, coefs, stats = global_fit.extract_outputs()
+
+                all_results.append({
+                    "wflow_id": wf_id,
+                    "fit": global_fit,
+                    "metrics": stats,
+                    "outputs": outputs,
+                    "coefs": coefs
+                })
+
+            except Exception as e:
+                print(f"  ⚠ Error fitting {wf_id}: {e}")
+                all_results.append({
+                    "wflow_id": wf_id,
+                    "fit": None,
+                    "metrics": None,
+                    "outputs": None,
+                    "coefs": None,
+                    "error": str(e)
+                })
+
+        return WorkflowSetResults(
+            results=all_results,
+            workflow_set=self,
+            metrics=None
+        )
+
 
 @dataclass
 class WorkflowSetResults:
@@ -533,4 +684,385 @@ class WorkflowSetResults:
                  loc="best", frameon=True)
 
         plt.tight_layout()
+        return fig
+
+
+@dataclass
+class WorkflowSetNestedResults:
+    """
+    Results from fitting WorkflowSet with fit_nested().
+
+    Provides group-aware metrics and results analysis across all workflows
+    and all groups.
+
+    Attributes:
+        results: List of nested fit results per workflow
+        workflow_set: The original WorkflowSet
+        group_col: Grouping column name
+    """
+    results: List[Dict[str, Any]]
+    workflow_set: WorkflowSet
+    group_col: str
+
+    def collect_metrics(self, by_group: bool = True, split: str = "all") -> pd.DataFrame:
+        """
+        Collect metrics across all workflows and groups.
+
+        Args:
+            by_group: If True, return metrics per workflow per group.
+                     If False, return metrics per workflow (averaged across groups).
+            split: Data split to include - "train", "test", or "all" (default: "all")
+
+        Returns:
+            DataFrame with metrics
+
+            If by_group=True:
+                Columns: wflow_id, group, metric, value, split, preprocessor, model
+
+            If by_group=False:
+                Columns: wflow_id, metric, mean, std, n, split, preprocessor, model
+
+        Examples:
+            >>> # Get metrics per workflow per group
+            >>> metrics = results.collect_metrics(by_group=True)
+            >>>
+            >>> # Get average metrics per workflow (across groups)
+            >>> avg_metrics = results.collect_metrics(by_group=False)
+            >>>
+            >>> # Get only test metrics
+            >>> test_metrics = results.collect_metrics(by_group=True, split='test')
+        """
+        all_stats = []
+
+        for result in self.results:
+            wf_id = result["wflow_id"]
+            stats = result.get("stats")
+
+            if stats is None:
+                continue  # Skip failed workflows
+
+            stats = stats.copy()
+            stats["wflow_id"] = wf_id
+            all_stats.append(stats)
+
+        if not all_stats:
+            raise ValueError("No valid results to collect metrics from")
+
+        combined = pd.concat(all_stats, ignore_index=True)
+
+        # Filter by split
+        if split != "all":
+            combined = combined[combined["split"] == split]
+
+        # Filter to only numeric metrics columns before aggregation
+        # Select only the columns we need to avoid aggregating metadata columns
+        required_cols = ["wflow_id", "group", "metric", "value", "split"]
+        available_cols = [col for col in required_cols if col in combined.columns]
+        combined_filtered = combined[available_cols].copy()
+
+        if by_group:
+            # Return per-group metrics with workflow info
+            result_df = combined_filtered[["wflow_id", "group", "metric", "value", "split"]].copy()
+
+            # Add workflow info
+            result_df = result_df.merge(
+                self.workflow_set.info[["wflow_id", "preprocessor", "model"]],
+                on="wflow_id",
+                how="left"
+            )
+
+            return result_df
+        else:
+            # Average across groups - ensure value column is numeric
+            combined_filtered["value"] = pd.to_numeric(combined_filtered["value"], errors='coerce')
+
+            # Drop any rows where value couldn't be converted
+            combined_filtered = combined_filtered.dropna(subset=["value"])
+
+            summary = combined_filtered.groupby(["wflow_id", "metric", "split"])["value"].agg([
+                ("mean", "mean"),
+                ("std", "std"),
+                ("n", "count")
+            ]).reset_index()
+
+            # Add workflow info
+            summary = summary.merge(
+                self.workflow_set.info[["wflow_id", "preprocessor", "model"]],
+                on="wflow_id",
+                how="left"
+            )
+
+            return summary
+
+    def rank_results(self,
+                    metric: str,
+                    split: str = "test",
+                    by_group: bool = False,
+                    n: int = 10) -> pd.DataFrame:
+        """
+        Rank workflows by a specific metric.
+
+        Args:
+            metric: Metric to rank by (e.g., 'rmse', 'mae', 'r_squared')
+            split: Data split to use - 'train', 'test', or 'all' (default: 'test')
+            by_group: If True, rank within each group separately.
+                     If False, rank by average across groups.
+            n: Number of top workflows to return per group (default: 10)
+
+        Returns:
+            DataFrame with ranked workflows
+
+            If by_group=False:
+                Columns: rank, wflow_id, mean, std, n, preprocessor, model
+
+            If by_group=True:
+                Columns: group, rank, wflow_id, value, preprocessor, model
+
+        Examples:
+            >>> # Rank workflows overall (average across groups)
+            >>> ranked = results.rank_results('rmse', by_group=False, n=5)
+            >>>
+            >>> # Rank workflows within each group
+            >>> ranked_by_group = results.rank_results('rmse', by_group=True, n=3)
+        """
+        metrics_df = self.collect_metrics(by_group=True, split=split)
+        metrics_df = metrics_df[metrics_df["metric"] == metric]
+
+        if metrics_df.empty:
+            raise ValueError(f"No data found for metric '{metric}' and split '{split}'")
+
+        # Determine if we want to minimize or maximize
+        minimize_metrics = {"rmse", "mae", "mape", "smape", "mse", "log_loss", "brier_score"}
+        ascending = metric.lower() in minimize_metrics
+
+        if by_group:
+            # Rank within each group
+            ranked = []
+            for group in metrics_df["group"].unique():
+                group_data = metrics_df[metrics_df["group"] == group].copy()
+                group_data = group_data.sort_values("value", ascending=ascending)
+                group_data["rank"] = range(1, len(group_data) + 1)
+                ranked.append(group_data.head(n))
+
+            result = pd.concat(ranked, ignore_index=True)
+            return result[["group", "rank", "wflow_id", "value", "preprocessor", "model"]]
+        else:
+            # Rank by average across groups
+            avg = metrics_df.groupby(["wflow_id", "preprocessor", "model"])["value"].agg([
+                ("mean", "mean"),
+                ("std", "std"),
+                ("n", "count")
+            ]).reset_index()
+
+            avg = avg.sort_values("mean", ascending=ascending)
+            avg["rank"] = range(1, len(avg) + 1)
+
+            result = avg.head(n)
+            return result[["rank", "wflow_id", "mean", "std", "n", "preprocessor", "model"]]
+
+    def extract_best_workflow(self,
+                             metric: str,
+                             split: str = "test",
+                             by_group: bool = False) -> Union[str, pd.DataFrame]:
+        """
+        Extract best performing workflow(s).
+
+        Args:
+            metric: Metric to optimize (e.g., 'rmse', 'mae', 'r_squared')
+            split: Data split to use - 'train', 'test', or 'all' (default: 'test')
+            by_group: If True, return best workflow per group.
+                     If False, return single best workflow overall.
+
+        Returns:
+            If by_group=False: workflow_id (str) - single best workflow overall
+
+            If by_group=True: DataFrame with columns:
+                group, wflow_id, value, preprocessor, model
+
+        Examples:
+            >>> # Get single best workflow overall
+            >>> best_wf_id = results.extract_best_workflow('rmse')
+            >>> print(best_wf_id)  # 'formula_1_rf_2'
+            >>>
+            >>> # Get best workflow per group
+            >>> best_by_group = results.extract_best_workflow('rmse', by_group=True)
+            >>> print(best_by_group)
+            >>>   group      wflow_id         value  preprocessor  model
+            >>>   Germany    formula_2_rf_2   1.20   formula       rand_forest
+            >>>   France     formula_3_xgb_3  1.55   formula       boost_tree
+        """
+        ranked = self.rank_results(metric, split, by_group=by_group, n=1)
+
+        if by_group:
+            return ranked[["group", "wflow_id", "value", "preprocessor", "model"]]
+        else:
+            return ranked.iloc[0]["wflow_id"]
+
+    def collect_outputs(self) -> pd.DataFrame:
+        """
+        Collect all outputs (actuals, fitted, forecast, residuals) from all workflows.
+
+        Returns:
+            DataFrame with outputs from all workflows and groups
+            Columns include: wflow_id, group, actuals, fitted, forecast, residuals, split
+
+        Examples:
+            >>> outputs = results.collect_outputs()
+            >>> # Filter to specific workflow and group
+            >>> wf_group = outputs[
+            ...     (outputs['wflow_id'] == 'formula_1_rf_2') &
+            ...     (outputs['group'] == 'Germany')
+            ... ]
+        """
+        all_outputs = []
+
+        for result in self.results:
+            wf_id = result["wflow_id"]
+            outputs = result.get("outputs")
+
+            if outputs is None:
+                continue  # Skip failed workflows
+
+            outputs = outputs.copy()
+            outputs["wflow_id"] = wf_id
+            all_outputs.append(outputs)
+
+        if not all_outputs:
+            raise ValueError("No valid results to collect outputs from")
+
+        return pd.concat(all_outputs, ignore_index=True)
+
+    def autoplot(self,
+                metric: str,
+                split: str = "test",
+                by_group: bool = False,
+                top_n: int = 10) -> plt.Figure:
+        """
+        Plot workflow comparison results.
+
+        Args:
+            metric: Metric to plot (e.g., 'rmse', 'mae')
+            split: Data split to plot - 'train', 'test', or 'all'
+            by_group: If True, create separate plot per group.
+                     If False, plot average across groups.
+            top_n: Number of top workflows to show
+
+        Returns:
+            matplotlib Figure object
+
+        Examples:
+            >>> # Plot average performance across groups
+            >>> fig = results.autoplot('rmse', by_group=False, top_n=10)
+            >>> plt.show()
+            >>>
+            >>> # Plot performance per group
+            >>> fig = results.autoplot('rmse', by_group=True, top_n=5)
+            >>> plt.show()
+        """
+        if by_group:
+            # Create subplot for each group
+            metrics_df = self.collect_metrics(by_group=True, split=split)
+            metrics_df = metrics_df[metrics_df["metric"] == metric]
+
+            groups = sorted(metrics_df["group"].unique())
+            n_groups = len(groups)
+
+            # Calculate subplot layout
+            n_cols = min(3, n_groups)
+            n_rows = (n_groups + n_cols - 1) // n_cols
+
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 5 * n_rows))
+            if n_groups == 1:
+                axes = [axes]
+            else:
+                axes = axes.flatten() if n_rows > 1 else list(axes)
+
+            # Determine if we want to minimize or maximize
+            minimize_metrics = {"rmse", "mae", "mape", "smape", "mse", "log_loss", "brier_score"}
+            ascending = metric.lower() in minimize_metrics
+
+            for i, group in enumerate(groups):
+                ax = axes[i]
+                group_data = metrics_df[metrics_df["group"] == group].copy()
+                group_data = group_data.sort_values("value", ascending=ascending).head(top_n)
+
+                # Create bar plot
+                x = np.arange(len(group_data))
+                bars = ax.barh(x, group_data["value"], alpha=0.7)
+
+                # Color by model type
+                model_types = group_data["model"].unique()
+                colors = plt.cm.Set3(np.linspace(0, 1, len(model_types)))
+                color_map = dict(zip(model_types, colors))
+
+                for j, (idx, row) in enumerate(group_data.iterrows()):
+                    bars[j].set_color(color_map[row["model"]])
+
+                # Set labels
+                ax.set_yticks(x)
+                ax.set_yticklabels(group_data["wflow_id"], fontsize=8)
+                ax.set_xlabel(metric.upper(), fontsize=10)
+                ax.set_title(f"{group}", fontsize=12, fontweight='bold')
+                ax.invert_yaxis()
+                ax.grid(axis='x', alpha=0.3)
+
+            # Remove empty subplots
+            for i in range(n_groups, len(axes)):
+                fig.delaxes(axes[i])
+
+            # Add legend to first subplot
+            if n_groups > 0:
+                legend_elements = [plt.Rectangle((0, 0), 1, 1, fc=color_map[model])
+                                  for model in model_types]
+                axes[0].legend(legend_elements, model_types, title="Model",
+                             loc="best", frameon=True, fontsize=8)
+
+            plt.suptitle(f"Workflow Comparison by Group: {metric.upper()} ({split})",
+                        fontsize=14, fontweight='bold', y=1.00)
+            plt.tight_layout()
+
+        else:
+            # Plot average across groups
+            metrics_df = self.collect_metrics(by_group=False, split=split)
+            metrics_df = metrics_df[metrics_df["metric"] == metric]
+
+            # Determine if we want to minimize or maximize
+            minimize_metrics = {"rmse", "mae", "mape", "smape", "mse", "log_loss", "brier_score"}
+            ascending = metric.lower() in minimize_metrics
+
+            metrics_df = metrics_df.sort_values("mean", ascending=ascending).head(top_n)
+
+            # Create plot
+            fig, ax = plt.subplots(figsize=(10, max(6, len(metrics_df) * 0.4)))
+
+            # Create bar plot with error bars
+            x = np.arange(len(metrics_df))
+            bars = ax.barh(x, metrics_df["mean"], xerr=metrics_df["std"],
+                          capsize=5, alpha=0.7)
+
+            # Color by model type
+            model_types = metrics_df["model"].unique()
+            colors = plt.cm.Set3(np.linspace(0, 1, len(model_types)))
+            color_map = dict(zip(model_types, colors))
+
+            for i, (idx, row) in enumerate(metrics_df.iterrows()):
+                bars[i].set_color(color_map[row["model"]])
+
+            # Set labels
+            ax.set_yticks(x)
+            ax.set_yticklabels(metrics_df["wflow_id"])
+            ax.set_xlabel(f"{metric.upper()} (mean ± std)", fontsize=12)
+            ax.set_title(f"Workflow Comparison (Avg Across Groups): {metric.upper()} ({split})",
+                        fontsize=14, fontweight='bold')
+            ax.invert_yaxis()
+            ax.grid(axis='x', alpha=0.3)
+
+            # Add legend
+            legend_elements = [plt.Rectangle((0, 0), 1, 1, fc=color_map[model])
+                              for model in model_types]
+            ax.legend(legend_elements, model_types, title="Model Type",
+                     loc="best", frameon=True)
+
+            plt.tight_layout()
+
         return fig
