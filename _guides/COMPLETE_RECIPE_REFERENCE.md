@@ -1020,13 +1020,18 @@ SHAP (SHapley Additive exPlanations) value-based feature selection using game th
 
 **Parameters:**
 - `outcome` (str): Outcome variable name (required)
-- `model` (object): **UNFITTED** sklearn-compatible model (fitted automatically during prep)
+- `model` (object): **UNFITTED** sklearn-compatible model (cloned and fitted automatically during prep)
 - `threshold/top_n/top_p` (specify ONE): Selection mode
   - `threshold` (float): Keep features with mean |SHAP| >= threshold
   - `top_n` (int): Keep top N features by importance
   - `top_p` (float): Keep top proportion (0-1) of features
 - `shap_samples` (int or None): Sample size for SHAP calculation (None = use all data)
 - `random_state` (int or None): Random seed for sampling
+
+**Important:**
+- Pass an **UNFITTED** model - it will be cloned and fitted internally during prep()
+- **Automatically excludes datetime columns** to prevent sklearn DTypePromotionError
+- Each group in per-group preprocessing gets its own fitted model and feature selection
 
 **Example:**
 ```python
@@ -2572,9 +2577,245 @@ selector_intersection(all_predictors(), all_numeric())  # Numeric AND predictor
 
 ---
 
+## Chaining Supervised Steps
+
+### Overview
+
+Supervised steps can be **chained together** to create powerful feature engineering pipelines. This is especially effective with **per-group preprocessing** where each group gets independent transformations.
+
+### Common Patterns
+
+#### Pattern 1: Feature Creation → Feature Selection
+
+Create features with one step, then select the most important with another:
+
+```python
+recipe()
+    .step_normalize()  # Normalize features first
+    .step_safe_v2(     # Create SAFE threshold features
+        surrogate_model=GradientBoostingRegressor(n_estimators=50),
+        outcome='target',
+        penalty=5.0,
+        max_thresholds=3,
+        keep_original_cols=True,
+        feature_type='numeric',
+        output_mode='both'
+    )
+    .step_select_permutation(  # Select most important features
+        outcome='target',
+        model=RandomForestRegressor(n_estimators=50),
+        top_n=10,
+        n_repeats=10
+    )
+```
+
+**What happens**:
+1. Normalize standardizes all numeric features
+2. SAFE creates new threshold features (e.g., `price_gt_50`)
+3. Permutation selection evaluates ALL features (original + SAFE-created)
+4. Top 10 most important features are kept
+
+#### Pattern 2: Progressive Filtering
+
+Chain multiple filters to progressively narrow down features:
+
+```python
+recipe()
+    .step_normalize()
+    .step_filter_anova(outcome='y', top_n=20)        # ANOVA: Keep top 20
+    .step_filter_rf_importance(outcome='y', top_n=10) # RF: Narrow to top 10
+    .step_select_permutation(outcome='y', top_n=5)    # Permutation: Final top 5
+```
+
+**What happens**:
+- Stage 1: ANOVA filters 50 features → 20 features
+- Stage 2: RF importance filters 20 → 10 features
+- Stage 3: Permutation selection filters 10 → 5 features
+
+#### Pattern 3: Lag Creation → Selection
+
+Create lag features, then let selection find the most predictive lags:
+
+```python
+recipe()
+    .step_lag(['sales', 'price', 'inventory'], lags=[1, 2, 3, 7, 14, 30])
+    .step_naomit()  # Remove NAs from lags
+    .step_normalize()
+    .step_select_permutation(
+        outcome='sales',
+        model=RandomForestRegressor(n_estimators=50),
+        top_n=10
+    )
+```
+
+**What happens**:
+1. Creates 18 lag features (3 variables × 6 lags)
+2. Removes rows with NAs from lags
+3. Normalizes all features
+4. Selects top 10 most predictive features (mix of original and lags)
+
+### Per-Group Chaining
+
+When using `per_group_prep=True`, **each group gets independent feature engineering**:
+
+```python
+rec = (
+    recipe()
+    .step_normalize()
+    .step_safe_v2(outcome='target', ...)
+    .step_select_permutation(outcome='target', top_n=5)
+)
+
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+# Each country gets its own recipe pipeline
+fit = wf.fit_nested(train, group_col='country', per_group_prep=True)
+```
+
+**Per-Group Behavior**:
+- **USA**: May select features [x1, x2, x1_gt_100, x3, x5]
+- **UK**: May select features [x2, x3, x4, x2_gt_50, x7]
+- **Canada**: May select features [x1, x3, x5, x6, x8]
+
+Each country gets:
+- Its own normalization parameters (mean/std)
+- Its own SAFE threshold features
+- Its own feature selection
+
+**View feature differences**:
+```python
+comparison = fit.get_feature_comparison()
+# DataFrame showing which features each group uses
+```
+
+### Step Order Considerations
+
+#### ✅ Recommended Order
+
+```python
+# GOOD: Normalize → Create Features → Select Features
+recipe()
+    .step_normalize()         # Normalize first
+    .step_safe_v2(...)         # Create features
+    .step_select_permutation() # Select features
+```
+
+**Why**:
+- Normalization sees all original features
+- Feature creation works on normalized data
+- Selection evaluates both original and created features
+
+#### ✅ Alternative Order (Also Works)
+
+```python
+# ALSO GOOD: Select → Normalize
+recipe()
+    .step_select_permutation() # Select features first
+    .step_normalize()          # Normalize only selected features
+```
+
+**Why**:
+- After fix to `step_normalize()`, both orders work
+- Normalization gracefully handles missing columns
+
+### Technical Details
+
+#### How Chaining Works
+
+During **prep() phase** (training):
+1. Each step sees data as it flows through previous steps
+2. Supervised steps can see and use the outcome column
+3. Each step returns a **new prepared instance** (immutable pattern)
+4. With `per_group_prep=True`, each group gets independent step instances
+
+During **bake() phase** (prediction):
+1. Data flows through prepared steps in order
+2. Each step transforms data based on its training-time state
+3. Feature selection steps remove columns
+4. Normalization only transforms columns that still exist
+
+#### Immutability Pattern
+
+All supervised steps use `dataclasses.replace()` to ensure per-group independence:
+
+```python
+def prep(self, data, training=True):
+    # Compute in local variables
+    scores = self._compute_scores(X, y)
+    selected = self._select_features(scores)
+
+    # Create new instance (immutable)
+    prepared = replace(self)
+    prepared._scores = scores
+    prepared._selected_features = selected
+    prepared._is_prepared = True
+    return prepared
+```
+
+This ensures Group A's feature selection doesn't overwrite Group B's.
+
+### Common Patterns by Use Case
+
+#### Time Series Forecasting
+```python
+recipe()
+    .step_lag(['value'], lags=[1, 2, 3, 7, 30])     # Create lag features
+    .step_rolling(['value'], window=7, stats=['mean', 'std'])  # Rolling stats
+    .step_date('date', features=['month', 'day_of_week'])      # Date features
+    .step_naomit()                                   # Remove NAs
+    .step_normalize()                                # Normalize
+    .step_select_permutation(outcome='value', top_n=10)  # Select top 10
+```
+
+#### High-Dimensional Data
+```python
+recipe()
+    .step_normalize()                                # Normalize
+    .step_filter_roc_auc(outcome='y', top_p=0.3)     # Keep top 30%
+    .step_pca(n_components=20)                       # PCA to 20 components
+    .step_select_permutation(outcome='y', top_n=10)  # Final selection
+```
+
+#### Interpretable Feature Engineering
+```python
+recipe()
+    .step_normalize()                                # Normalize
+    .step_safe_v2(outcome='y', max_thresholds=2)     # SAFE thresholds
+    .step_poly(['x1', 'x2'], degree=2)               # Polynomial features
+    .step_select_shap(outcome='y', top_n=15)         # SHAP-based selection
+```
+
+### Troubleshooting
+
+#### Issue: "Feature names should match those that were passed during fit"
+
+**Cause**: Using an old version without the `step_normalize()` fix
+
+**Solution**: Update to latest version (2025-11-10+) where `step_normalize()` handles missing columns gracefully
+
+#### Issue: Different groups select very different features
+
+**Diagnosis**: Working as intended! Per-group preprocessing adapts to each group's patterns
+
+**Verify**:
+```python
+comparison = fit.get_feature_comparison()
+print(comparison)  # See which features each group uses
+```
+
+#### Issue: Feature selection step sees wrong columns
+
+**Cause**: Step order - selection happens before feature creation
+
+**Solution**: Ensure feature creation steps come BEFORE selection steps
+
+---
+
 **Total Steps Documented:** 71+ (includes step_splitwise)
-**Last Updated:** 2025-11-09
+**Last Updated:** 2025-11-10 (Added chaining section)
 **Version:** py-tidymodels v1.0
 
 **Recent Additions:**
+- **Chaining Supervised Steps** - Comprehensive guide for multi-step pipelines (2025-11-10)
+- **step_normalize() fix** - Handles missing columns gracefully for chaining (2025-11-10)
 - **step_splitwise()** - Adaptive dummy encoding via data-driven threshold detection (2025-11-09)

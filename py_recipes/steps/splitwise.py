@@ -7,7 +7,7 @@ SplitWise Regression: Stepwise Modeling with Adaptive Dummy Encoding.
 arXiv preprint https://arxiv.org/abs/2505.15423
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional, Union, List, Callable, Dict, Any, Literal
 import pandas as pd
 import numpy as np
@@ -177,7 +177,10 @@ class StepSplitwise:
         if len(candidate_cols) == 0:
             raise ValueError("No numeric predictor columns found for transformation")
 
-        self._original_columns = candidate_cols
+        # Build state in local variables (avoid self mutation)
+        original_columns = candidate_cols
+        decisions = {}
+        cutoffs = {}
 
         # Apply exclusions
         exclude = self.exclude_vars if self.exclude_vars else []
@@ -186,20 +189,26 @@ class StepSplitwise:
         # For excluded vars, force linear
         for col in exclude:
             if col in candidate_cols:
-                self._decisions[col] = 'linear'
-                self._cutoffs[col] = {}
+                decisions[col] = 'linear'
+                cutoffs[col] = {}
 
         # Univariate transformation mode
         if self.transformation_mode == 'univariate':
             for col in cols_to_transform:
-                decision, cutoffs = self._decide_transformation_univariate(
+                decision, cutoff = self._decide_transformation_univariate(
                     data[col].values, y, col
                 )
-                self._decisions[col] = decision
-                self._cutoffs[col] = cutoffs
+                decisions[col] = decision
+                cutoffs[col] = cutoff
 
-        self._is_prepared = True
-        return self
+        # Create new prepared instance with computed state
+        prepared = replace(self)
+        prepared._original_columns = original_columns
+        prepared._decisions = decisions
+        prepared._cutoffs = cutoffs
+        prepared._is_prepared = True
+
+        return prepared
 
     def _decide_transformation_univariate(
         self, x: np.ndarray, y: np.ndarray, var_name: str

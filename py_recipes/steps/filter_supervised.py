@@ -1006,6 +1006,393 @@ class StepFilterChisq:
         return data[keep_cols]
 
 
+@dataclass
+class StepSelectShap:
+    """
+    Select features using SHAP (SHapley Additive exPlanations) values.
+
+    Uses SHAP values to explain feature importance and selects the most important
+    features. Supports both tree-based models (TreeExplainer) and other models
+    (KernelExplainer). Requires a pre-fitted model.
+
+    Parameters
+    ----------
+    outcome : str
+        Name of the outcome variable
+    model : sklearn-compatible model
+        Pre-fitted model to explain. Must have fit() and predict() methods
+    threshold : float, optional
+        Minimum SHAP value to keep feature. If None, uses top_n or top_p
+    top_n : int, optional
+        Keep top N features by SHAP value
+    top_p : float, optional
+        Keep top proportion of features (e.g., 0.2 for top 20%)
+    shap_samples : int, optional
+        Number of samples to use for KernelExplainer (speeds up computation).
+        Only used for non-tree models. Default: None (use all samples)
+    random_state : int, optional
+        Random seed for sampling
+    columns : selector, optional
+        Which columns to score. If None, uses all except outcome
+    skip : bool, default=False
+        Skip this step
+    id : str, optional
+        Unique identifier for this step
+
+    Examples
+    --------
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> model = RandomForestRegressor(n_estimators=50, random_state=42)
+    >>> model.fit(X_train, y_train)
+    >>>
+    >>> rec = recipe(data, "y ~ .").step_select_shap(
+    ...     outcome='y', model=model, top_n=10
+    ... )
+    """
+    outcome: str
+    model: Any
+    threshold: Optional[float] = None
+    top_n: Optional[int] = None
+    top_p: Optional[float] = None
+    shap_samples: Optional[int] = None
+    random_state: Optional[int] = None
+    columns: Union[None, str, List[str], Callable] = None
+    skip: bool = False
+    id: Optional[str] = None
+
+    # Prepared state
+    _selected_features: List[str] = field(default_factory=list, init=False, repr=False)
+    _scores: Dict[str, float] = field(default_factory=dict, init=False, repr=False)
+    _is_prepared: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self):
+        # Validate selection mode
+        modes = sum([self.threshold is not None, self.top_n is not None, self.top_p is not None])
+        if modes == 0:
+            raise ValueError("Must specify one of: threshold, top_n, or top_p")
+        if modes > 1:
+            raise ValueError("Can only specify one of: threshold, top_n, or top_p")
+
+        if self.top_p is not None and not (0 < self.top_p <= 1):
+            raise ValueError(f"top_p must be in (0, 1], got {self.top_p}")
+
+    def prep(self, data: pd.DataFrame, training: bool = True):
+        """Prepare the step by computing SHAP values and selecting features."""
+        if self.skip or not training:
+            return self
+
+        # Get outcome
+        if self.outcome not in data.columns:
+            raise ValueError(f"Outcome '{self.outcome}' not found in data")
+
+        y = data[self.outcome]
+
+        # Resolve columns to score
+        if self.columns is None:
+            score_cols = [c for c in data.columns if c != self.outcome]
+        elif isinstance(self.columns, str):
+            score_cols = [self.columns]
+        elif isinstance(self.columns, list):
+            score_cols = self.columns
+        elif callable(self.columns):
+            score_cols = self.columns(data)
+        else:
+            raise TypeError(f"columns must be str, list, callable, or None")
+
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
+
+        if len(score_cols) == 0:
+            raise ValueError("No columns to score after excluding datetime columns")
+
+        X = data[score_cols]
+
+        # Compute SHAP values
+        scores = self._compute_shap_scores(X, y)
+        selected_features = self._select_features(scores)
+
+        # Create new prepared instance (immutable pattern)
+        prepared = replace(self)
+        prepared._scores = scores
+        prepared._selected_features = selected_features
+        prepared._is_prepared = True
+        return prepared
+
+    def _compute_shap_scores(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
+        """Compute mean absolute SHAP values for each feature."""
+        try:
+            import shap
+        except ImportError:
+            raise ImportError(
+                "SHAP library is required for step_select_shap. "
+                "Install with: pip install shap"
+            )
+
+        # Clone and fit the model
+        from sklearn.base import clone
+        fitted_model = clone(self.model) if self.model is not None else None
+
+        if fitted_model is None:
+            raise ValueError("model parameter is required for SHAP-based selection")
+
+        # Fit the model on the data
+        fitted_model.fit(X, y)
+
+        # Check if model is tree-based (use TreeExplainer)
+        tree_model_types = (
+            'RandomForestRegressor', 'RandomForestClassifier',
+            'GradientBoostingRegressor', 'GradientBoostingClassifier',
+            'XGBRegressor', 'XGBClassifier',
+            'LGBMRegressor', 'LGBMClassifier',
+            'CatBoostRegressor', 'CatBoostClassifier'
+        )
+
+        model_class = fitted_model.__class__.__name__
+
+        if model_class in tree_model_types:
+            # Use TreeExplainer for tree models (fast)
+            explainer = shap.TreeExplainer(fitted_model)
+            shap_values = explainer.shap_values(X)
+        else:
+            # Use KernelExplainer for other models (slower)
+            # Sample data if shap_samples is specified
+            if self.shap_samples is not None and len(X) > self.shap_samples:
+                sample_indices = np.random.RandomState(self.random_state).choice(
+                    len(X), size=self.shap_samples, replace=False
+                )
+                X_sample = X.iloc[sample_indices]
+            else:
+                X_sample = X
+
+            # Create KernelExplainer with model.predict
+            explainer = shap.KernelExplainer(fitted_model.predict, X_sample)
+            shap_values = explainer.shap_values(X)
+
+        # Handle multi-output SHAP values (e.g., multiclass classification)
+        if isinstance(shap_values, list):
+            # For classification, average absolute SHAP across classes
+            shap_values = np.mean([np.abs(sv) for sv in shap_values], axis=0)
+
+        # Compute mean absolute SHAP value for each feature
+        mean_abs_shap = np.abs(shap_values).mean(axis=0)
+
+        scores = {col: float(score) for col, score in zip(X.columns, mean_abs_shap)}
+        return scores
+
+    def _select_features(self, scores: Dict[str, float]) -> List[str]:
+        """Select features based on threshold, top_n, or top_p."""
+        if self.threshold is not None:
+            selected = [k for k, v in scores.items() if v >= self.threshold]
+        elif self.top_n is not None:
+            sorted_features = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            selected = [k for k, v in sorted_features[:self.top_n]]
+        elif self.top_p is not None:
+            n_keep = max(1, int(len(scores) * self.top_p))
+            sorted_features = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            selected = [k for k, v in sorted_features[:n_keep]]
+        else:
+            raise ValueError("Must specify threshold, top_n, or top_p")
+
+        return selected
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Apply feature selection to data."""
+        if self.skip:
+            return data
+
+        if not self._is_prepared:
+            raise ValueError("Step must be prepped before baking")
+
+        keep_cols = self._selected_features + [self.outcome]
+        keep_cols = [c for c in keep_cols if c in data.columns]
+        return data[keep_cols]
+
+
+@dataclass
+class StepSelectPermutation:
+    """
+    Select features using permutation importance.
+
+    Uses sklearn's permutation_importance to compute feature importance by measuring
+    the decrease in model performance when feature values are randomly shuffled.
+    Model-agnostic and works with any sklearn-compatible model. Requires a pre-fitted model.
+
+    Parameters
+    ----------
+    outcome : str
+        Name of the outcome variable
+    model : sklearn-compatible model
+        Pre-fitted model to evaluate. Must have fit() and predict() methods
+    threshold : float, optional
+        Minimum importance to keep feature. If None, uses top_n or top_p
+    top_n : int, optional
+        Keep top N features by importance
+    top_p : float, optional
+        Keep top proportion of features (e.g., 0.2 for top 20%)
+    n_repeats : int, default=10
+        Number of times to permute each feature
+    scoring : str or callable, optional
+        Scoring metric to use. If None, uses model's default scorer.
+        Examples: 'r2', 'neg_mean_squared_error', 'accuracy', 'roc_auc'
+    n_jobs : int, optional
+        Number of parallel jobs. Default: None (single job)
+    random_state : int, optional
+        Random seed for permutation
+    columns : selector, optional
+        Which columns to score. If None, uses all except outcome
+    skip : bool, default=False
+        Skip this step
+    id : str, optional
+        Unique identifier for this step
+
+    Examples
+    --------
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> model = RandomForestRegressor(n_estimators=50, random_state=42)
+    >>> model.fit(X_train, y_train)
+    >>>
+    >>> rec = recipe(data, "y ~ .").step_select_permutation(
+    ...     outcome='y', model=model, top_n=10, n_repeats=5
+    ... )
+    """
+    outcome: str
+    model: Any
+    threshold: Optional[float] = None
+    top_n: Optional[int] = None
+    top_p: Optional[float] = None
+    n_repeats: int = 10
+    scoring: Optional[Union[str, Callable]] = None
+    n_jobs: Optional[int] = None
+    random_state: Optional[int] = None
+    columns: Union[None, str, List[str], Callable] = None
+    skip: bool = False
+    id: Optional[str] = None
+
+    # Prepared state
+    _selected_features: List[str] = field(default_factory=list, init=False, repr=False)
+    _scores: Dict[str, float] = field(default_factory=dict, init=False, repr=False)
+    _is_prepared: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self):
+        # Validate selection mode
+        modes = sum([self.threshold is not None, self.top_n is not None, self.top_p is not None])
+        if modes == 0:
+            raise ValueError("Must specify one of: threshold, top_n, or top_p")
+        if modes > 1:
+            raise ValueError("Can only specify one of: threshold, top_n, or top_p")
+
+        if self.top_p is not None and not (0 < self.top_p <= 1):
+            raise ValueError(f"top_p must be in (0, 1], got {self.top_p}")
+
+        if self.n_repeats <= 0:
+            raise ValueError(f"n_repeats must be > 0, got {self.n_repeats}")
+
+    def prep(self, data: pd.DataFrame, training: bool = True):
+        """Prepare the step by computing permutation importance and selecting features."""
+        if self.skip or not training:
+            return self
+
+        # Get outcome
+        if self.outcome not in data.columns:
+            raise ValueError(f"Outcome '{self.outcome}' not found in data")
+
+        y = data[self.outcome]
+
+        # Resolve columns to score
+        if self.columns is None:
+            score_cols = [c for c in data.columns if c != self.outcome]
+        elif isinstance(self.columns, str):
+            score_cols = [self.columns]
+        elif isinstance(self.columns, list):
+            score_cols = self.columns
+        elif callable(self.columns):
+            score_cols = self.columns(data)
+        else:
+            raise TypeError(f"columns must be str, list, callable, or None")
+
+        # Exclude outcome and datetime columns
+        score_cols = [
+            c for c in score_cols
+            if c != self.outcome and not pd.api.types.is_datetime64_any_dtype(data[c])
+        ]
+
+        if len(score_cols) == 0:
+            raise ValueError("No columns to score after excluding datetime columns")
+
+        X = data[score_cols]
+
+        # Compute permutation importance
+        scores = self._compute_permutation_scores(X, y)
+        selected_features = self._select_features(scores)
+
+        # Create new prepared instance (immutable pattern)
+        prepared = replace(self)
+        prepared._scores = scores
+        prepared._selected_features = selected_features
+        prepared._is_prepared = True
+        return prepared
+
+    def _compute_permutation_scores(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
+        """Compute permutation importance for each feature."""
+        from sklearn.inspection import permutation_importance
+        from sklearn.base import clone
+
+        # Clone and fit the model
+        fitted_model = clone(self.model) if self.model is not None else None
+
+        if fitted_model is None:
+            raise ValueError("model parameter is required for permutation importance")
+
+        # Fit the model on the data
+        fitted_model.fit(X, y)
+
+        # Compute permutation importance
+        result = permutation_importance(
+            fitted_model,
+            X,
+            y,
+            n_repeats=self.n_repeats,
+            scoring=self.scoring,
+            n_jobs=self.n_jobs,
+            random_state=self.random_state
+        )
+
+        # Use mean importance across repeats
+        scores = {col: float(score) for col, score in zip(X.columns, result.importances_mean)}
+        return scores
+
+    def _select_features(self, scores: Dict[str, float]) -> List[str]:
+        """Select features based on threshold, top_n, or top_p."""
+        if self.threshold is not None:
+            selected = [k for k, v in scores.items() if v >= self.threshold]
+        elif self.top_n is not None:
+            sorted_features = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            selected = [k for k, v in sorted_features[:self.top_n]]
+        elif self.top_p is not None:
+            n_keep = max(1, int(len(scores) * self.top_p))
+            sorted_features = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            selected = [k for k, v in sorted_features[:n_keep]]
+        else:
+            raise ValueError("Must specify threshold, top_n, or top_p")
+
+        return selected
+
+    def bake(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Apply feature selection to data."""
+        if self.skip:
+            return data
+
+        if not self._is_prepared:
+            raise ValueError("Step must be prepped before baking")
+
+        keep_cols = self._selected_features + [self.outcome]
+        keep_cols = [c for c in keep_cols if c in data.columns]
+        return data[keep_cols]
+
+
 # Helper functions for function-style API
 def step_filter_anova(recipe, outcome: str, threshold: Optional[float] = None,
                       top_n: Optional[int] = None, top_p: Optional[float] = None,
@@ -1072,6 +1459,35 @@ def step_filter_chisq(recipe, outcome: str, threshold: Optional[float] = None,
         outcome=outcome, threshold=threshold, top_n=top_n, top_p=top_p,
         method=method, use_pvalue=use_pvalue, columns=columns,
         skip=skip, id=id
+    )
+    recipe.steps.append(step)
+    return recipe
+
+
+def step_select_shap(recipe, outcome: str, model: Any, threshold: Optional[float] = None,
+                     top_n: Optional[int] = None, top_p: Optional[float] = None,
+                     shap_samples: Optional[int] = None, random_state: Optional[int] = None,
+                     columns=None, skip: bool = False, id: Optional[str] = None):
+    """Add SHAP value-based feature selection step to recipe."""
+    step = StepSelectShap(
+        outcome=outcome, model=model, threshold=threshold, top_n=top_n, top_p=top_p,
+        shap_samples=shap_samples, random_state=random_state,
+        columns=columns, skip=skip, id=id
+    )
+    recipe.steps.append(step)
+    return recipe
+
+
+def step_select_permutation(recipe, outcome: str, model: Any, threshold: Optional[float] = None,
+                            top_n: Optional[int] = None, top_p: Optional[float] = None,
+                            n_repeats: int = 10, scoring: Optional[Union[str, Callable]] = None,
+                            n_jobs: Optional[int] = None, random_state: Optional[int] = None,
+                            columns=None, skip: bool = False, id: Optional[str] = None):
+    """Add permutation importance-based feature selection step to recipe."""
+    step = StepSelectPermutation(
+        outcome=outcome, model=model, threshold=threshold, top_n=top_n, top_p=top_p,
+        n_repeats=n_repeats, scoring=scoring, n_jobs=n_jobs, random_state=random_state,
+        columns=columns, skip=skip, id=id
     )
     recipe.steps.append(step)
     return recipe

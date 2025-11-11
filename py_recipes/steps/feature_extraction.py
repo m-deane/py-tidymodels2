@@ -5,7 +5,7 @@ Implements the SAFE (Surrogate Assisted Feature Extraction) methodology from:
 SAFE library: https://github.com/ModelOriented/SAFE
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional, Union, List, Callable, Dict, Any, Literal
 import pandas as pd
 import numpy as np
@@ -1298,11 +1298,15 @@ class StepSafeV2:
 
         if len(transform_cols) == 0:
             warnings.warn("No columns to transform after filtering", UserWarning)
-            self._is_prepared = True
-            return self
+            prepared = replace(self)
+            prepared._is_prepared = True
+            return prepared
 
         X = data[transform_cols].copy()
-        self._original_columns = list(X.columns)
+
+        # Build state in local variables first (to avoid self mutation)
+        original_columns = list(X.columns)
+        variables = []  # Will hold transformation metadata
 
         # Detect categorical vs numeric columns
         categorical_cols = []
@@ -1350,17 +1354,21 @@ class StepSafeV2:
 
         # FIT SURROGATE MODEL during prep()
         try:
-            self._fitted_model = self.surrogate_model.fit(X_for_model, y)
+            fitted_model = self.surrogate_model.fit(X_for_model, y)
         except Exception as e:
             raise RuntimeError(f"Failed to fit surrogate model during prep(): {e}")
 
+        # Temporarily assign to self so helper methods can access it
+        old_fitted_model = self._fitted_model
+        self._fitted_model = fitted_model
+
         # Create variable transformations
-        for idx, col in enumerate(self._original_columns):
+        for idx, col in enumerate(original_columns):
             if col in numeric_cols:
                 var = self._fit_numeric_variable(
                     col, idx, X_for_model, X[col]
                 )
-                self._variables.append(var)
+                variables.append(var)
             elif col in categorical_cols:
                 dummy_info = categorical_dummies[col]
                 var = self._fit_categorical_variable(
@@ -1368,30 +1376,50 @@ class StepSafeV2:
                     dummy_info['dummy_names'],
                     dummy_info['levels']
                 )
-                self._variables.append(var)
+                variables.append(var)
+
+        # Temporarily assign to self for helper methods, then restore
+        old_variables = self._variables
+        self._variables = variables
 
         # Compute feature importances on TRANSFORMED features
         X_transformed = self._create_transformed_dataset(X)
         self._compute_feature_importances(X_transformed, y)
 
+        feature_importances = self._feature_importances.copy()
+
         # Select top N features if specified
+        selected_features = None
         if self.top_n is not None:
             all_features = []
-            for var in self._variables:
+            for var in variables:
                 if var['new_names']:
                     all_features.extend(var['new_names'])
 
             # Sort by importance
             sorted_features = sorted(
                 all_features,
-                key=lambda f: self._feature_importances.get(f, 0),
+                key=lambda f: feature_importances.get(f, 0),
                 reverse=True
             )
 
-            self._selected_features = sorted_features[:self.top_n]
+            selected_features = sorted_features[:self.top_n]
 
-        self._is_prepared = True
-        return self
+        # Restore original state (undo temp assignments)
+        self._variables = old_variables
+        self._fitted_model = old_fitted_model
+
+        # Create new prepared instance with all the computed state
+        prepared = replace(self)
+        prepared._original_columns = original_columns
+        prepared._fitted_model = fitted_model
+        prepared._variables = variables
+        prepared._feature_importances = feature_importances
+        if selected_features is not None:
+            prepared._selected_features = selected_features
+        prepared._is_prepared = True
+
+        return prepared
 
     def _fit_numeric_variable(
         self, col_name: str, col_idx: int, X_model: pd.DataFrame, X_original: pd.Series

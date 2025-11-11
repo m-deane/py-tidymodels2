@@ -66,11 +66,15 @@ from py_recipes.steps.filter_supervised import (
     step_filter_mutual_info,
     step_filter_roc_auc,
     step_filter_chisq,
+    step_select_shap,
+    step_select_permutation,
     StepFilterAnova,
     StepFilterRfImportance,
     StepFilterMutualInfo,
     StepFilterRocAuc,
     StepFilterChisq,
+    StepSelectShap,
+    StepSelectPermutation,
 )
 
 # Import feature extraction steps

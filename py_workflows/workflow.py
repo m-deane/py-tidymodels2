@@ -216,6 +216,8 @@ class Workflow:
             'StepSelectPermutation',
             'StepSafe',
             'StepSafeV2',
+            'StepSplitwise',
+            'StepEIX',
         }
 
         for step in steps:

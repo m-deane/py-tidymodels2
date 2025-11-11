@@ -4,7 +4,7 @@ Column removal step for recipes.
 Remove/drop specified columns from the dataset.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import List, Union, Optional, Callable
 import pandas as pd
 
@@ -56,24 +56,27 @@ class StepRm:
         if self.skip or not training:
             return self
 
-        # Resolve columns
+        # Resolve columns to local variable
         if isinstance(self.columns, str):
-            self._columns_to_remove = [self.columns]
+            columns_to_remove = [self.columns]
         elif isinstance(self.columns, list):
-            self._columns_to_remove = self.columns
+            columns_to_remove = self.columns
         elif callable(self.columns):
             # Selector function
-            self._columns_to_remove = self.columns(data)
+            columns_to_remove = self.columns(data)
         else:
             raise TypeError(f"columns must be str, list, or callable, got {type(self.columns)}")
 
         # Validate columns exist
-        missing = set(self._columns_to_remove) - set(data.columns)
+        missing = set(columns_to_remove) - set(data.columns)
         if missing:
             raise ValueError(f"Columns not found in data: {missing}")
 
-        self._is_prepared = True
-        return self
+        # Create new prepared instance
+        prepared = replace(self)
+        prepared._columns_to_remove = columns_to_remove
+        prepared._is_prepared = True
+        return prepared
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """Remove the specified columns."""
@@ -135,24 +138,27 @@ class StepSelect:
         if self.skip or not training:
             return self
 
-        # Resolve columns
+        # Resolve columns to local variable
         if isinstance(self.columns, str):
-            self._columns_to_keep = [self.columns]
+            columns_to_keep = [self.columns]
         elif isinstance(self.columns, list):
-            self._columns_to_keep = self.columns
+            columns_to_keep = self.columns
         elif callable(self.columns):
             # Selector function
-            self._columns_to_keep = self.columns(data)
+            columns_to_keep = self.columns(data)
         else:
             raise TypeError(f"columns must be str, list, or callable, got {type(self.columns)}")
 
         # Validate columns exist
-        missing = set(self._columns_to_keep) - set(data.columns)
+        missing = set(columns_to_keep) - set(data.columns)
         if missing:
             raise ValueError(f"Columns not found in data: {missing}")
 
-        self._is_prepared = True
-        return self
+        # Create new prepared instance
+        prepared = replace(self)
+        prepared._columns_to_keep = columns_to_keep
+        prepared._is_prepared = True
+        return prepared
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """Keep only the specified columns."""

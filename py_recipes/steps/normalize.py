@@ -97,6 +97,10 @@ class PreparedStepNormalize:
         """
         Apply fitted scaler to new data.
 
+        Handles missing columns gracefully - only transforms columns that exist.
+        This is important when chaining with feature selection steps that may
+        remove columns.
+
         Args:
             data: Data to transform
 
@@ -110,6 +114,25 @@ class PreparedStepNormalize:
             existing_cols = [col for col in self.columns if col in result.columns]
 
             if len(existing_cols) > 0:
-                result[existing_cols] = self.scaler.transform(result[existing_cols])
+                # Find indices of existing columns in original fitted columns
+                col_indices = [self.columns.index(col) for col in existing_cols]
+
+                # Extract transformation parameters for existing columns only
+                if self.method == "zscore":
+                    # StandardScaler: (X - mean) / std
+                    mean_values = self.scaler.mean_[col_indices]
+                    scale_values = self.scaler.scale_[col_indices]
+
+                    # Manually apply transformation
+                    result[existing_cols] = (result[existing_cols] - mean_values) / scale_values
+
+                elif self.method == "minmax":
+                    # MinMaxScaler: (X - min) * scale + min_value
+                    # where scale = 1 / (max - min)
+                    data_min = self.scaler.data_min_[col_indices]
+                    data_range = self.scaler.data_range_[col_indices]
+
+                    # Manually apply transformation
+                    result[existing_cols] = (result[existing_cols] - data_min) / data_range
 
         return result

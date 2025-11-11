@@ -36,8 +36,10 @@ enhancements from testing and to check
 18. mars - pyearth doesnt work -- ignore
 20. py-rsample - plot splits function?
 22. inverse transformations
+23. time series cv/ train test split as a recipe step
 
 to test
 
 13. step_normalize() etc are group specific transformations
+14. order of recipe steps
 
