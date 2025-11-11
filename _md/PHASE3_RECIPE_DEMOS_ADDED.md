@@ -160,6 +160,29 @@ Removed `per_group_prep=True` from all demonstrations. This eliminated per-group
 ✅ Each group can select different features based on group-specific importance
 ✅ See `.claude_debugging/PHASE3_PER_GROUP_PREP_FIX.md` for detailed documentation
 
+## Bug Fix 2: Normalization Including Outcome Column (2025-11-11)
+
+### Issue (Commit 105e8c4)
+After fixing per-group prep, normalization was incorrectly applied to the outcome column 'refinery_kbd'. The `all_numeric_predictors()` selector includes it because it's not in the hardcoded set `{'y', 'target', 'outcome'}`.
+
+### Solution
+Replaced `step_normalize(all_numeric_predictors())` with explicit exclusion:
+```python
+step_normalize(difference(all_numeric(), one_of('refinery_kbd')))
+```
+
+### Impact
+- Outcome column now retains original scale (mean~500, std~100)
+- Predictor columns normalized to mean=0, std=1
+- Supervised selection steps receive correct outcome values
+- Statistical tests operate on proper scale
+
+### Files Changed
+- Updated selector imports to include `difference` and `one_of`
+- Fixed normalization in all 7 Phase 3 cells
+
+See `.claude_debugging/PHASE3_NORMALIZATION_FIX.md` for detailed documentation
+
 ## Next Steps
 
 1. ✅ Cells added to notebook
