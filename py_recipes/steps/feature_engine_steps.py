@@ -178,6 +178,8 @@ class StepWinsorizer:
         For 'gaussian' method, number of standard deviations
     quantiles : tuple, optional
         For 'quantiles' method: (lower_quantile, upper_quantile)
+        Note: upper_quantile must equal (1 - lower_quantile) due to feature_engine API
+        Example: (0.05, 0.95) caps at 5th and 95th percentiles
     skip : bool, default=False
         Skip this step
     id : str, optional
@@ -241,6 +243,18 @@ class StepWinsorizer:
         if self.capping_method == 'quantiles' and self.quantiles is None:
             raise ValueError("quantiles must be specified when capping_method='quantiles'")
 
+        if self.capping_method == 'quantiles' and self.quantiles is not None:
+            if len(self.quantiles) != 2:
+                raise ValueError(f"quantiles must be a tuple of 2 values, got {len(self.quantiles)}")
+            lower, upper = self.quantiles
+            expected_upper = 1 - lower
+            if abs(upper - expected_upper) > 1e-6:
+                raise ValueError(
+                    f"quantiles must be symmetric: upper must equal (1 - lower). "
+                    f"Got ({lower}, {upper}), expected ({lower}, {expected_upper}). "
+                    f"This is required by the feature_engine Winsorizer API."
+                )
+
     def prep(self, data: pd.DataFrame, training: bool = True):
         """Prepare the step by fitting the winsorizer."""
         if self.skip or not training:
@@ -263,10 +277,13 @@ class StepWinsorizer:
 
         # Fit winsorizer
         if self.capping_method == 'quantiles':
+            # For quantiles method, fold should be a single float (lower quantile)
+            # Upper quantile is automatically calculated as 1 - fold
+            # E.g., fold=0.05 → caps at 5th and 95th percentiles
             winsorizer = Winsorizer(
                 capping_method='quantiles',
                 tail=self.tail,
-                fold=self.quantiles,
+                fold=self.quantiles[0],  # Use lower quantile from tuple
                 variables=score_cols
             )
         else:
