@@ -136,16 +136,45 @@ When executing the notebook:
 3. **Order**: Consider running selectively or reducing parameters for quick testing
 4. **Comparison**: Results show which selection method works best for each group
 
+## Bug Fix Applied (2025-11-11)
+
+### Issue
+Initial demonstrations (commit 91ddb0b) used `per_group_prep=True`, but cells 58+ threw:
+```
+ValueError: Outcome 'refinery_kbd' not found in data
+```
+
+### Root Cause
+Phase 3 supervised selection steps require the outcome column during prep to calculate feature importance/significance. The `_recipe_requires_outcome()` method in workflow.py didn't include Phase 3 step class names in the `supervised_step_types` set, so the workflow dropped the outcome column during per-group preprocessing.
+
+### Incorrect Fix (Commit 21c0c63)
+Removed `per_group_prep=True` from all demonstrations. This eliminated per-group feature selection (undesirable).
+
+### Correct Fix (Commit 83d08b2)
+1. **Updated workflow.py**: Added Phase 3 step class names to `supervised_step_types` set (lines 208-228)
+2. **Restored per_group_prep=True**: Reverted notebook to use per-group preprocessing
+3. **Verified**: Created test script confirming fix works correctly
+
+### Result
+✅ All Phase 3 demonstrations now work correctly with `per_group_prep=True`
+✅ Each group can select different features based on group-specific importance
+✅ See `.claude_debugging/PHASE3_PER_GROUP_PREP_FIX.md` for detailed documentation
+
 ## Next Steps
 
 1. ✅ Cells added to notebook
-2. ⏳ Execute notebook to verify all cells run correctly
-3. ⏳ Review feature comparison outputs to validate per-group differences
-4. ⏳ Consider adding summary comparison of all 7 methods
+2. ✅ Bug fix applied for per_group_prep=True
+3. ⏳ Execute notebook to verify all cells run correctly
+4. ⏳ Review feature comparison outputs to validate per-group differences
+5. ⏳ Consider adding summary comparison of all 7 methods
 
 ## Related Files
 
 - **Notebook**: `_md/forecasting_recipes_grouped.ipynb`
 - **Script**: `_md/add_phase3_recipe_demos.py`
+- **Revert Script**: `_md/revert_phase3_demos.py`
+- **Fix Script**: `_md/fix_phase3_demos.py` (superseded)
+- **Test Script**: `_md/test_phase3_fix.py`
 - **Documentation**: `.claude_plans/PHASE_3_COMPLETE.md`
+- **Fix Documentation**: `.claude_debugging/PHASE3_PER_GROUP_PREP_FIX.md`
 - **Tests**: `tests/test_recipes/test_advanced_selection.py` (24 tests)
