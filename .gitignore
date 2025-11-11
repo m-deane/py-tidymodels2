@@ -53,3 +53,9 @@ Thumbs.db
 # Project-specific
 reference/
 .claude*/
+
+# Large data files (>100MB blocked by GitHub)
+**/electricityloaddiagrams*.zip
+**/__data/*.zip
+**/__data/*.csv
+*.zip
