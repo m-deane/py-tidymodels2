@@ -207,6 +207,7 @@ class Workflow:
 
         # Supervised step class names that require outcome during prep/bake
         supervised_step_types = {
+            # Phase 2 Supervised Selection Steps
             'StepFilterAnova',
             'StepFilterRfImportance',
             'StepFilterMutualInfo',
@@ -225,6 +226,18 @@ class Workflow:
             'StepSelectGranger',
             'StepSelectStepwise',
             'StepSelectProbe',
+            # Phase 4 Practical Selection Steps
+            'StepSelectLasso',
+            'StepSelectRidge',
+            'StepSelectElasticNet',
+            'StepSelectUnivariate',
+            'StepSelectCointegration',
+            # Feature Engineering Steps
+            'StepDtDiscretiser',
+            'StepDtFeatures',
+            'StepSelectSmartCorr',
+            # Interaction Detection Steps
+            'StepHStat',
         }
 
         for step in steps:
