@@ -218,6 +218,13 @@ class Workflow:
             'StepSafeV2',
             'StepSplitwise',
             'StepEIX',
+            # Phase 3 Advanced Selection Steps
+            'StepPvalue',
+            'StepSelectStability',
+            'StepSelectLofo',
+            'StepSelectGranger',
+            'StepSelectStepwise',
+            'StepSelectProbe',
         }
 
         for step in steps:
