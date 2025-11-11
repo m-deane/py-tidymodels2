@@ -1015,6 +1015,135 @@ Chi-squared/Fisher exact test for categorical outcomes.
 
 ---
 
+#### `step_select_shap(outcome, model, threshold=None, top_n=None, top_p=None, shap_samples=None, random_state=None)`
+SHAP (SHapley Additive exPlanations) value-based feature selection using game theory.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (required)
+- `model` (object): **UNFITTED** sklearn-compatible model (fitted automatically during prep)
+- `threshold/top_n/top_p` (specify ONE): Selection mode
+  - `threshold` (float): Keep features with mean |SHAP| >= threshold
+  - `top_n` (int): Keep top N features by importance
+  - `top_p` (float): Keep top proportion (0-1) of features
+- `shap_samples` (int or None): Sample size for SHAP calculation (None = use all data)
+- `random_state` (int or None): Random seed for sampling
+
+**Example:**
+```python
+# NEW APPROACH: Pass UNFITTED model (fitted during prep)
+from sklearn.ensemble import RandomForestRegressor
+
+# Create UNFITTED model
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Keep top 10 features by SHAP importance
+.step_select_shap(
+    outcome='price',
+    model=rf,  # UNFITTED - fitted during prep()
+    top_n=10,
+    shap_samples=500
+)
+
+# Threshold-based selection
+.step_select_shap(
+    outcome='sales',
+    model=rf,
+    threshold=0.1,
+    shap_samples=1000
+)
+
+# Keep top 30% of features
+.step_select_shap(
+    outcome='target',
+    model=rf,
+    top_p=0.3
+)
+```
+
+**How it works:**
+- Uses TreeExplainer for tree models (fast) - XGBoost, LightGBM, RandomForest, etc.
+- Falls back to KernelExplainer for other models (slower, model-agnostic)
+- Calculates mean absolute SHAP value for each feature
+- Handles multi-class classification by averaging across classes
+- One-hot encodes categorical features and aggregates importance
+
+**Use case:** Feature selection with interpretable importance scores. SHAP values explain how each feature contributes to predictions.
+
+**Requirements:** Requires `shap` package: `pip install shap`
+
+**Performance:** Fast for tree models, slower for others. Use `shap_samples` to limit computation on large datasets.
+
+---
+
+#### `step_select_permutation(outcome, model, threshold=None, top_n=None, top_p=None, n_repeats=10, scoring=None, random_state=None, n_jobs=-1)`
+Permutation importance-based feature selection (model-agnostic).
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (required)
+- `model` (object): **UNFITTED** sklearn-compatible model (fitted automatically during prep)
+- `threshold/top_n/top_p` (specify ONE): Selection mode
+  - `threshold` (float): Keep features with importance >= threshold
+  - `top_n` (int): Keep top N features by importance
+  - `top_p` (float): Keep top proportion (0-1) of features
+- `n_repeats` (int): Number of permutations per feature (default: 10)
+- `scoring` (str or callable): Scoring metric (None = use model's default scorer)
+  - Examples: 'neg_mean_squared_error', 'r2', 'accuracy', 'roc_auc'
+- `random_state` (int or None): Random seed for permutations
+- `n_jobs` (int): Number of parallel jobs (-1 = use all cores)
+
+**Example:**
+```python
+# NEW APPROACH: Pass UNFITTED model (fitted during prep)
+from sklearn.ensemble import RandomForestRegressor
+
+# Create UNFITTED model
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+
+# Keep top 15 features with 10 permutation repeats
+.step_select_permutation(
+    outcome='price',
+    model=rf,  # UNFITTED - fitted during prep()
+    top_n=15,
+    n_repeats=10,
+    n_jobs=-1  # Use all CPU cores
+)
+
+# Threshold-based with custom scoring
+.step_select_permutation(
+    outcome='sales',
+    model=rf,
+    threshold=0.01,
+    scoring='neg_mean_squared_error',
+    n_repeats=20
+)
+
+# Keep top 40% of features
+.step_select_permutation(
+    outcome='target',
+    model=rf,
+    top_p=0.4,
+    random_state=42
+)
+```
+
+**How it works:**
+- Shuffles each feature and measures performance drop
+- Larger drop = more important feature
+- Repeats permutation `n_repeats` times for stability
+- Uses sklearn's `permutation_importance` under the hood
+- Model-agnostic: works with any sklearn-compatible model
+- Parallel execution for speed
+
+**Use case:** Model-agnostic feature importance. Works with any model type (linear, tree, SVM, neural networks, etc.).
+
+**Performance:** Computationally expensive - runs `n_repeats × n_features` model evaluations. Use parallel execution (`n_jobs=-1`) for large datasets.
+
+**Comparison with SHAP:**
+- **SHAP:** Game theory-based, explains individual predictions, faster for tree models
+- **Permutation:** Simpler concept, model-agnostic, slower but works with any model
+
+---
+
 ## Adaptive Transformations
 
 #### `step_splitwise(outcome, transformation_mode="univariate", min_support=0.1, min_improvement=3.0, criterion="AIC", exclude_vars=None, columns=None)`
@@ -1104,18 +1233,22 @@ Transformed columns use sanitized names (patsy-compatible):
 
 ---
 
-#### `step_safe(surrogate_model, outcome, penalty=3.0, pelt_model='l2', no_changepoint_strategy='median', keep_original_cols=False, top_n=None, grid_resolution=1000)`
+#### `step_safe(surrogate_model, outcome, penalty=3.0, pelt_model='l2', no_changepoint_strategy='median', keep_original_cols=False, top_n=None, grid_resolution=1000)` ⚠️ DEPRECATED
+
+**⚠️ DEPRECATION WARNING:**
+`step_safe()` is **deprecated** and now uses `step_safe_v2()` internally. The parameters `pelt_model` and `no_changepoint_strategy` are **ignored**. For new projects, use `step_safe_v2()` directly for more control and the latest features including interaction terms. See `step_safe_v2()` section below for details.
+
 Surrogate Assisted Feature Extraction (SAFE) for interpretable models using complex surrogate models.
 
 **Parameters:**
-- `surrogate_model` (**required**): Pre-fitted surrogate model (must have `predict()` or `predict_proba()`)
+- `surrogate_model` (**required**): Pre-fitted surrogate model (must have `predict()` or `predict_proba()`) - **Note:** `step_safe_v2()` accepts unfitted models
 - `outcome` (str): Outcome variable name (**required** for supervised transformation)
-- `penalty` (float): Changepoint penalty - higher = fewer changepoints (default: 3.0, range: 0.1-10.0)
-- `pelt_model` (str): Cost function for Pelt algorithm - "l2", "l1", or "rbf" (default: "l2")
-- `no_changepoint_strategy` (str): What to do when no changepoints detected - "median" (split at median) or "drop" (remove feature) (default: "median")
+- `penalty` (float): Changepoint penalty - higher = fewer changepoints (default: 3.0 → internally mapped to 10.0 for StepSafeV2)
+- `pelt_model` (str): **IGNORED** - No longer used in V2 implementation (default: "l2")
+- `no_changepoint_strategy` (str): **IGNORED** - No longer used in V2 implementation (default: "median")
 - `keep_original_cols` (bool): Keep original columns alongside SAFE features (default: False)
 - `top_n` (int or None): Select only top N most important features (default: None = all)
-- `grid_resolution` (int): Number of points for PDP grid (default: 1000, range: 100-5000)
+- `grid_resolution` (int): Number of points for PDP grid (default: 1000 → internally mapped to 100 for StepSafeV2)
 
 **Algorithm:**
 SAFE uses a complex surrogate model to guide feature transformation for simple interpretable models:
@@ -1251,6 +1384,586 @@ pip install ruptures kneed
 **Reference:** SAFE Library - https://github.com/ModelOriented/SAFE
 
 **Note:** This is a supervised step - requires outcome during prep() and pre-fitted surrogate model
+
+**Migration to step_safe_v2():**
+For new projects, use `step_safe_v2()` which offers:
+- Unfitted models (fitted automatically during prep)
+- Interaction features via `output_mode` parameter
+- Better threshold control via `max_thresholds` parameter
+- Improved feature importance calculation
+- LightGBM-compatible feature names
+
+See `step_safe_v2()` section below for complete documentation.
+
+---
+
+#### `step_safe_v2(surrogate_model, outcome, penalty=10.0, top_n=None, max_thresholds=5, keep_original_cols=True, grid_resolution=100, feature_type='both', output_mode='dummies', importance_method='lasso', columns=None)`
+Surrogate Assisted Feature Extraction (SAFE) V2 - Enhanced version with automatic model fitting and interaction features.
+
+**Key Improvements over step_safe():**
+- ✅ Accepts **UNFITTED** models (fitted automatically during prep)
+- ✅ Creates **interaction features** via `output_mode` parameter
+- ✅ Better threshold control via `max_thresholds` parameter
+- ✅ **Flexible importance methods** aligned with linear modeling (Lasso, Ridge, Permutation, Hybrid)
+- ✅ Feature names sanitized for compatibility
+
+**Parameters:**
+- `surrogate_model` (**required**): **UNFITTED** sklearn-compatible model (will be fitted during prep using recipe data)
+- `outcome` (str): Outcome variable name (**required** for supervised transformation)
+- `penalty` (float): Changepoint penalty - higher = fewer changepoints (default: 10.0, range: 0.1-50.0)
+- `top_n` (int or None): Select only top N most important features (default: None = all)
+- `max_thresholds` (int): Maximum thresholds per variable to prevent feature explosion (default: 5, range: 1-20)
+- `keep_original_cols` (bool): Keep original columns alongside SAFE features (default: True)
+- `grid_resolution` (int): Number of points for PDP grid (default: 100, range: 50-1000)
+- `feature_type` (str): Which variable types to process - "numeric", "categorical", or "both" (default: "both")
+- `output_mode` (str): What features to create - "dummies", "interactions", or "both" (default: "dummies")
+  - `"dummies"`: Binary threshold indicators only (e.g., `x1_gt_0p5`)
+  - `"interactions"`: Dummy × original value interactions only (e.g., `x1_gt_0p5_x_x1`)
+  - `"both"`: Both dummies AND interactions (double the features)
+- `importance_method` (str): Method for calculating feature importance - "lasso", "ridge", "permutation", or "hybrid" (default: "lasso")
+  - `"lasso"`: Lasso regression coefficients (best for linear models, fast)
+  - `"ridge"`: Ridge regression coefficients (more stable, keeps all features)
+  - `"permutation"`: Permutation importance (most reliable, slower)
+  - `"hybrid"`: Average of Lasso + Mutual Information (robust combination)
+- `columns` (None, str, list, or callable): Columns to transform (default: None = all predictors)
+
+**Algorithm:**
+StepSafeV2 uses ruptures-based changepoint detection (instead of PELT) and fits the surrogate model automatically:
+
+**For Numeric Variables:**
+1. Create grid_resolution-point grid from min to max
+2. Compute partial dependence plot (PDP) using surrogate model
+3. Apply ruptures changepoint detection with penalty parameter
+4. Limit to max_thresholds changepoints
+5. Create features based on `output_mode`:
+   - **dummies**: Binary indicators `x1_gt_0p5 = (x1 > 0.5)`
+   - **interactions**: Multiplicative features `x1_gt_0p5_x_x1 = (x1 > 0.5) * x1`
+   - **both**: Both dummy and interaction features
+
+**For Categorical Variables:**
+1. Compute PDP for each category level
+2. Apply hierarchical clustering (Ward linkage) on PDP values
+3. Use KneeLocator for optimal cluster count
+4. Merge similar categories based on model response
+5. Create features based on `output_mode`:
+   - **dummies**: Binary indicators `cat1_A = (cat1 == 'A')`
+   - **interactions**: Multiplicative features `cat1_A_x_cat1 = (cat1 == 'A') * label_encode(cat1)`
+   - **both**: Both dummy and interaction features
+
+**Example - Basic Usage (Dummies Only):**
+```python
+from sklearn.ensemble import GradientBoostingRegressor
+from py_recipes import recipe
+
+# NEW APPROACH: Pass UNFITTED model (fitted during prep)
+surrogate = GradientBoostingRegressor(n_estimators=100, max_depth=3)  # UNFITTED
+
+# Basic usage - creates dummy variables only
+rec = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=surrogate,  # UNFITTED - fitted during prep()
+        outcome='target',
+        penalty=10.0,
+        max_thresholds=5
+    )
+)
+
+rec_prepped = rec.prep(train_data)
+transformed = rec_prepped.bake(train_data)
+
+# Result: Binary threshold features like x1_gt_0p5, x2_gt_1p2, etc.
+```
+
+**Example - Interaction Features:**
+```python
+# Create interaction features (dummy × original value)
+rec_interactions = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),  # UNFITTED
+        outcome='sales',
+        penalty=10.0,
+        max_thresholds=3,
+        output_mode='interactions'  # Only create interactions, no dummies
+    )
+)
+
+rec_prepped = rec_interactions.prep(train_data)
+transformed = rec_prepped.bake(train_data)
+
+# Result: Interaction features like x1_gt_0p5_x_x1, x2_gt_1p2_x_x2, etc.
+# These capture non-linear effects: high values of x1 above threshold
+```
+
+**Example - Both Dummies AND Interactions:**
+```python
+# Create both dummy variables and interaction features
+rec_both = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),  # UNFITTED
+        outcome='revenue',
+        penalty=10.0,
+        max_thresholds=3,
+        feature_type='both',      # Process numeric AND categorical
+        output_mode='both'         # Create dummies AND interactions
+    )
+)
+
+rec_prepped = rec_both.prep(train_data)
+transformed = rec_prepped.bake(train_data)
+
+# Result: DOUBLE the features
+# - Dummies: x1_gt_0p5, x2_gt_1p2, cat1_A, ...
+# - Interactions: x1_gt_0p5_x_x1, x2_gt_1p2_x_x2, cat1_A_x_cat1, ...
+```
+
+**Example - Feature Selection with top_n:**
+```python
+# Conservative feature extraction with selection
+rec_conservative = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),
+        outcome='target',
+        penalty=15.0,              # Higher penalty = fewer thresholds per variable
+        max_thresholds=3,          # Max 3 thresholds per variable
+        top_n=10,                  # Select top 10 most important features
+        output_mode='both'         # Create both dummies and interactions
+    )
+)
+
+# Result: At most 10 features total (ranked by importance)
+```
+
+**Example - Process Only Numeric Variables:**
+```python
+# Only transform numeric variables, leave categorical unchanged
+rec_numeric = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=50),
+        outcome='price',
+        feature_type='numeric',    # Only process numeric columns
+        output_mode='interactions', # Create interaction features
+        max_thresholds=4
+    )
+)
+```
+
+**Example - Inspecting Transformations:**
+```python
+# After prepping, inspect transformation details
+rec_prepped = recipe().step_safe_v2(
+    surrogate_model=GradientBoostingRegressor(n_estimators=100),
+    outcome='y',
+    output_mode='both'
+).prep(train_data)
+
+safe_step = rec_prepped.prepared_steps[0]
+
+# Get transformation details
+transformations = safe_step.get_transformations()
+for var, info in transformations.items():
+    print(f"\n{var} ({info['type']}):")
+    if info['type'] == 'numeric':
+        print(f"  Thresholds: {info['thresholds']}")
+        print(f"  Features created: {info['new_names']}")
+    else:
+        print(f"  Original levels: {info['original_levels']}")
+        print(f"  Merged levels: {info['merged_levels']}")
+
+# Get feature importances (calculated on TRANSFORMED features)
+importances = safe_step.get_feature_importances()
+print("\nTop 10 Most Important Features:")
+print(importances.head(10))
+```
+
+**Example - Using Different Importance Methods:**
+```python
+# Lasso (default): Best for features intended for linear models
+rec_lasso = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),
+        outcome='sales',
+        output_mode='interactions',
+        importance_method='lasso',  # Fast, good for linear models
+        top_n=10
+    )
+)
+
+# Ridge: More stable, less likely to zero out features
+rec_ridge = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),
+        outcome='sales',
+        output_mode='both',
+        importance_method='ridge',  # Stable, conservative
+        top_n=15
+    )
+)
+
+# Permutation: Most reliable measure of predictive value (slower)
+rec_perm = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),
+        outcome='revenue',
+        output_mode='interactions',
+        importance_method='permutation',  # Most accurate, slower
+        top_n=10
+    )
+)
+
+# Hybrid: Combines Lasso + Mutual Information for robustness
+rec_hybrid = (
+    recipe()
+    .step_safe_v2(
+        surrogate_model=GradientBoostingRegressor(n_estimators=100),
+        outcome='price',
+        output_mode='both',
+        importance_method='hybrid',  # Robust combination
+        top_n=20
+    )
+)
+```
+
+**Importance Method Comparison:**
+
+| Method | Speed | Best For | Interaction-Friendly |
+|--------|-------|----------|---------------------|
+| `lasso` (default) | Fast | Linear models, sparse selection | ✅ Yes |
+| `ridge` | Fast | Stable estimates, keeps all features | ✅ Yes |
+| `permutation` | Slow | Most accurate importance | ✅✅ Very Yes |
+| `hybrid` | Medium | Robust across different patterns | ✅✅ Very Yes |
+
+**When to use each method:**
+
+**Use `importance_method='lasso'` when:**
+- Creating features for linear/logistic regression
+- Want sparse feature selection (some features zeroed out)
+- Speed is important
+- Interaction features are valuable (default choice)
+
+**Use `importance_method='ridge'` when:**
+- Want more stable importance estimates
+- Prefer conservative feature selection
+- Don't want features completely excluded
+- Dealing with correlated features
+
+**Use `importance_method='permutation'` when:**
+- Need the most reliable importance measure
+- Have time for slower computation (~5-10x slower)
+- Working on critical models where accuracy matters most
+- Want model-agnostic importance that works with any downstream model
+
+**Use `importance_method='hybrid'` when:**
+- Want robustness across different data patterns
+- Need to capture both linear (Lasso) and non-linear (MI) relationships
+- Working with complex interactions
+- Want a balance between speed and accuracy
+
+**Understanding Interaction Features:**
+
+Interaction features capture **non-linear threshold effects**:
+
+```python
+# Example with numeric variable x1 with threshold at 0.5:
+
+# Dummy feature (binary indicator):
+x1_gt_0p5 = 1 if x1 > 0.5 else 0
+
+# Interaction feature (captures magnitude above threshold):
+x1_gt_0p5_x_x1 = x1_gt_0p5 * x1
+
+# Interpretation:
+# - When x1 ≤ 0.5: interaction = 0 (no effect)
+# - When x1 > 0.5: interaction = x1 (proportional to value)
+# - Captures: "the effect of x1 WHEN it's above 0.5"
+
+# Example values:
+x1 = 0.3  → dummy = 0, interaction = 0.0   (below threshold)
+x1 = 0.6  → dummy = 1, interaction = 0.6   (above, moderate value)
+x1 = 2.5  → dummy = 1, interaction = 2.5   (above, high value)
+```
+
+For categorical variables:
+```python
+# Example with categorical variable cat1 = ['A', 'B', 'C']:
+
+# Dummy feature:
+cat1_A = 1 if cat1 == 'A' else 0
+
+# Interaction feature (with label encoding):
+cat1_A_x_cat1 = cat1_A * label_encode(cat1)
+
+# Where label_encode maps: A→0, B→1, C→2
+
+# Interpretation:
+# - When cat1 = 'A': interaction = 1 * 0 = 0
+# - When cat1 = 'B': interaction = 0 * 1 = 0  (not A)
+# - When cat1 = 'C': interaction = 0 * 2 = 0  (not A)
+# - Captures: "the categorical encoding WHEN category is A"
+```
+
+**Column Naming:**
+Transformed columns use sanitized names for LightGBM compatibility:
+- `x1_gt_0p50` - Numeric threshold: x1 > 0.50
+- `x1_gt_0p50_x_x1` - Interaction: (x1 > 0.50) × x1
+- `x2_gt_m1p50` - Negative threshold: x2 > -1.50
+- `category_A_B` - Categorical: merged levels A and B
+- `category_A_B_x_category` - Categorical interaction
+
+**Naming convention:**
+- `_gt_` = "greater than" (threshold operator)
+- `m` prefix = minus (negative values)
+- `p` = decimal point
+- `_x_` = interaction multiplication operator
+
+**Use Cases:**
+- Transfer knowledge from complex model to simple model
+- Create interpretable features from black-box model responses
+- Capture non-linear threshold effects via interactions
+- Data-driven threshold detection without domain knowledge
+- Extract useful patterns from overfit complex models
+
+**Advantages:**
+- Automatic model fitting during prep (no manual preprocessing)
+- Flexible feature output (dummies, interactions, or both)
+- Threshold limiting prevents feature explosion
+- Multiple importance methods aligned with linear modeling (Lasso, Ridge, Permutation, Hybrid)
+- Feature importance calculated on transformed features (more accurate)
+- Sanitized feature names for broad compatibility
+- Works with any sklearn-compatible surrogate model
+
+**Comparison - feature_type vs output_mode:**
+
+| Parameter | Controls | Values | Purpose |
+|-----------|----------|--------|---------|
+| `feature_type` | **Input** variable types | "numeric", "categorical", "both" | Which columns to transform |
+| `output_mode` | **Output** feature types | "dummies", "interactions", "both" | What features to create |
+
+**Example combinations:**
+```python
+# Process numeric only, create dummies
+feature_type='numeric', output_mode='dummies'
+→ Binary indicators for numeric thresholds
+
+# Process categorical only, create interactions
+feature_type='categorical', output_mode='interactions'
+→ Category × encoded value interactions
+
+# Process both, create both
+feature_type='both', output_mode='both'
+→ Maximum feature engineering (dummies + interactions for all types)
+```
+
+**When to use different output_mode values:**
+
+**Use `output_mode='dummies'` when:**
+- ✅ Need simple binary threshold indicators
+- ✅ Want interpretable yes/no features
+- ✅ Linear model as downstream (e.g., logistic regression)
+- ✅ Minimizing feature count is important
+
+**Use `output_mode='interactions'` when:**
+- ✅ Capturing magnitude above/below threshold matters
+- ✅ Non-linear relationships are important
+- ✅ Tree-based downstream model (handles interactions well)
+- ✅ Want to capture "how much" not just "yes/no"
+
+**Use `output_mode='both'` when:**
+- ✅ Maximum feature engineering desired
+- ✅ Feature selection applied downstream (e.g., Lasso)
+- ✅ Trying to extract all possible patterns
+- ✅ Computational cost is acceptable (doubles features)
+
+**Comparison with alternatives:**
+- vs. **step_safe()**: V2 accepts unfitted models, creates interactions, flexible importance methods
+- vs. **step_splitwise()**: SAFE uses surrogate model (more general), SplitWise uses outcome (more direct)
+- vs. **Manual engineering**: Data-driven, no domain knowledge required
+- vs. **Splines/Polynomials**: More interpretable thresholds, clearer feature names
+
+**Why Linear-Based Importance Methods?**
+
+StepSafeV2 uses Lasso/Ridge/Permutation instead of tree-based importance (like LightGBM) because:
+
+1. **Philosophical alignment**: SAFE features are designed for **interpretable linear models**, so importance should be calculated in that context
+2. **Interaction features**: Tree models already capture interactions internally through splits, so they don't value explicit interaction terms highly
+3. **Downstream model match**: If you're creating features for a linear model, importance should reflect value in a linear context
+4. **Better selection**: Linear methods appropriately rank interaction features when they're valuable for linear modeling
+
+Example: An interaction feature `x1_gt_0p5_x_x1` might have low importance in a tree model (which can find the same pattern through splits) but high importance in a linear model (which needs the interaction explicitly created).
+
+**Performance considerations:**
+- **Changepoint detection**: O(p × n × grid_resolution) for p variables, n observations
+- **Importance calculation** varies by method:
+  - `lasso` / `ridge`: Fast (~0.3-0.5 seconds for 150 samples)
+  - `permutation`: Slower (~2 seconds for 150 samples, 10 repeats)
+  - `hybrid`: Medium (~1 second for 150 samples)
+- 300 obs × 3 vars × 100 grid: ~1-2 seconds baseline + importance time
+- Reduce `grid_resolution` for faster computation (default: 100)
+- Use `max_thresholds` to limit features per variable (default: 5)
+- Use `top_n` to limit total output features
+- `output_mode='both'` doubles computation time and feature count
+- For large datasets (1000+ samples), use `lasso` or `ridge` for speed
+
+**Dependencies:**
+Requires: `ruptures`, `kneed`, `scipy`, `sklearn`
+```bash
+pip install ruptures kneed scikit-learn
+```
+
+**Reference:** SAFE Library - https://github.com/ModelOriented/SAFE
+
+**Note:** This is a supervised step - requires outcome during prep(). The surrogate model should be UNFITTED and will be fitted automatically during prep() using the recipe's training data.
+
+---
+
+#### `step_eix(tree_model, outcome, option='both', top_n=None, min_gain=0.0, create_interactions=True, keep_original_cols=False)`
+EIX (Explain Interactions in XGBoost/LightGBM) for tree-based interaction detection and feature selection.
+
+**Parameters:**
+- `tree_model` (**required**): Pre-fitted XGBoost or LightGBM model
+- `outcome` (str): Outcome variable name (**required** for data validation)
+- `option` (str): What to extract - "variables", "interactions", or "both" (default: "both")
+- `top_n` (int or None): Select top N most important features/interactions (default: None = all)
+- `min_gain` (float): Minimum sumGain threshold for keeping features (default: 0.0)
+- `create_interactions` (bool): Whether to create interaction features (parent × child) (default: True)
+- `keep_original_cols` (bool): Keep original columns alongside EIX features (default: False)
+
+**Algorithm:**
+EIX analyzes tree structure from XGBoost/LightGBM models to identify important variable interactions:
+
+**For Variable Importance:**
+1. Extract all non-leaf nodes from tree structure
+2. Aggregate gain by feature across all trees
+3. Calculate sumGain, frequency, and meanGain for each variable
+4. Select top variables by importance
+
+**For Interaction Detection:**
+1. Analyze parent-child relationships in tree nodes
+2. Identify strong interactions: child gain > parent gain AND different variables
+3. Aggregate interaction importance across all trees
+4. Calculate sumGain and frequency for each parent:child pair
+5. Create interaction features: parent × child (multiplicative)
+
+**Example:**
+```python
+from xgboost import XGBRegressor
+
+# Fit tree model (REQUIRED before step_eix)
+tree_model = XGBRegressor(n_estimators=100, max_depth=3)
+tree_model.fit(train_data.drop('target', axis=1), train_data['target'])
+
+# Basic usage - find and create top interactions
+.step_eix(
+    tree_model=tree_model,
+    outcome='target',
+    option='interactions',
+    top_n=10
+)
+
+# Conservative - only strong interactions
+.step_eix(
+    tree_model=tree_model,
+    outcome='sales',
+    option='interactions',
+    min_gain=0.1,
+    top_n=5
+)
+
+# Select important variables only (no interactions)
+.step_eix(
+    tree_model=tree_model,
+    outcome='revenue',
+    option='variables',
+    top_n=15,
+    create_interactions=False
+)
+
+# Both variables and interactions
+.step_eix(
+    tree_model=tree_model,
+    outcome='target',
+    option='both',
+    top_n=20,
+    min_gain=0.05
+)
+
+# Inspect importance after prep
+prepped = recipe().step_eix(
+    tree_model=tree_model,
+    outcome='y'
+).prep(train_data)
+
+eix_step = prepped.prepared_steps[0]
+
+# Get importance table
+importance = eix_step.get_importance()
+print(importance.head())
+
+# Get interactions to be created
+interactions = eix_step.get_interactions()
+for inter in interactions:
+    print(f"{inter['parent']} × {inter['child']} → {inter['name']}")
+```
+
+**Column Naming:**
+- Variables: Original column names
+- Interactions: `parent_x_child` format (e.g., `temperature_x_humidity`)
+
+**Use cases:**
+- Feature selection based on tree model analysis
+- Identifying important variable interactions from tree structure
+- Creating interaction features for linear models
+- Transfer knowledge from tree models to simpler models
+- Understanding which variable pairs are most informative
+
+**Advantages:**
+- Leverages existing tree model (XGBoost, LightGBM)
+- Direct tree structure analysis (no PDP computation required)
+- Identifies meaningful interactions with high gain
+- Automatic interaction feature creation
+- Works with any downstream model
+
+**Comparison with alternatives:**
+- vs. **step_interact()**: EIX uses tree model gain (data-driven), step_interact() creates all pairwise interactions (exhaustive)
+- vs. **step_safe()**: EIX uses tree structure directly, SAFE uses partial dependence plots (PDP)
+- vs. **step_poly()**: EIX creates multiplicative interactions, step_poly() creates polynomial features
+- vs. **step_splitwise()**: EIX focuses on interactions, SplitWise focuses on thresholds
+
+**When to use EIX:**
+- ✅ Have a well-performing tree model (XGBoost/LightGBM)
+- ✅ Want to identify important interactions from tree structure
+- ✅ Need interaction features for linear/simple models
+- ✅ Want data-driven feature selection
+- ✅ Tree model performs better than simple model
+
+**When NOT to use EIX:**
+- ❌ Don't have a fitted tree model
+- ❌ Tree model doesn't capture interactions well
+- ❌ Very simple relationships (no interactions)
+- ❌ Tree model overfits severely
+
+**Performance considerations:**
+- Speed: Fast - just analyzes existing tree structure (no retraining)
+- Depends on tree size: O(n_trees × avg_depth)
+- 100 trees × depth 3: ~0.1-0.2 seconds
+- Creating interaction features: O(n_observations)
+
+**Dependencies:**
+Requires: xgboost or lightgbm
+```bash
+pip install xgboost lightgbm
+```
+
+**Reference:** EIX Library - https://github.com/ModelOriented/EIX
+
+**Note:** This is a supervised step - requires outcome during prep() and pre-fitted tree model
 
 ---
 

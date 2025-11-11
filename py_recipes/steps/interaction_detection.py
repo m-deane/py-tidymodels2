@@ -194,6 +194,20 @@ class StepEIX:
 
             # Get trees as dataframe
             trees_df = booster.trees_to_dataframe()
+
+            # Normalize column names to match XGBoost format
+            trees_df = trees_df.rename(columns={
+                'tree_index': 'Tree',
+                'split_feature': 'Feature',
+                'left_child': 'Yes',
+                'right_child': 'No',
+                'split_gain': 'Gain',
+                'node_index': 'Node'
+            })
+
+            # LightGBM uses None for leaves, convert to 'Leaf'
+            trees_df['Feature'] = trees_df['Feature'].fillna('Leaf')
+
             return trees_df
 
         raise TypeError(f"Unsupported model type: {type(model)}")
@@ -419,23 +433,25 @@ class StepEIX:
         pd.DataFrame
             Transformed data with selected features and created interactions
         """
-        if not self._is_prepped:
+        if self.skip or not self._is_prepped:
             return data.copy()
 
         result = pd.DataFrame(index=data.index)
 
-        # Add selected features
+        # Add selected features (deduplicate to prevent duplicate columns)
+        added_features = set()
         for feature in self._selected_features:
-            if feature in data.columns:
+            if feature in data.columns and feature not in added_features:
                 result[feature] = data[feature]
+                added_features.add(feature)
 
-        # Create interaction features
+        # Create interaction features (deduplicate to prevent duplicate columns)
         for interaction in self._interactions_to_create:
             parent = interaction['parent']
             child = interaction['child']
             name = interaction['name']
 
-            if parent in data.columns and child in data.columns:
+            if parent in data.columns and child in data.columns and name not in result.columns:
                 result[name] = data[parent] * data[child]
 
         # Keep original columns if requested

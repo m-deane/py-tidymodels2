@@ -62,7 +62,8 @@ def plot_forecast(
 
     # Check if this is a nested fit (has group column)
     from py_workflows.workflow import NestedWorkflowFit
-    is_nested = isinstance(fit, NestedWorkflowFit)
+    from py_parsnip.model_spec import NestedModelFit
+    is_nested = isinstance(fit, (NestedWorkflowFit, NestedModelFit))
 
     if is_nested:
         return _plot_forecast_nested(

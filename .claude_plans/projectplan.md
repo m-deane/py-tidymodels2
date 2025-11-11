@@ -1,10 +1,333 @@
 # py-tidymodels Project Plan
-**Version:** 3.1
-**Date:** 2025-11-09
-**Last Updated:** 2025-11-09
-**Status:** Phase 4.5 COMPLETED + Dot Notation Fix COMPLETED - 4 new models (svm_poly, bag_tree, rule_fit, window_reg) added. Coverage 62.8% (27/43 models). Time Series 11/11 (100%), SVM 3/3 (100%). 920+ tests passing. Ready for Phase 4.6 (Classification models).
+**Version:** 3.5
+**Date:** 2025-11-10
+**Last Updated:** 2025-11-10 (Evening Session - Part 3)
+**Status:** Model Naming Methods ADDED - Added .add_model_name() and .add_model_group_name() to Workflow class. 72 workflow tests passing. Ready for multi-model comparison workflows.
 
-## Recent Work (2025-11-09): Phase 4.5 Model Implementation + Dot Notation Fix
+## Recent Work (2025-11-10 Evening - Part 3): Workflow Model Naming Methods
+
+**Summary:** Added `.add_model_name()` and `.add_model_group_name()` methods to Workflow class, enabling custom labeling of models in extract_outputs() DataFrames for better multi-model comparison and organization.
+
+### What Was Completed:
+
+**Feature: Model Naming Methods**:
+- **Purpose**: Allow users to assign custom names to models for identification and organization
+- **Implementation**:
+  - Added `model_name` and `model_group_name` fields to Workflow dataclass
+  - Added `.add_model_name(name)` method
+  - Added `.add_model_group_name(group_name)` method
+  - Updated `fit()` to pass names to ModelFit
+  - Updated `fit_nested()` to pass names to all group ModelFits (3 code paths)
+- **Result**: Models can be labeled with meaningful names visible in extract_outputs()
+
+**Usage Pattern**:
+```python
+wf_poly = (
+    workflow()
+    .add_recipe(recipe().step_poly(['x1', 'x2'], degree=2))
+    .add_model(linear_reg())
+    .add_model_name("poly")
+    .add_model_group_name("polynomial_models")
+)
+
+fit = wf_poly.fit(train)
+outputs, _, _ = fit.extract_outputs()
+
+print(outputs["model"].unique())            # ['poly']
+print(outputs["model_group_name"].unique()) # ['polynomial_models']
+```
+
+**Benefits**:
+- Clear model identification in outputs (not just "linear_reg")
+- Easy model comparison across different recipes/configurations
+- Organized grouping of related models
+- Better visualizations with descriptive legend labels
+- Simplified multi-model workflows
+
+**Files Modified**:
+1. `py_workflows/workflow.py` (7 sections)
+   - Lines 54-59: Added fields to Workflow dataclass
+   - Lines 33-52: Updated docstring with examples
+   - Lines 123-173: Added new methods
+   - Lines 370-376: Updated fit()
+   - Lines 543-549, 582-588, 620-626: Updated fit_nested() (3 paths)
+
+**Test Results**:
+- ✅ 72/72 workflow tests passing
+- ✅ Verification test: All 3 scenarios working correctly
+- ✅ Method chaining works in any order
+
+**Documentation**: `.claude_debugging/MODEL_NAME_METHODS_2025_11_10.md`
+
+---
+
+## Earlier Work (2025-11-10 Evening - Part 2): step_poly Patsy XOR Fix
+
+**Summary:** Fixed patsy XOR error when using `step_poly(degree=2)` in recipes. sklearn's PolynomialFeatures creates column names like `brent^2`, but patsy interprets `^` as XOR operator, causing errors in auto-generated formulas.
+
+### What Was Completed:
+
+**Fix 5: step_poly Column Names (PATSY ERROR FIX)**:
+- **Problem**: Polynomial features created columns like `brent^2`, patsy interpreted `^` as XOR operator
+- **Error**: `PatsyError: Cannot perform 'xor' with a dtyped [float64] array and scalar of type [bool]`
+- **Root Cause**: sklearn's `get_feature_names_out()` returns names with `^`, only spaces were replaced
+- **Solution**: Replace `^` with `_pow_` in feature names: `brent^2` → `brent_pow_2`
+- **Result**: Clear column names, no patsy errors, works with auto-generated formulas
+
+**Implementation**:
+- File: `py_recipes/steps/basis.py` (lines 361-368)
+- Changed: `name.replace(' ', '_')` → `name.replace(' ', '_').replace('^', '_pow_')`
+- Column transformations:
+  - `brent^2` → `brent_pow_2` (quadratic)
+  - `dubai^3` → `dubai_pow_3` (cubic)
+  - `x1 x2` → `x1_x2` (interaction terms already handled)
+
+**Test Results**:
+- ✅ 9/9 polynomial tests passing
+- ✅ Integration test: fit_nested() with step_poly() completes without errors
+- ✅ End-to-end workflow verification successful
+
+**Documentation**: `.claude_debugging/STEP_POLY_CARET_FIX_2025_11_10.md`
+
+---
+
+## Earlier Work (2025-11-10 Evening - Part 1): Grouped Model Bug Fixes & Enhancements
+
+**Summary:** Fixed four critical issues with grouped/nested models that were causing visualization problems and usability issues. NaT dates in extract_outputs() caused plot_forecast() to drop train data. Column ordering was inconsistent. Default parameter was less useful.
+
+### What Was Completed:
+
+**Fix 1: NaT Date Issue (CRITICAL BUG FIX)**:
+- **Problem**: extract_outputs() returned NaT (Not a Time) values for dates in grouped models with recipes
+- **Root Cause**: Recipe preprocessing excludes datetime columns, fit_nested() didn't store original data
+- **Solution**:
+  - Store `group_train_data` dict before preprocessing (py_workflows/workflow.py:401-411)
+  - Store `group_test_data` dict in evaluate() (py_workflows/workflow.py:1031-1048)
+  - Use stored data as PRIMARY source in extract_outputs() (py_workflows/workflow.py:1203-1245)
+  - Add `group_train_data` field to NestedWorkflowFit dataclass (py_workflows/workflow.py:880-931)
+- **Result**: 0/200 NaT dates (was 200/200 NaT), plot_forecast() now shows complete train+test data
+
+**Fix 2: Column Ordering Standardization**:
+- **Problem**: Date and group columns in random positions, inconsistent ordering
+- **Solution**:
+  - Created `py_parsnip/utils/output_ordering.py` (183 lines) with 3 reordering functions
+  - Updated 4 extract_outputs() methods to apply consistent ordering
+  - Order: date (first) → group column (second) → core outputs → metadata
+- **Result**: Predictable column ordering across all model types
+
+**Fix 3: Default Parameter Change**:
+- **Problem**: User wanted per_group_prep=True as default (more useful for most cases)
+- **Solution**: Changed default from False to True (py_workflows/workflow.py:319)
+- **Result**: Users get per-group preprocessing by default, more intuitive API
+
+**Fix 4: Test Updates**:
+- **Problem**: Date indexing tests expected DatetimeIndex, got RangeIndex after column ordering fix
+- **Solution**: Updated 3 tests to check `outputs.columns[0] == 'date'` instead of index type
+- **Result**: All 4 date indexing tests passing
+
+### Files Modified/Created:
+
+**New Files**:
+1. `py_parsnip/utils/output_ordering.py` (183 lines) - Column ordering utilities
+
+**Modified Files**:
+1. `py_workflows/workflow.py` (8 sections modified)
+   - Lines 319-339: Changed per_group_prep default to True
+   - Lines 401-411: Store group_train_data in fit_nested()
+   - Lines 545-550: Pass group_train_data to NestedWorkflowFit
+   - Lines 786-797: Apply column ordering in WorkflowFit.extract_outputs()
+   - Lines 880-931: Add group_train_data field to NestedWorkflowFit
+   - Lines 1031-1048: Store group_test_data in evaluate()
+   - Lines 1203-1245: Use stored data in extract_outputs()
+   - Lines 1246-1257: Apply column ordering in NestedWorkflowFit.extract_outputs()
+
+2. `py_parsnip/model_spec.py` (2 sections modified)
+   - Lines 631-642: Apply column ordering in ModelFit.extract_outputs()
+   - Lines 1186-1197: Apply column ordering in NestedModelFit.extract_outputs()
+
+3. `tests/test_workflows/test_date_indexing.py` (3 tests updated)
+   - Changed from checking DatetimeIndex to checking 'date' as first column
+
+**Documentation**:
+- `.claude_debugging/NAT_DATE_FIX_GROUPED_MODELS.md`
+- `.claude_debugging/COLUMN_ORDERING_FIX_2025_11_10.md`
+- `.claude_debugging/SESSION_SUMMARY_2025_11_10.md`
+- `.claude_debugging/FINAL_VERIFICATION_2025_11_10.py`
+
+### Test Results:
+- ✅ 72/72 workflow tests passing
+- ✅ 18/18 panel model tests passing
+- ✅ 4/4 date indexing tests passing
+- ✅ Final verification: 0 NaT dates, correct column ordering
+
+### Impact:
+**Before**: plot_forecast() dropped train data, inconsistent columns, less intuitive API
+**After**: Complete visualizations, predictable ordering, better defaults
+
+---
+
+## Earlier Work (2025-11-10 Morning): Per-Group Preprocessing Implementation
+
+**Summary:** Implemented per-group recipe preprocessing for nested/grouped models, enabling each group to have its own feature space (different PCA components, selected features, etc.). Major enhancement to panel/grouped modeling capabilities.
+
+### What Was Completed:
+
+**Per-Group Preprocessing Feature (py-workflows enhancement):**
+
+1. **✅ Core Implementation**:
+   - Each group gets its own PreparedRecipe fitted on group-specific data
+   - New parameter: `per_group_prep=True` (default: False for backward compatibility)
+   - New parameter: `min_group_size=30` (minimum samples for group-specific prep)
+   - Automatic outcome column preservation during recipe preprocessing
+   - Small group fallback to global recipe with warnings
+
+2. **✅ Helper Methods**:
+   - `_detect_outcome()`: Auto-detects outcome column from data
+   - `_prep_and_bake_with_outcome()`: Preserves outcome during recipe transformations
+   - Solves recipe dropping outcome column issue
+
+3. **✅ Group-Specific Recipe Application**:
+   - Updated `fit_nested()` to prep recipes per group
+   - Updated `predict()` to route through group-specific recipes
+   - Error handling for new/unseen groups at prediction time
+   - Clear error messages with available groups listed
+
+4. **✅ Feature Comparison Utility**:
+   - `get_feature_comparison()` method on NestedWorkflowFit
+   - Returns DataFrame showing which features each group uses
+   - Enables cross-group feature analysis
+   - Multiple extraction methods (molded data, formula parsing, fit_data)
+
+5. **✅ Updated Data Structures**:
+   - NestedWorkflowFit.group_recipes: Optional[dict] attribute
+   - None when per_group_prep=False (shared preprocessing)
+   - Dict mapping group → PreparedRecipe when per_group_prep=True
+
+### Use Cases Enabled:
+
+**PCA with Different Components Per Group**:
+```python
+# USA refineries need 5 PCA components, UK needs 3
+rec = recipe().step_pca(num_comp=5, threshold=0.95)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(data, group_col='country', per_group_prep=True)
+
+comparison = fit.get_feature_comparison()
+# Shows USA: PC1-PC5, UK: PC1-PC3 (based on variance threshold)
+```
+
+**Feature Selection with Group-Specific Features**:
+```python
+# Different stores select different important features
+rec = recipe().step_select_safe(outcome='sales', top_n=10)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(data, group_col='store_id', per_group_prep=True)
+
+features = fit.get_feature_comparison()
+# Store 1: price, promotion, weather
+# Store 2: price, holiday, competition
+# Store 3: promotion, holiday, weather
+```
+
+### Test Results:
+
+**Per-Group Preprocessing Tests**: 5/5 passing (100%)
+1. ✅ Standard nested fit (backward compatibility, per_group_prep=False)
+2. ✅ Per-group preprocessing (per_group_prep=True)
+3. ✅ Feature comparison utility
+4. ✅ Error handling for new/unseen groups
+5. ✅ Small group fallback to global recipe
+6. ✅ Performance comparison (0.58% RMSE improvement in test case)
+
+**Regression Tests**: 64/64 workflow tests passing (100%)
+- No regressions introduced
+- Updated error message test for improved clarity
+
+**Total Project Tests**: 930+ passing
+
+### Files Modified/Created:
+
+**Core Implementation**:
+1. `py_workflows/workflow.py` (421 lines modified)
+   - Lines 121-179: Helper methods
+   - Lines 255-311: fit_nested() signature
+   - Lines 392-543: Per-group fitting logic
+   - Lines 750-753: NestedWorkflowFit.group_recipes attribute
+   - Lines 784-794: New group validation
+   - Lines 816-823: Group-specific recipe application
+   - Lines 1023-1113: get_feature_comparison() method
+
+**Tests**:
+2. `tests/test_workflows/test_per_group_prep.py` (NEW - 251 lines)
+   - Comprehensive test suite covering all functionality
+3. `tests/test_workflows/test_panel_models.py` (updated)
+   - Line 153: Updated error message regex
+
+**Documentation**:
+4. `.claude_debugging/PER_GROUP_PREPROCESSING_IMPLEMENTATION.md` (NEW)
+   - Complete implementation documentation
+   - Architecture decisions and trade-offs
+   - Usage examples and patterns
+5. `CLAUDE.md` (updated)
+   - Lines 318-348: Per-Group Preprocessing section
+   - Usage examples and code references
+
+### Design Decisions:
+
+**Memory vs Accuracy Trade-off**:
+- Stores PreparedRecipe per group (small memory overhead)
+- Typical: <1MB for 100 groups
+- Acceptable for significantly improved modeling flexibility
+
+**Backward Compatibility**:
+- Default: per_group_prep=False (shared preprocessing)
+- Existing code continues to work unchanged
+- Opt-in feature via parameter
+
+**Small Group Handling**:
+- Groups with < min_group_size samples use global recipe
+- Prevents overfitting on small groups
+- Warning message informs user when fallback occurs
+
+**Error Handling**:
+- Clear errors for new/unseen groups
+- Lists available groups in error message
+- Cannot predict for groups not in training
+
+### Performance Implications:
+
+**Training Time**:
+- Shared (False): Prep once, bake N times
+- Per-group (True): Prep N times, bake N times
+- Example: 10 groups, 1000 rows each
+  - Shared: ~1-2 seconds
+  - Per-group: ~3-5 seconds
+- Trade-off worth it for improved accuracy
+
+**Prediction Time**:
+- Minimal impact: each group routed through its recipe
+
+**Memory Usage**:
+- PreparedRecipe objects are lightweight (mostly metadata)
+- Typical: <1MB for 100 groups
+
+### Future Enhancements (Planned):
+
+1. **Recipe Metadata in extract_outputs()**: Add n_features, pca_n_components to stats DataFrame
+2. **Parallel Recipe Prep**: For many groups, parallelize recipe preparation
+3. **Demo Notebook**: Show real-world example with PCA and feature selection
+
+### Documentation References:
+
+- Implementation: `.claude_debugging/PER_GROUP_PREPROCESSING_IMPLEMENTATION.md`
+- User Guide: `CLAUDE.md` (Lines 318-348)
+- Tests: `tests/test_workflows/test_per_group_prep.py`
+
+**Next Steps**: Create demonstration notebook showing per-group PCA example with oil refinery data.
+
+---
+
+## Previous Work (2025-11-09): Phase 4.5 Model Implementation + Dot Notation Fix
 
 **Summary:** Implemented 4 new models via parallel agents, completed Time Series and SVM categories, fixed dot notation support in all time series engines.
 

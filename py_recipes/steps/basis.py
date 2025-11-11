@@ -358,9 +358,14 @@ class StepPoly:
             # Store indices for filtering during transform
             poly._feature_indices = feature_indices
 
-        # Replace spaces with underscores for formula compatibility
+        # Replace special characters for formula compatibility
         # sklearn uses spaces like "x1 x2" but we need "x1_x2"
-        feature_names = [name.replace(' ', '_') for name in feature_names]
+        # sklearn uses ^ for powers like "x^2" but patsy interprets ^ as XOR operator
+        # Replace ^ with _pow_ to avoid patsy errors: "brent^2" → "brent_pow_2"
+        feature_names = [
+            name.replace(' ', '_').replace('^', '_pow_')
+            for name in feature_names
+        ]
 
         return PreparedStepPoly(
             columns=cols,

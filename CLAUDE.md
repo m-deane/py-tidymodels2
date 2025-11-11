@@ -223,12 +223,43 @@ The project follows a layered architecture inspired by R's tidymodels:
 - Example: `penalty` → `alpha` (sklearn), `non_seasonal_ar` → `p` (statsmodels)
 - Handled via `param_map` dict in each engine
 
+**Grouped/Panel Modeling on ModelSpec (NEW):**
+
+ModelSpec now supports grouped/panel modeling directly without requiring workflow wrappers:
+
+- **`fit_nested(data, formula, group_col)`**: Fit separate models per group
+  ```python
+  spec = linear_reg()
+  nested_fit = spec.fit_nested(data, "sales ~ price", group_col="store_id")
+  predictions = nested_fit.predict(test_data)
+  outputs, coeffs, stats = nested_fit.extract_outputs()
+  ```
+  - Returns `NestedModelFit` with unified interface
+  - Handles recursive models with date indexing automatically
+  - Group column automatically added to all outputs
+  - Simpler API: 2 lines instead of 3 (no workflow creation needed)
+
+- **`fit_global(data, formula, group_col)`**: Fit single model using group as feature
+  ```python
+  spec = linear_reg()
+  global_fit = spec.fit_global(data, "sales ~ price", group_col="store_id")
+  ```
+  - Automatically adds group column to formula
+  - Returns standard `ModelFit` object
+  - Best when groups share similar patterns
+
+**When to Use:**
+- Use `spec.fit_nested()` for formula-only grouped modeling (simplest)
+- Use `workflow().fit_nested()` when using recipes for preprocessing
+- Both approaches produce identical results
+
 **Files:**
-- `py_parsnip/model_spec.py` - ModelSpec and ModelFit classes
+- `py_parsnip/model_spec.py` - ModelSpec and ModelFit classes, NestedModelFit class
 - `py_parsnip/engine_registry.py` - Engine ABC and registry
 - `py_parsnip/models/` - Model specification functions
 - `py_parsnip/engines/` - Engine implementations
 - `tests/test_parsnip/` - 22+ tests passing
+- `tests/test_parsnip/test_nested_model_fit.py` - 21 tests for grouped modeling on ModelSpec
 
 ### Layer 3: py-rsample (Resampling)
 **Purpose:** Train/test splitting and cross-validation for time series and general data.
@@ -284,9 +315,41 @@ The project follows a layered architecture inspired by R's tidymodels:
   - Returns standard `WorkflowFit`
 - Works with any model type including `recursive_reg` for per-group forecasting
 
+**Per-Group Preprocessing (NEW - 2025-11-10):**
+- **Feature**: Each group can have its own recipe preprocessing
+- **Use Case**: PCA, feature selection, or filtering where groups need different feature spaces
+- **Usage**:
+  ```python
+  # Each group gets its own PreparedRecipe fitted on that group's data
+  nested_fit = wf.fit_nested(data, group_col='country', per_group_prep=True)
+
+  # Compare features across groups
+  comparison = nested_fit.get_feature_comparison()
+  # Returns DataFrame showing which features each group uses
+  ```
+- **Parameters**:
+  - `per_group_prep=True`: Enable per-group recipe preparation (default: False)
+  - `min_group_size=30`: Minimum samples for group-specific prep; smaller groups use global recipe
+- **Key Features**:
+  - Automatic outcome column preservation during recipe prep
+  - Small group fallback to global recipe with warning
+  - Error handling for new/unseen groups at prediction time
+  - `get_feature_comparison()` utility shows feature differences across groups
+- **Benefits**:
+  - Groups with different data distributions get appropriate preprocessing
+  - USA refineries: 5 PCA components; UK refineries: 3 components (example)
+  - Feature selection selects different features per group based on group-specific importance
+- **Code References**:
+  - `py_workflows/workflow.py:121-179` - Outcome preservation helpers
+  - `py_workflows/workflow.py:255-311` - fit_nested() with per_group_prep parameter
+  - `py_workflows/workflow.py:392-543` - Per-group recipe prep and fitting logic
+  - `py_workflows/workflow.py:1023-1113` - get_feature_comparison() method
+  - `tests/test_workflows/test_per_group_prep.py` - Comprehensive tests (5 tests, all passing)
+  - `.claude_debugging/PER_GROUP_PREPROCESSING_IMPLEMENTATION.md` - Full implementation documentation
+
 **Files:**
 - `py_workflows/workflow.py` - Workflow, WorkflowFit, and NestedWorkflowFit classes
-- `tests/test_workflows/` - 39 tests passing (26 general + 13 panel models)
+- `tests/test_workflows/` - 64 tests passing (26 general + 13 panel models + 5 per-group prep + 20 other)
 
 ### Layer 5: py-recipes (Feature Engineering)
 **Purpose:** Advanced feature preprocessing and engineering pipeline.
@@ -455,6 +518,49 @@ best_wf = wf_set[best_wf_id].fit(train_data)
 - `py_hardhat/forge.py:139-211` - `_validate_columns()` with regex parsing
 - `tests/test_hardhat/test_mold_forge.py` - 14/14 tests passing including I() tests
 - `examples/11_workflowsets_demo.ipynb` - Demonstrates I() usage in multi-model comparison
+
+### step_poly() and Patsy XOR Errors
+**Problem:** Polynomial features created column names like `brent^2`, and when used in auto-generated formulas, patsy interpreted `^` as the XOR bitwise operator, causing `PatsyError: Cannot perform 'xor' with a dtyped [float64] array and scalar of type [bool]`.
+
+**Root Cause:** sklearn's `PolynomialFeatures.get_feature_names_out()` returns column names with `^` for powers (e.g., `x^2`, `x^3`). The `StepPoly.prep()` method only replaced spaces with underscores, not `^` characters.
+
+**Solution:** Replace both spaces and `^` characters in feature names:
+```python
+# In py_recipes/steps/basis.py:361-368
+feature_names = [
+    name.replace(' ', '_').replace('^', '_pow_')
+    for name in feature_names
+]
+```
+
+**Column Name Transformations:**
+- `brent^2` → `brent_pow_2` (quadratic term)
+- `dubai^3` → `dubai_pow_3` (cubic term)
+- `x1 x2` → `x1_x2` (interaction term)
+
+**Why This Matters:**
+- In patsy: `^` is XOR operator, NOT exponentiation
+- For exponentiation in formulas: Use `I(x**2)` syntax
+- Column names with `^` cannot be used directly in formulas
+- Replacing `^` with `_pow_` creates safe identifiers
+
+**Impact:**
+```python
+# Before fix (ERROR)
+rec = recipe().step_poly(['x1', 'x2'], degree=2)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(train, group_col='country')  # ❌ PatsyError: Cannot perform 'xor'
+
+# After fix (WORKS)
+rec = recipe().step_poly(['x1', 'x2'], degree=2)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(train, group_col='country')  # ✓ Works! Columns: x1_pow_2, x2_pow_2
+```
+
+**Code References:**
+- `py_recipes/steps/basis.py:361-368` - Feature name sanitization
+- `tests/test_recipes/test_basis.py::TestStepPoly` - 9/9 polynomial tests passing
+- `.claude_debugging/STEP_POLY_CARET_FIX_2025_11_10.md` - Complete documentation
 
 ### Time Series Models and Datetime Handling
 **Problem:** Patsy treats datetime columns as categorical, causing errors in forge() when prediction data has new dates.

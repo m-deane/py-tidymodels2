@@ -394,9 +394,11 @@ class SklearnLinearEngine(Engine):
                         if test_count > 0 and test_dates is not None:
                             combined_dates.extend(test_dates[:test_count])
 
-                        # Add date column as first column (before model/group columns)
+                        # Add date column and set as index
                         if len(combined_dates) == len(outputs):
                             outputs.insert(0, 'date', combined_dates)
+                            # Set date as index for time series consistency
+                            outputs = outputs.set_index('date')
 
                     except ValueError:
                         # No datetime columns or invalid date column - skip date column

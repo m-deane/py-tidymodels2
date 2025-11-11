@@ -66,11 +66,21 @@ from py_recipes.steps.filter_supervised import (
     step_filter_mutual_info,
     step_filter_roc_auc,
     step_filter_chisq,
+    step_select_shap,
+    step_select_permutation,
     StepFilterAnova,
     StepFilterRfImportance,
     StepFilterMutualInfo,
     StepFilterRocAuc,
     StepFilterChisq,
+    StepSelectShap,
+    StepSelectPermutation,
+)
+
+# Import feature extraction steps
+from py_recipes.steps.feature_extraction import (
+    step_safe_v2,
+    StepSafeV2,
 )
 
 # Import selectors
@@ -124,11 +134,18 @@ __all__ = [
     "step_filter_mutual_info",
     "step_filter_roc_auc",
     "step_filter_chisq",
+    "step_select_shap",
+    "step_select_permutation",
     "StepFilterAnova",
     "StepFilterRfImportance",
     "StepFilterMutualInfo",
     "StepFilterRocAuc",
     "StepFilterChisq",
+    "StepSelectShap",
+    "StepSelectPermutation",
+    # Feature extraction steps
+    "step_safe_v2",
+    "StepSafeV2",
     # Selectors
     "all_numeric",
     "all_nominal",

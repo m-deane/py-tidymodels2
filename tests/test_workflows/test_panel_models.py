@@ -150,7 +150,7 @@ class TestNestedPrediction:
         nested_fit = wf.fit_nested(train, group_col="group")
 
         # Should raise error for groups not in training
-        with pytest.raises(ValueError, match="No matching groups found"):
+        with pytest.raises(ValueError, match="New group\\(s\\) not seen during training"):
             nested_fit.predict(test)
 
     def test_nested_predict_intervals(self):

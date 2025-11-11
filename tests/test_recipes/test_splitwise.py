@@ -398,5 +398,155 @@ class TestStepSplitwiseEdgeCases:
         assert prepped._is_prepared
 
 
+class TestStepSplitwiseFeatureTypes:
+    """Test feature_type parameter functionality."""
+
+    def test_feature_type_dummies_default(self, simple_data):
+        """Test default feature_type='dummies' creates only binary dummies."""
+        step = StepSplitwise(outcome='y', min_improvement=1.0, feature_type='dummies')
+        prepped = step.prep(simple_data)
+        baked = prepped.bake(simple_data)
+
+        # Check for dummy variables only
+        dummy_cols = [c for c in baked.columns if '_ge_' in c or '_between_' in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        # Should have dummies
+        assert len(dummy_cols) > 0
+        # Should NOT have interactions
+        assert len(interaction_cols) == 0
+
+        # Verify dummies are binary
+        for col in dummy_cols:
+            assert set(baked[col].unique()).issubset({0, 1})
+
+    def test_feature_type_interactions_only(self, simple_data):
+        """Test feature_type='interactions' creates interaction features only."""
+        step = StepSplitwise(outcome='y', min_improvement=1.0, feature_type='interactions')
+        prepped = step.prep(simple_data)
+        baked = prepped.bake(simple_data)
+
+        # Check for interaction variables
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        # Should have interactions
+        assert len(interaction_cols) > 0
+
+        # Verify interactions are NOT binary (they're dummy * original_value)
+        for col in interaction_cols:
+            unique_vals = baked[col].unique()
+            # Interactions should have more than just 0/1
+            # They can be 0 or original_value
+            assert len(unique_vals) > 2 or not set(unique_vals).issubset({0, 1})
+
+    def test_feature_type_both(self, simple_data):
+        """Test feature_type='both' creates both dummies and interactions."""
+        step = StepSplitwise(outcome='y', min_improvement=1.0, feature_type='both')
+        prepped = step.prep(simple_data)
+        baked = prepped.bake(simple_data)
+
+        # Check for both types
+        dummy_cols = [c for c in baked.columns if ('_ge_' in c or '_between_' in c) and '_x_' not in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        # Should have both
+        assert len(dummy_cols) > 0
+        assert len(interaction_cols) > 0
+
+        # For each dummy, should have corresponding interaction
+        # (at least for single_split transformations)
+        for dummy_col in dummy_cols:
+            # Find corresponding interaction
+            expected_interaction = f"{dummy_col}_x_"
+            matching_interactions = [c for c in interaction_cols if c.startswith(expected_interaction)]
+            # May not always have exact match due to naming, but should have some interactions
+            assert len(interaction_cols) >= len(dummy_cols)
+
+    def test_feature_type_invalid(self, simple_data):
+        """Test validation of feature_type parameter."""
+        with pytest.raises(ValueError, match="feature_type must be"):
+            StepSplitwise(outcome='y', feature_type='invalid')
+
+    def test_interaction_values_correct(self, simple_data):
+        """Test that interaction values equal dummy * original_value."""
+        # Create simple threshold relationship
+        np.random.seed(42)
+        n = 100
+        x = np.random.uniform(0, 10, n)
+        y = 5 * (x > 5).astype(int) + np.random.randn(n) * 0.1
+
+        data = pd.DataFrame({'x': x, 'y': y})
+
+        step = StepSplitwise(outcome='y', min_improvement=0.1, feature_type='both')
+        prepped = step.prep(data)
+        baked = prepped.bake(data)
+
+        # Find dummy and interaction columns
+        dummy_cols = [c for c in baked.columns if '_ge_' in c and '_x_' not in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        if len(dummy_cols) > 0 and len(interaction_cols) > 0:
+            # Verify interaction = dummy * original
+            # We need to reconstruct original x values
+            # For testing, we'll just verify interaction is 0 when dummy is 0
+            dummy_col = dummy_cols[0]
+            interaction_col = interaction_cols[0]
+
+            # Where dummy is 0, interaction should be 0
+            mask_zero = baked[dummy_col] == 0
+            assert all(baked.loc[mask_zero, interaction_col] == 0)
+
+            # Where dummy is 1, interaction should be non-zero (original value)
+            mask_one = baked[dummy_col] == 1
+            # Interaction should have original values where dummy=1
+            assert any(baked.loc[mask_one, interaction_col] != 0)
+
+    def test_recipe_with_feature_type_interactions(self, simple_data):
+        """Test step_splitwise with feature_type='interactions' in recipe."""
+        rec = (
+            recipe()
+            .step_splitwise(outcome='y', min_improvement=1.0, feature_type='interactions')
+        )
+
+        prepped = rec.prep(simple_data)
+        baked = prepped.bake(simple_data)
+
+        # Check interactions created
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+        assert len(interaction_cols) > 0
+
+    def test_recipe_with_feature_type_both(self, simple_data):
+        """Test step_splitwise with feature_type='both' in recipe."""
+        rec = (
+            recipe()
+            .step_splitwise(outcome='y', min_improvement=1.0, feature_type='both')
+        )
+
+        prepped = rec.prep(simple_data)
+        baked = prepped.bake(simple_data)
+
+        # Check both created
+        dummy_cols = [c for c in baked.columns if ('_ge_' in c or '_between_' in c) and '_x_' not in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        assert len(dummy_cols) > 0
+        assert len(interaction_cols) > 0
+
+    def test_double_split_with_interactions(self, simple_data):
+        """Test double-split transformations with interactions."""
+        step = StepSplitwise(outcome='y', min_improvement=0.5, feature_type='both')
+        prepped = step.prep(simple_data)
+
+        # Check if any double-split decisions made
+        decisions = prepped.get_decisions()
+        double_splits = [col for col, info in decisions.items() if info['decision'] == 'double_split']
+
+        if len(double_splits) > 0:
+            baked = prepped.bake(simple_data)
+            # Should have between_* columns for both dummies and interactions
+            between_cols = [c for c in baked.columns if '_between_' in c]
+            assert len(between_cols) > 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

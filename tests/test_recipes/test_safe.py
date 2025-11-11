@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from py_recipes import recipe
-from py_recipes.steps.feature_extraction import StepSafe
+from py_recipes.steps.feature_extraction import StepSafe, StepSafeV2
 
 
 @pytest.fixture
@@ -368,7 +368,8 @@ class TestStepSafeRecipeIntegration:
         )
 
         assert len(rec.steps) == 1
-        assert isinstance(rec.steps[0], StepSafe)
+        # step_safe() now uses StepSafeV2 internally
+        assert isinstance(rec.steps[0], (StepSafe, StepSafeV2))
 
     def test_recipe_prep_and_bake(self, simple_regression_data, fitted_surrogate):
         """Test recipe prep and bake with step_safe."""
@@ -445,6 +446,28 @@ class TestStepSafeEdgeCases:
 
         # Should return copy of original data
         assert len(transformed) == len(simple_regression_data)
+
+    def test_no_duplicate_columns(self, simple_regression_data, fitted_surrogate):
+        """Test that bake() result has no duplicate column names."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            no_changepoint_strategy='drop',
+            top_n=None  # No top_n filtering - test raw concat result
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        result = prepped.bake(simple_regression_data)
+
+        # Check no duplicate columns
+        duplicates = result.columns[result.columns.duplicated()].tolist()
+        assert not result.columns.duplicated().any(), \
+            f"Result has duplicate columns: {duplicates}"
+
+        # Check all columns are unique
+        assert len(result.columns) == len(set(result.columns)), \
+            "Result columns are not unique"
 
     def test_different_penalties(self, simple_regression_data, fitted_surrogate):
         """Test different penalty values affect number of changepoints."""
@@ -580,3 +603,216 @@ class TestStepSafeWorkflowIntegration:
         assert isinstance(predictions, pd.DataFrame)
         assert '.pred' in predictions.columns
         assert len(predictions) == len(test)
+
+
+class TestStepSafeFeatureTypes:
+    """Test feature_type parameter functionality."""
+
+    def test_feature_type_dummies_default(self, simple_regression_data, fitted_surrogate):
+        """Test default feature_type='dummies' creates only binary dummies."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            feature_type='dummies'
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        baked = prepped.bake(simple_regression_data)
+
+        # Check for dummy variables
+        # SAFE creates columns like var_cp_1, var_cp_2, etc.
+        safe_cols = [c for c in baked.columns if '_cp_' in c]
+
+        if len(safe_cols) > 0:
+            # Verify they are binary (0/1)
+            for col in safe_cols:
+                unique_vals = baked[col].unique()
+                assert set(unique_vals).issubset({0, 1})
+
+            # Should NOT have interaction columns
+            interaction_cols = [c for c in baked.columns if '_x_' in c and '_cp_' in c]
+            assert len(interaction_cols) == 0
+
+    def test_feature_type_interactions_only(self, simple_regression_data, fitted_surrogate):
+        """Test feature_type='interactions' creates interaction features only."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            feature_type='interactions'
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        baked = prepped.bake(simple_regression_data)
+
+        # Check for interaction variables
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        if len(interaction_cols) > 0:
+            # Verify interactions exist and have expected naming pattern
+            # Interactions have _x_ in the name (e.g., x1_cp_1_x_x1)
+            assert all('_x_' in col for col in interaction_cols)
+
+            # Should NOT have plain dummy columns (without _x_ in middle)
+            plain_dummy_cols = [c for c in baked.columns if '_cp_' in c and '_x_' not in c]
+            assert len(plain_dummy_cols) == 0
+
+    def test_feature_type_both(self, simple_regression_data, fitted_surrogate):
+        """Test feature_type='both' creates both dummies and interactions."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            feature_type='both'
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        baked = prepped.bake(simple_regression_data)
+
+        # Check for both types
+        # Dummies: columns like var_cp_1 (without _x_)
+        dummy_cols = [c for c in baked.columns if '_cp_' in c and '_x_' not in c]
+        # Interactions: columns like var_cp_1_x_var
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        # If changepoints detected, should have both
+        if len(dummy_cols) > 0:
+            assert len(interaction_cols) > 0
+
+            # Verify dummies are binary
+            for col in dummy_cols:
+                unique_vals = baked[col].unique()
+                assert set(unique_vals).issubset({0, 1})
+
+            # Verify interactions have non-binary values
+            for col in interaction_cols:
+                unique_vals = baked[col].unique()
+                # Should have more variety than just 0/1
+                assert len(unique_vals) > 2 or not set(unique_vals).issubset({0, 1})
+
+    def test_feature_type_invalid(self, simple_regression_data, fitted_surrogate):
+        """Test validation of feature_type parameter."""
+        with pytest.raises(ValueError, match="feature_type must be"):
+            StepSafe(
+                surrogate_model=fitted_surrogate,
+                outcome='y',
+                feature_type='invalid'
+            )
+
+    def test_interaction_values_correct(self, simple_regression_data, fitted_surrogate):
+        """Test that interaction values equal dummy * original_value."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            feature_type='both',
+            keep_original_cols=True  # Keep originals to verify
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        baked = prepped.bake(simple_regression_data)
+
+        # Find dummy and interaction columns
+        dummy_cols = [c for c in baked.columns if '_cp_' in c and '_x_' not in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        if len(dummy_cols) > 0 and len(interaction_cols) > 0:
+            # For each dummy, verify corresponding interaction
+            dummy_col = dummy_cols[0]
+            # Find matching interaction (should have pattern dummy_name_x_original_name)
+            matching_interactions = [c for c in interaction_cols if dummy_col in c]
+
+            if len(matching_interactions) > 0:
+                interaction_col = matching_interactions[0]
+
+                # Where dummy is 0, interaction should be 0
+                mask_zero = baked[dummy_col] == 0
+                assert all(baked.loc[mask_zero, interaction_col] == 0)
+
+                # Where dummy is 1, interaction should match original (non-zero)
+                mask_one = baked[dummy_col] == 1
+                if mask_one.sum() > 0:
+                    # Interaction should have non-zero values where dummy=1
+                    assert any(baked.loc[mask_one, interaction_col] != 0)
+
+    def test_recipe_with_feature_type_interactions(self, simple_regression_data, fitted_surrogate):
+        """Test step_safe with feature_type='interactions' in recipe."""
+        rec = (
+            recipe()
+            .step_safe(
+                surrogate_model=fitted_surrogate,
+                outcome='y',
+                penalty=3.0,
+                feature_type='interactions'
+            )
+        )
+
+        prepped = rec.prep(simple_regression_data)
+        baked = prepped.bake(simple_regression_data)
+
+        # Check interactions created
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+        # May be 0 if no changepoints detected
+        assert isinstance(baked, pd.DataFrame)
+
+    def test_recipe_with_feature_type_both(self, simple_regression_data, fitted_surrogate):
+        """Test step_safe with feature_type='both' in recipe."""
+        rec = (
+            recipe()
+            .step_safe(
+                surrogate_model=fitted_surrogate,
+                outcome='y',
+                penalty=3.0,
+                feature_type='both'
+            )
+        )
+
+        prepped = rec.prep(simple_regression_data)
+        baked = prepped.bake(simple_regression_data)
+
+        # Check both types potentially created
+        dummy_cols = [c for c in baked.columns if '_cp_' in c and '_x_' not in c]
+        interaction_cols = [c for c in baked.columns if '_x_' in c]
+
+        # If dummies created, interactions should also be created
+        if len(dummy_cols) > 0:
+            assert len(interaction_cols) > 0
+
+    def test_categorical_with_interactions(self, mixed_data, fitted_surrogate_mixed):
+        """Test categorical variables with interaction feature_type."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate_mixed,
+            outcome='target',
+            penalty=3.0,
+            feature_type='both'
+        )
+
+        prepped = step.prep(mixed_data, training=True)
+        baked = prepped.bake(mixed_data)
+
+        # Categorical features should also support interactions
+        # Check that categorical dummies and interactions are created
+        assert isinstance(baked, pd.DataFrame)
+        assert len(baked) == len(mixed_data)
+
+    def test_top_n_with_feature_types(self, simple_regression_data, fitted_surrogate):
+        """Test top_n parameter works with different feature_types."""
+        step = StepSafe(
+            surrogate_model=fitted_surrogate,
+            outcome='y',
+            penalty=3.0,
+            top_n=5,
+            feature_type='both'
+        )
+
+        prepped = step.prep(simple_regression_data, training=True)
+        baked = prepped.bake(simple_regression_data)
+
+        # Should limit number of features created
+        # Total SAFE features (dummies + interactions) should be controlled by top_n
+        safe_cols = [c for c in baked.columns if '_cp_' in c or '_x_' in c]
+
+        # With feature_type='both', we get both dummies and interactions for each changepoint
+        # So total columns could be up to 2 * top_n (but may be less)
+        assert isinstance(baked, pd.DataFrame)

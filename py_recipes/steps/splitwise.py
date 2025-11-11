@@ -41,6 +41,11 @@ class StepSplitwise:
         Higher values = more conservative (fewer transformations).
     criterion : {'AIC', 'BIC'}, default='AIC'
         Model selection criterion for comparing transformations
+    feature_type : {'dummies', 'interactions', 'both'}, default='dummies'
+        Type of features to create:
+        - 'dummies': Binary dummy variables only (default)
+        - 'interactions': Binary dummy * original feature interactions only
+        - 'both': Both dummies and interactions
     exclude_vars : list of str, optional
         Variables forced to stay linear (no transformation)
     columns : selector, optional
@@ -87,6 +92,7 @@ class StepSplitwise:
     min_support: float = 0.1
     min_improvement: float = 3.0
     criterion: Literal['AIC', 'BIC'] = 'AIC'
+    feature_type: Literal['dummies', 'interactions', 'both'] = 'dummies'
     exclude_vars: Optional[List[str]] = None
     columns: Union[None, str, List[str], Callable] = None
     skip: bool = False
@@ -115,6 +121,12 @@ class StepSplitwise:
         if self.transformation_mode == 'iterative':
             raise NotImplementedError(
                 "Iterative mode is not yet implemented. Use transformation_mode='univariate'"
+            )
+
+        if self.feature_type not in ['dummies', 'interactions', 'both']:
+            raise ValueError(
+                f"feature_type must be 'dummies', 'interactions', or 'both', "
+                f"got '{self.feature_type}'"
             )
 
         if self.criterion not in ['AIC', 'BIC']:
@@ -393,7 +405,7 @@ class StepSplitwise:
         Returns
         -------
         DataFrame
-            Transformed data with dummy variables replacing selected predictors
+            Transformed data with dummy variables and/or interactions
         """
         if self.skip or not self._is_prepared:
             return data.copy()
@@ -415,31 +427,59 @@ class StepSplitwise:
                 cutoffs = self._cutoffs[col]
                 threshold = cutoffs['threshold']
 
+                # Save original values for potential interaction
+                original_values = result[col].copy()
+
                 # Create dummy variable
                 dummy = (result[col] >= threshold).astype(int)
 
-                # Replace original column with dummy
                 # Sanitize threshold for patsy-friendly column name
                 threshold_str = self._sanitize_threshold(threshold)
                 dummy_name = f"{col}_ge_{threshold_str}"
-                result[dummy_name] = dummy
-                result = result.drop(columns=[col])
+
+                # Add features based on feature_type
+                if self.feature_type == 'dummies':
+                    result[dummy_name] = dummy
+                    result = result.drop(columns=[col])
+                elif self.feature_type == 'interactions':
+                    interaction_name = f"{dummy_name}_x_{col}"
+                    result[interaction_name] = dummy * original_values
+                    result = result.drop(columns=[col])
+                else:  # 'both'
+                    result[dummy_name] = dummy
+                    interaction_name = f"{dummy_name}_x_{col}"
+                    result[interaction_name] = dummy * original_values
+                    result = result.drop(columns=[col])
 
             elif decision == 'double_split':
                 cutoffs = self._cutoffs[col]
                 lower = cutoffs['lower']
                 upper = cutoffs['upper']
 
+                # Save original values for potential interaction
+                original_values = result[col].copy()
+
                 # Create dummy variable (middle region)
                 dummy = ((result[col] > lower) & (result[col] < upper)).astype(int)
 
-                # Replace original column with dummy
                 # Sanitize thresholds for patsy-friendly column name
                 lower_str = self._sanitize_threshold(lower)
                 upper_str = self._sanitize_threshold(upper)
                 dummy_name = f"{col}_between_{lower_str}_{upper_str}"
-                result[dummy_name] = dummy
-                result = result.drop(columns=[col])
+
+                # Add features based on feature_type
+                if self.feature_type == 'dummies':
+                    result[dummy_name] = dummy
+                    result = result.drop(columns=[col])
+                elif self.feature_type == 'interactions':
+                    interaction_name = f"{dummy_name}_x_{col}"
+                    result[interaction_name] = dummy * original_values
+                    result = result.drop(columns=[col])
+                else:  # 'both'
+                    result[dummy_name] = dummy
+                    interaction_name = f"{dummy_name}_x_{col}"
+                    result[interaction_name] = dummy * original_values
+                    result = result.drop(columns=[col])
 
         return result
 

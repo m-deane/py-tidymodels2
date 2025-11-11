@@ -11,8 +11,9 @@ This separation ensures:
 """
 
 from dataclasses import dataclass, field, replace
-from typing import Dict, Any, Optional, Literal
+from typing import Dict, Any, Optional, Literal, Tuple
 import pandas as pd
+import warnings
 
 from py_hardhat import MoldedData
 from py_parsnip.utils import _infer_date_column
@@ -286,6 +287,176 @@ class ModelSpec:
             blueprint=blueprint,
         )
 
+    def fit_nested(
+        self,
+        data: pd.DataFrame,
+        formula: str,
+        group_col: str,
+        original_training_data: Optional[pd.DataFrame] = None,
+        date_col: Optional[str] = None
+    ) -> "NestedModelFit":
+        """
+        Fit separate models for each group in the data (panel/grouped modeling).
+
+        This method enables grouped/panel modeling directly on ModelSpec without
+        requiring a workflow wrapper. It fits one independent model per group value,
+        useful for:
+        - Multi-store sales forecasting (one model per store)
+        - Multi-product demand forecasting (one model per product)
+        - Multi-region time series (one model per region)
+
+        Args:
+            data: Training data DataFrame with group column
+            formula: Model formula (e.g., "y ~ x1 + x2")
+            group_col: Column name containing group identifiers
+            original_training_data: Original unpreprocessed training data (optional)
+            date_col: Optional date column name (for time series models)
+
+        Returns:
+            NestedModelFit containing dict of fitted models per group
+
+        Raises:
+            ValueError: If group_col not in data
+
+        Examples:
+            >>> # Fit separate models for each store
+            >>> spec = linear_reg()
+            >>> nested_fit = spec.fit_nested(
+            ...     data,
+            ...     "sales ~ date + price",
+            ...     group_col="store_id"
+            ... )
+            >>>
+            >>> # Predict for all groups
+            >>> predictions = nested_fit.predict(test_data)
+            >>>
+            >>> # Extract outputs with group column
+            >>> outputs, coeffs, stats = nested_fit.extract_outputs()
+        """
+        # Validate group column exists
+        if group_col not in data.columns:
+            raise ValueError(f"Group column '{group_col}' not found in data")
+
+        # Get unique groups
+        groups = data[group_col].unique()
+
+        # Warn if only one group
+        if len(groups) == 1:
+            warnings.warn(
+                f"Only one group found in '{group_col}'. Consider using fit() instead of fit_nested().",
+                UserWarning
+            )
+
+        # Fit separate model for each group
+        group_fits = {}
+        group_train_data = {}  # Store original training data per group
+
+        for group in groups:
+            group_data = data[data[group_col] == group].copy()
+
+            # Store original group training data (before dropping group column)
+            # This preserves date column for later extraction
+            group_train_data[group] = group_data.copy()
+
+            # For recursive models, set date as index if needed
+            is_recursive = self.model_type == "recursive_reg"
+            if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
+                # Set date as index before removing group column (recursive models need this)
+                group_data = group_data.set_index("date")
+                group_data = group_data.drop(columns=[group_col])
+            else:
+                # Remove group column before fitting (it's not a predictor)
+                group_data = group_data.drop(columns=[group_col])
+
+            # Fit this group's model
+            group_fits[group] = self.fit(
+                group_data,
+                formula,
+                original_training_data=original_training_data,
+                date_col=date_col
+            )
+
+        return NestedModelFit(
+            spec=self,
+            group_col=group_col,
+            group_fits=group_fits,
+            formula=formula,
+            group_train_data=group_train_data
+        )
+
+    def fit_global(
+        self,
+        data: pd.DataFrame,
+        formula: str,
+        group_col: str,
+        original_training_data: Optional[pd.DataFrame] = None,
+        date_col: Optional[str] = None
+    ) -> "ModelFit":
+        """
+        Fit a single global model using group as a feature.
+
+        This method fits one model using all groups together, with the group
+        column as an additional predictor. Useful when:
+        - Groups share common patterns
+        - Insufficient data per group for separate models
+        - Want to capture cross-group effects
+
+        Args:
+            data: Training data DataFrame with group column
+            formula: Model formula (e.g., "sales ~ price + advertising")
+            group_col: Column name containing group identifiers (used as feature)
+            original_training_data: Original unpreprocessed training data (optional)
+            date_col: Optional date column name (for time series models)
+
+        Returns:
+            ModelFit with group column included as predictor
+
+        Raises:
+            ValueError: If group_col not in data or invalid formula format
+
+        Examples:
+            >>> # Fit single model using store_id as a feature
+            >>> spec = linear_reg()
+            >>> global_fit = spec.fit_global(
+            ...     data,
+            ...     "sales ~ price + advertising",
+            ...     group_col="store_id"
+            ... )
+            >>>
+            >>> # Group column is automatically included as predictor
+            >>> predictions = global_fit.predict(test_data)
+        """
+        # Validate group column exists
+        if group_col not in data.columns:
+            raise ValueError(f"Group column '{group_col}' not found in data")
+
+        # Validate formula structure
+        if '~' not in formula:
+            raise ValueError(f"Invalid formula format: {formula}. Formula must contain '~'")
+
+        # Parse formula to add group column
+        lhs, rhs = formula.split('~', 1)
+        outcome = lhs.strip()
+        predictors = rhs.strip()
+
+        # Check if group_col is already in the formula
+        predictor_terms = [term.strip() for term in predictors.split('+')]
+
+        if group_col in predictor_terms or predictors == ".":
+            # group_col already in formula or using "." notation (includes all columns)
+            updated_formula = formula
+        else:
+            # Add group_col explicitly
+            updated_formula = f"{outcome} ~ {predictors} + {group_col}"
+
+        # Fit with updated formula
+        return self.fit(
+            data,
+            updated_formula,
+            original_training_data=original_training_data,
+            date_col=date_col
+        )
+
 
 @dataclass
 class ModelFit:
@@ -466,4 +637,262 @@ class ModelFit:
         from py_parsnip.engine_registry import get_engine
 
         engine = get_engine(self.spec.model_type, self.spec.engine)
-        return engine.extract_outputs(self)
+        outputs, coefficients, stats = engine.extract_outputs(self)
+
+        # Reorder columns for consistent ordering: date first, then core columns
+        from py_parsnip.utils.output_ordering import (
+            reorder_outputs_columns,
+            reorder_coefficients_columns,
+            reorder_stats_columns
+        )
+
+        outputs = reorder_outputs_columns(outputs, group_col=None)
+        coefficients = reorder_coefficients_columns(coefficients, group_col=None)
+        stats = reorder_stats_columns(stats, group_col=None)
+
+        return outputs, coefficients, stats
+
+
+@dataclass
+class NestedModelFit:
+    """
+    Fitted model with separate fits for each group (panel/grouped modeling).
+
+    This class is parallel to NestedWorkflowFit but operates at the ModelSpec level,
+    enabling grouped/panel modeling without requiring workflow wrapper.
+    It holds multiple fitted models, one per group, while maintaining a unified interface.
+
+    Attributes:
+        spec: Original ModelSpec specification
+        group_col: Column name containing group identifiers
+        group_fits: Dict mapping group values to ModelFit objects
+        formula: Formula used for fitting
+        group_train_data: Dict mapping group values to original training data (for date extraction)
+
+    Examples:
+        >>> spec = linear_reg()
+        >>> nested_fit = spec.fit_nested(data, "sales ~ date", group_col="store_id")
+        >>>
+        >>> # Predict for all groups
+        >>> predictions = nested_fit.predict(test_data)
+        >>>
+        >>> # Extract outputs with group column
+        >>> outputs, coeffs, stats = nested_fit.extract_outputs()
+        >>> print(outputs[["date", group_col, "actuals", "forecast"]])
+    """
+    spec: ModelSpec
+    group_col: str
+    group_fits: Dict[Any, ModelFit]
+    formula: str
+    group_train_data: Dict[Any, pd.DataFrame]
+
+    def predict(
+        self,
+        new_data: pd.DataFrame,
+        type: Literal["numeric", "class", "prob", "conf_int"] = "numeric"
+    ) -> pd.DataFrame:
+        """
+        Generate predictions for all groups.
+
+        Automatically routes each row to the appropriate group model.
+
+        Args:
+            new_data: New data with group column
+            type: Prediction type ("numeric", "conf_int", "pred_int", etc.)
+
+        Returns:
+            DataFrame with predictions and group column
+
+        Raises:
+            ValueError: If group_col not in new_data or no matching groups found
+
+        Examples:
+            >>> predictions = nested_fit.predict(test_data)
+            >>> predictions = nested_fit.predict(test_data, type="conf_int")
+        """
+        if self.group_col not in new_data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in new_data")
+
+        # Get predictions for each group
+        all_predictions = []
+        is_recursive = self.spec.model_type == "recursive_reg"
+
+        for group, group_fit in self.group_fits.items():
+            # Filter data for this group
+            group_data = new_data[new_data[self.group_col] == group].copy()
+
+            if len(group_data) == 0:
+                continue  # Skip groups not in new_data
+
+            # For recursive models, set date as index if needed
+            if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
+                # Set date as index before removing group column (recursive models need this)
+                group_data = group_data.set_index("date")
+                group_data_no_group = group_data.drop(columns=[self.group_col])
+            else:
+                # Remove group column before prediction
+                group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Get predictions
+            group_preds = group_fit.predict(group_data_no_group, type=type)
+
+            # Add group column back
+            group_preds[self.group_col] = group
+
+            all_predictions.append(group_preds)
+
+        if len(all_predictions) == 0:
+            raise ValueError("No matching groups found in new_data")
+
+        # Combine predictions from all groups
+        return pd.concat(all_predictions, ignore_index=True)
+
+    def evaluate(
+        self,
+        test_data: pd.DataFrame,
+        outcome_col: Optional[str] = None
+    ) -> "NestedModelFit":
+        """
+        Evaluate all group models on test data.
+
+        Args:
+            test_data: Test data with actual outcomes and group column
+            outcome_col: Name of outcome column (auto-detected if None)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> nested_fit = spec.fit_nested(train, "y ~ x", "store_id")
+            >>> nested_fit = nested_fit.evaluate(test)
+            >>> outputs, coeffs, stats = nested_fit.extract_outputs()
+        """
+        if self.group_col not in test_data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in test_data")
+
+        # Evaluate each group model
+        is_recursive = self.spec.model_type == "recursive_reg"
+
+        for group, group_fit in self.group_fits.items():
+            # Filter data for this group
+            group_data = test_data[test_data[self.group_col] == group].copy()
+
+            if len(group_data) == 0:
+                continue  # Skip groups not in test_data
+
+            # For recursive models, set date as index if needed
+            if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
+                # Set date as index before removing group column (recursive models need this)
+                group_data = group_data.set_index("date")
+                group_data_no_group = group_data.drop(columns=[self.group_col])
+            else:
+                # Remove group column before evaluation
+                group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Evaluate this group's model
+            self.group_fits[group] = group_fit.evaluate(group_data_no_group, outcome_col)
+
+        return self
+
+    def extract_outputs(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """
+        Extract comprehensive three-DataFrame outputs for all groups.
+
+        Combines outputs from all group models and adds group column.
+
+        Returns:
+            Tuple of (outputs, coefficients, stats) DataFrames
+            - outputs: Includes group_col showing which group each row belongs to
+            - coefficients: Includes group_col
+            - stats: Includes group_col
+
+        Examples:
+            >>> outputs, coefficients, stats = nested_fit.extract_outputs()
+            >>>
+            >>> # Filter to specific group
+            >>> store_a_outputs = outputs[outputs[group_col] == "A"]
+            >>>
+            >>> # Compare metrics across groups
+            >>> test_rmse = stats[
+            ...     (stats["metric"] == "rmse") &
+            ...     (stats["split"] == "test")
+            ... ][[group_col, "value"]]
+        """
+        all_outputs = []
+        all_coefficients = []
+        all_stats = []
+
+        for group, group_fit in self.group_fits.items():
+            # Extract outputs for this group
+            outputs, coefficients, stats = group_fit.extract_outputs()
+
+            # Preserve date information if available
+            # This is needed for plot_forecast() to work
+            if "date" not in outputs.columns:
+                # Make a copy to avoid SettingWithCopyWarning
+                outputs = outputs.copy()
+
+                # Try to get training dates from stored original training data
+                if hasattr(self, 'group_train_data') and group in self.group_train_data:
+                    train_data_orig = self.group_train_data[group]
+                    if "date" in train_data_orig.columns:
+                        train_dates = train_data_orig["date"].values
+                        train_mask = outputs['split'] == 'train'
+                        if train_mask.sum() == len(train_dates):
+                            outputs.loc[train_mask, 'date'] = train_dates
+                # Fallback: Try to get date from the fit's molded data (if date was used as index)
+                elif hasattr(group_fit, 'molded') and group_fit.molded is not None:
+                    molded_outcomes = group_fit.molded.outcomes
+                    if isinstance(molded_outcomes, pd.DataFrame) and isinstance(molded_outcomes.index, pd.DatetimeIndex):
+                        # Date is in the outcomes index
+                        date_index = molded_outcomes.index
+                        train_mask = outputs['split'] == 'train'
+                        if train_mask.sum() == len(date_index):
+                            outputs.loc[train_mask, 'date'] = date_index.values
+                    elif isinstance(molded_outcomes, pd.Series) and isinstance(molded_outcomes.index, pd.DatetimeIndex):
+                        # Outcomes is a Series with date index
+                        date_index = molded_outcomes.index
+                        train_mask = outputs['split'] == 'train'
+                        if train_mask.sum() == len(date_index):
+                            outputs.loc[train_mask, 'date'] = date_index.values
+
+                # Try to get test dates from evaluation data
+                if hasattr(group_fit, 'evaluation_data') and "test_data" in group_fit.evaluation_data:
+                    test_data = group_fit.evaluation_data["test_data"]
+                    if "date" in test_data.columns:
+                        test_dates = test_data["date"].values
+                        test_mask = outputs['split'] == 'test'
+                        if test_mask.sum() == len(test_dates):
+                            outputs.loc[test_mask, 'date'] = test_dates
+                    elif isinstance(test_data.index, pd.DatetimeIndex):
+                        test_dates = test_data.index.values
+                        test_mask = outputs['split'] == 'test'
+                        if test_mask.sum() == len(test_dates):
+                            outputs.loc[test_mask, 'date'] = test_dates
+
+            # Add group column
+            outputs[self.group_col] = group
+            coefficients[self.group_col] = group
+            stats[self.group_col] = group
+
+            all_outputs.append(outputs)
+            all_coefficients.append(coefficients)
+            all_stats.append(stats)
+
+        # Combine all groups (preserve dates if present)
+        combined_outputs = pd.concat(all_outputs, ignore_index=True)
+        combined_coefficients = pd.concat(all_coefficients, ignore_index=True)
+        combined_stats = pd.concat(all_stats, ignore_index=True)
+
+        # Reorder columns for consistent ordering: date first, group second, then core columns
+        from py_parsnip.utils.output_ordering import (
+            reorder_outputs_columns,
+            reorder_coefficients_columns,
+            reorder_stats_columns
+        )
+
+        combined_outputs = reorder_outputs_columns(combined_outputs, group_col=self.group_col)
+        combined_coefficients = reorder_coefficients_columns(combined_coefficients, group_col=self.group_col)
+        combined_stats = reorder_stats_columns(combined_stats, group_col=self.group_col)
+
+        return combined_outputs, combined_coefficients, combined_stats

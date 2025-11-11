@@ -838,6 +838,102 @@ class Recipe:
             method=method, use_pvalue=use_pvalue
         ))
 
+    def step_select_shap(
+        self,
+        outcome: str,
+        model: Any,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        shap_samples: Optional[int] = None,
+        random_state: Optional[int] = None
+    ) -> "Recipe":
+        """
+        Filter features using SHAP (SHapley Additive exPlanations) values.
+
+        Uses SHAP values to measure feature importance. Works with tree-based
+        models (fast TreeExplainer) and other models (slower KernelExplainer).
+
+        Args:
+            outcome: Outcome column name
+            model: Trained scikit-learn compatible model to explain
+            threshold: Minimum absolute SHAP value to keep feature
+            top_n: Keep top N features by mean absolute SHAP value
+            top_p: Keep top proportion of features (0-1)
+            shap_samples: Number of samples for SHAP calculation (None = all)
+            random_state: Random seed for sampling
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> from sklearn.ensemble import RandomForestRegressor
+            >>> rf = RandomForestRegressor(n_estimators=100, random_state=42)
+            >>> rf.fit(X_train, y_train)
+            >>> rec = recipe(data, "price ~ .").step_select_shap(
+            ...     outcome='price', model=rf, top_n=10, shap_samples=500
+            ... )
+
+        Notes:
+            Requires shap package: pip install shap
+        """
+        from py_recipes.steps.filter_supervised import StepSelectShap
+        return self.add_step(StepSelectShap(
+            outcome=outcome, model=model, threshold=threshold, top_n=top_n,
+            top_p=top_p, shap_samples=shap_samples, random_state=random_state
+        ))
+
+    def step_select_permutation(
+        self,
+        outcome: str,
+        model: Any,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        n_repeats: int = 10,
+        scoring: Optional[Union[str, Callable]] = None,
+        random_state: Optional[int] = None,
+        n_jobs: int = -1
+    ) -> "Recipe":
+        """
+        Filter features using permutation importance.
+
+        Measures feature importance by shuffling each feature and measuring
+        the resulting decrease in model performance. Model-agnostic.
+
+        Args:
+            outcome: Outcome column name
+            model: Trained scikit-learn compatible model to evaluate
+            threshold: Minimum permutation importance to keep feature
+            top_n: Keep top N features by permutation importance
+            top_p: Keep top proportion of features (0-1)
+            n_repeats: Number of times to permute each feature (default: 10)
+            scoring: Scoring metric (e.g., 'r2', 'neg_mean_squared_error', 'accuracy')
+            random_state: Random seed for reproducibility
+            n_jobs: Number of parallel jobs (-1 = all cores)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> from sklearn.ensemble import RandomForestRegressor
+            >>> rf = RandomForestRegressor(n_estimators=100, random_state=42)
+            >>> rf.fit(X_train, y_train)
+            >>> rec = recipe(data, "price ~ .").step_select_permutation(
+            ...     outcome='price', model=rf, top_n=15, n_repeats=10
+            ... )
+
+        Notes:
+            Computationally expensive (n_repeats × n_features model evaluations).
+            Parallel execution recommended for large datasets.
+        """
+        from py_recipes.steps.filter_supervised import StepSelectPermutation
+        return self.add_step(StepSelectPermutation(
+            outcome=outcome, model=model, threshold=threshold, top_n=top_n,
+            top_p=top_p, n_repeats=n_repeats, scoring=scoring,
+            random_state=random_state, n_jobs=n_jobs
+        ))
+
     def step_splitwise(
         self,
         outcome: str,
@@ -845,6 +941,7 @@ class Recipe:
         min_support: float = 0.1,
         min_improvement: float = 3.0,
         criterion: str = 'AIC',
+        feature_type: str = 'dummies',
         exclude_vars: Optional[List[str]] = None,
         columns: Union[None, str, List[str], Callable] = None
     ) -> "Recipe":
@@ -861,6 +958,7 @@ class Recipe:
             min_support: Minimum fraction of observations in each dummy group (0-0.5)
             min_improvement: Minimum AIC/BIC improvement to prefer dummy over linear
             criterion: 'AIC' or 'BIC' for model selection
+            feature_type: 'dummies' (binary only), 'interactions' (dummy*value), or 'both'
             exclude_vars: Variables forced to stay linear (no transformation)
             columns: Columns to consider (None = all numeric except outcome)
 
@@ -868,15 +966,20 @@ class Recipe:
             Self for method chaining
 
         Examples:
-            >>> # Basic usage
+            >>> # Basic usage - dummies only
             >>> rec = recipe().step_splitwise(outcome='price')
             >>>
-            >>> # Custom parameters
+            >>> # With interactions
             >>> rec = recipe().step_splitwise(
             ...     outcome='sales',
-            ...     min_support=0.15,
-            ...     min_improvement=2.0,
-            ...     exclude_vars=['year', 'month']
+            ...     feature_type='interactions'
+            ... )
+            >>>
+            >>> # Both dummies and interactions
+            >>> rec = recipe().step_splitwise(
+            ...     outcome='price',
+            ...     feature_type='both',
+            ...     min_support=0.15
             ... )
 
         References:
@@ -890,6 +993,7 @@ class Recipe:
             min_support=min_support,
             min_improvement=min_improvement,
             criterion=criterion,
+            feature_type=feature_type,
             exclude_vars=exclude_vars,
             columns=columns
         ))
@@ -901,6 +1005,7 @@ class Recipe:
         penalty: float = 3.0,
         pelt_model: str = 'l2',
         no_changepoint_strategy: str = 'median',
+        feature_type: str = 'dummies',
         keep_original_cols: bool = False,
         top_n: Optional[int] = None,
         grid_resolution: int = 1000
@@ -926,6 +1031,7 @@ class Recipe:
             no_changepoint_strategy: Strategy when no changepoint detected:
                 - 'median': Create one split at median
                 - 'drop': Remove feature from output
+            feature_type: 'dummies' (binary only), 'interactions' (dummy*value), or 'both'
             keep_original_cols: Whether to keep original columns alongside
                 transformed features (default: False)
             top_n: If specified, select only top N most important transformed
@@ -940,17 +1046,26 @@ class Recipe:
             >>> surrogate = GradientBoostingRegressor(n_estimators=100)
             >>> surrogate.fit(train_data.drop('target', axis=1), train_data['target'])
             >>>
+            >>> # Basic usage - dummies only
             >>> rec = recipe().step_safe(
             ...     surrogate_model=surrogate,
             ...     outcome='target',
             ...     penalty=3.0
             ... )
             >>>
-            >>> # Select top 10 most important SAFE features
+            >>> # With interactions
             >>> rec = recipe().step_safe(
             ...     surrogate_model=surrogate,
             ...     outcome='target',
+            ...     feature_type='interactions',
             ...     top_n=10
+            ... )
+            >>>
+            >>> # Both dummies and interactions
+            >>> rec = recipe().step_safe(
+            ...     surrogate_model=surrogate,
+            ...     outcome='target',
+            ...     feature_type='both'
             ... )
 
         Notes:
@@ -962,18 +1077,143 @@ class Recipe:
 
         References:
             SAFE library: https://github.com/ModelOriented/SAFE
-        """
-        from py_recipes.steps.feature_extraction import StepSafe
 
-        return self.add_step(StepSafe(
+        Deprecation:
+            step_safe() now uses StepSafeV2 internally. Parameters pelt_model and
+            no_changepoint_strategy are ignored. Consider using step_safe_v2() directly
+            for more control and clarity.
+        """
+        import warnings
+        from py_recipes.steps.feature_extraction import StepSafeV2
+
+        # Deprecation warning
+        warnings.warn(
+            "step_safe() is deprecated and now uses step_safe_v2() internally. "
+            "Parameters 'pelt_model' and 'no_changepoint_strategy' are ignored. "
+            "Consider using step_safe_v2() directly for more control. "
+            "Old step_safe() with PELT will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+        # Parameter mapping:
+        # - Old feature_type (dummies/interactions/both) → new output_mode
+        # - Set new feature_type='both' (always process numeric + categorical)
+        # - Ignore pelt_model and no_changepoint_strategy (not in V2)
+
+        # Map penalty default: old=3.0, new=10.0
+        # If user didn't specify (using default 3.0), use new default 10.0
+        if penalty == 3.0:
+            penalty_v2 = 10.0
+        else:
+            penalty_v2 = penalty
+
+        # Map grid_resolution default: old=1000, new=100
+        if grid_resolution == 1000:
+            grid_resolution_v2 = 100
+        else:
+            grid_resolution_v2 = grid_resolution
+
+        return self.add_step(StepSafeV2(
+            surrogate_model=surrogate_model,
+            outcome=outcome,
+            penalty=penalty_v2,
+            top_n=top_n,
+            max_thresholds=5,  # V2 default
+            keep_original_cols=keep_original_cols,
+            grid_resolution=grid_resolution_v2,
+            feature_type='both',  # V2: process both numeric and categorical
+            output_mode=feature_type,  # OLD feature_type → NEW output_mode
+            columns=None
+        ))
+
+    def step_safe_v2(
+        self,
+        surrogate_model,
+        outcome: str,
+        penalty: float = 10.0,
+        top_n: Optional[int] = None,
+        max_thresholds: int = 5,
+        keep_original_cols: bool = True,
+        grid_resolution: int = 100,
+        feature_type: str = 'both',
+        output_mode: str = 'dummies',
+        importance_method: str = 'lasso',
+        columns=None
+    ) -> "Recipe":
+        """
+        SAFE v2: Surrogate Assisted Feature Extraction with UNFITTED model.
+
+        This version accepts an UNFITTED surrogate model (fitted during prep()),
+        adds max_thresholds parameter to control threshold quantity, sanitizes
+        feature names for compatibility, and recalculates importances
+        on TRANSFORMED features using multiple methods.
+
+        Key differences from step_safe:
+        - Accepts UNFITTED surrogate model (fitted during prep)
+        - Adds max_thresholds parameter (default=5)
+        - Sanitizes feature names with regex
+        - Recalculates importances on TRANSFORMED features using lasso/ridge/permutation/hybrid
+
+        Args:
+            surrogate_model: UNFITTED sklearn-compatible model (will be fitted during prep)
+            outcome: Name of outcome variable (required)
+            penalty: Changepoint penalty (default: 10.0). Higher = fewer thresholds
+            top_n: Select top N most important TRANSFORMED features (None = keep all)
+            max_thresholds: Maximum thresholds per numeric feature (default: 5)
+            keep_original_cols: Keep original features alongside transformations (default: True)
+            grid_resolution: PDP grid points (default: 100)
+            feature_type: Which variable types to process - 'numeric', 'categorical', or 'both' (default: 'both')
+            output_mode: Type of features to create - 'dummies', 'interactions', or 'both' (default: 'dummies')
+            importance_method: Method for feature importance - 'lasso', 'ridge', 'permutation', or 'hybrid' (default: 'lasso')
+            columns: Which columns to transform (None = all except outcome)
+
+        Returns:
+            Recipe with step_safe_v2 added
+
+        Examples:
+            >>> from sklearn.ensemble import GradientBoostingRegressor
+            >>>
+            >>> # UNFITTED model - fitted during prep()
+            >>> surrogate = GradientBoostingRegressor(n_estimators=100)
+            >>>
+            >>> # Basic usage
+            >>> rec = recipe().step_safe_v2(
+            ...     surrogate_model=surrogate,
+            ...     outcome='target',
+            ...     penalty=10.0,
+            ...     max_thresholds=5
+            ... )
+            >>>
+            >>> # Select top 10 most important transformed features
+            >>> rec = recipe().step_safe_v2(
+            ...     surrogate_model=surrogate,
+            ...     outcome='target',
+            ...     top_n=10,
+            ...     keep_original_cols=False
+            ... )
+
+        Notes:
+            - Requires ruptures package (pip install ruptures)
+            - Surrogate model fitted during prep() - do NOT fit beforehand
+            - Creates binary threshold features (feature > threshold)
+            - Feature names sanitized for compatibility
+            - Importances calculated on TRANSFORMED features using lasso/ridge/permutation/hybrid
+        """
+        from py_recipes.steps.feature_extraction import StepSafeV2
+
+        return self.add_step(StepSafeV2(
             surrogate_model=surrogate_model,
             outcome=outcome,
             penalty=penalty,
-            pelt_model=pelt_model,
-            no_changepoint_strategy=no_changepoint_strategy,
-            keep_original_cols=keep_original_cols,
             top_n=top_n,
-            grid_resolution=grid_resolution
+            max_thresholds=max_thresholds,
+            keep_original_cols=keep_original_cols,
+            grid_resolution=grid_resolution,
+            feature_type=feature_type,
+            output_mode=output_mode,
+            importance_method=importance_method,
+            columns=columns
         ))
 
     def step_eix(

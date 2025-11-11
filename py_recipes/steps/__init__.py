@@ -68,12 +68,15 @@ from py_recipes.steps.filter_supervised import (
     StepFilterMutualInfo,
     StepFilterRocAuc,
     StepFilterChisq,
+    StepSelectShap,
+    StepSelectPermutation,
 )
 from py_recipes.steps.splitwise import (
     StepSplitwise,
 )
 from py_recipes.steps.feature_extraction import (
     StepSafe,
+    StepSafeV2,
 )
 from py_recipes.steps.interaction_detection import (
     StepEIX,
@@ -220,10 +223,13 @@ __all__ = [
     "StepFilterMutualInfo",
     "StepFilterRocAuc",
     "StepFilterChisq",
+    "StepSelectShap",
+    "StepSelectPermutation",
     # Adaptive transformation steps
     "StepSplitwise",
     # Feature extraction steps
     "StepSafe",
+    "StepSafeV2",
     "StepEIX",
     # Extended categorical steps
     "StepOther",

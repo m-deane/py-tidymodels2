@@ -1,7 +1,0 @@
-^.*\.Rproj$
-^\.Rproj\.user$
-^cheatsheets$
-^.*README.*$
-^.travis.yml$
-^_pkgdown\.yml$
-^docs$
