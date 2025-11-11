@@ -5,7 +5,7 @@ These steps use statistical tests and machine learning techniques to score and r
 features based on their relationship with the outcome variable. Based on R's filtro package.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional, Union, List, Callable, Dict, Any
 import pandas as pd
 import numpy as np
@@ -110,14 +110,15 @@ class StepFilterAnova:
         if len(score_cols) == 0:
             raise ValueError("No columns to score after resolving selector")
 
-        # Compute scores
-        self._scores = self._compute_anova_scores(data[score_cols], y)
+        # Compute scores and create a new prepared instance (not mutate self)
+        prepared = replace(self)
+        prepared._scores = self._compute_anova_scores(data[score_cols], y)
 
         # Select features based on threshold/top_n/top_p
-        self._selected_features = self._select_features(self._scores)
+        prepared._selected_features = self._select_features(prepared._scores)
 
-        self._is_prepared = True
-        return self
+        prepared._is_prepared = True
+        return prepared
 
     def _compute_anova_scores(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """Compute ANOVA F-test scores for each feature."""
@@ -336,11 +337,12 @@ class StepFilterRfImportance:
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
 
-        # Compute RF importance scores
-        self._scores = self._compute_rf_importance(data[score_cols], y)
-        self._selected_features = self._select_features(self._scores)
-        self._is_prepared = True
-        return self
+        # Compute RF importance scores and create a new prepared instance
+        prepared = replace(self)
+        prepared._scores = self._compute_rf_importance(data[score_cols], y)
+        prepared._selected_features = self._select_features(prepared._scores)
+        prepared._is_prepared = True
+        return prepared
 
     def _compute_rf_importance(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """Compute Random Forest feature importance."""
@@ -543,10 +545,12 @@ class StepFilterMutualInfo:
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
 
-        self._scores = self._compute_mutual_info(data[score_cols], y)
-        self._selected_features = self._select_features(self._scores)
-        self._is_prepared = True
-        return self
+        # Compute MI scores and create a new prepared instance
+        prepared = replace(self)
+        prepared._scores = self._compute_mutual_info(data[score_cols], y)
+        prepared._selected_features = self._select_features(prepared._scores)
+        prepared._is_prepared = True
+        return prepared
 
     def _compute_mutual_info(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """Compute mutual information scores."""
@@ -714,10 +718,12 @@ class StepFilterRocAuc:
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
 
-        self._scores = self._compute_roc_auc(data[score_cols], y)
-        self._selected_features = self._select_features(self._scores)
-        self._is_prepared = True
-        return self
+        # Compute ROC AUC scores and create a new prepared instance
+        prepared = replace(self)
+        prepared._scores = self._compute_roc_auc(data[score_cols], y)
+        prepared._selected_features = self._select_features(prepared._scores)
+        prepared._is_prepared = True
+        return prepared
 
     def _compute_roc_auc(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """Compute ROC AUC scores for each feature."""
@@ -910,10 +916,12 @@ class StepFilterChisq:
         if len(score_cols) == 0:
             raise ValueError("No columns to score")
 
-        self._scores = self._compute_chisq_scores(data[score_cols], y)
-        self._selected_features = self._select_features(self._scores)
-        self._is_prepared = True
-        return self
+        # Compute chi-squared scores and create a new prepared instance
+        prepared = replace(self)
+        prepared._scores = self._compute_chisq_scores(data[score_cols], y)
+        prepared._selected_features = self._select_features(prepared._scores)
+        prepared._is_prepared = True
+        return prepared
 
     def _compute_chisq_scores(self, X: pd.DataFrame, y: pd.Series) -> Dict[str, float]:
         """Compute chi-squared or Fisher exact test scores."""

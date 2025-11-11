@@ -63,13 +63,16 @@ from py_recipes.steps.filters import (
     PreparedStepFilterMissing,
 )
 from py_recipes.steps.filter_supervised import (
+    step_filter_anova,
+    step_filter_rf_importance,
+    step_filter_mutual_info,
+    step_filter_roc_auc,
+    step_filter_chisq,
     StepFilterAnova,
     StepFilterRfImportance,
     StepFilterMutualInfo,
     StepFilterRocAuc,
     StepFilterChisq,
-    StepSelectShap,
-    StepSelectPermutation,
 )
 from py_recipes.steps.splitwise import (
     StepSplitwise,
