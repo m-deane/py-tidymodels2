@@ -603,15 +603,43 @@ class StepDtFeatures:
         dt_features.fit(X, y)
 
         # Get new feature names
-        # DecisionTreeFeatures adds columns with pattern: original_col_tree_N
+        # DecisionTreeFeatures creates columns like 'tree(brent)', "tree(['brent', 'dubai'])", etc.
         sample_transform = dt_features.transform(X.head(1))
         new_cols = [c for c in sample_transform.columns if c not in score_cols]
+
+        # Rename columns to avoid Patsy interpreting "tree(...)" as a function call
+        # Examples:
+        #   'tree(brent)' → 'dt_brent'
+        #   "tree(['brent', 'dubai'])" → 'dt_brent_dubai'
+        renamed_cols = []
+        for col in new_cols:
+            if col.startswith('tree('):
+                # Extract content between parentheses
+                content = col[5:-1]  # Remove 'tree(' and ')'
+
+                # Handle list notation like "['brent', 'dubai']"
+                if content.startswith('[') and content.endswith(']'):
+                    # Remove brackets and quotes, split on comma
+                    content = content[1:-1]  # Remove [ and ]
+                    features = [f.strip().strip("'\"") for f in content.split(',')]
+                    safe_name = 'dt_' + '_'.join(features)
+                else:
+                    # Single feature like 'brent'
+                    feature = content.strip("'\"")
+                    safe_name = f'dt_{feature}'
+
+                renamed_cols.append(safe_name)
+            else:
+                # Fallback: just replace problematic characters
+                safe_name = col.replace('(', '_').replace(')', '_').replace('[', '_').replace(']', '_')
+                safe_name = safe_name.replace(',', '_').replace(' ', '_').replace("'", '')
+                renamed_cols.append(safe_name)
 
         # Create prepared instance
         prepared = replace(self)
         prepared._dt_features = dt_features
         prepared._selected_columns = score_cols
-        prepared._new_feature_names = new_cols
+        prepared._new_feature_names = renamed_cols  # Store renamed versions
         prepared._is_prepared = True
 
         return prepared
@@ -630,14 +658,17 @@ class StepDtFeatures:
         if len(cols_to_use) == 0:
             return data
 
-        # Transform
+        # Transform - DecisionTreeFeatures creates columns with "_tree_" pattern
         X_transformed = self._dt_features.transform(data[cols_to_use])
 
-        # Add new features to data
+        # Get original column names from DecisionTreeFeatures
+        original_new_cols = [c for c in X_transformed.columns if c not in cols_to_use]
+
+        # Add new features to data with renamed columns to avoid Patsy errors
         data = data.copy()
-        for col in self._new_feature_names:
-            if col in X_transformed.columns:
-                data[col] = X_transformed[col].values
+        for orig_col, renamed_col in zip(original_new_cols, self._new_feature_names):
+            if orig_col in X_transformed.columns:
+                data[renamed_col] = X_transformed[orig_col].values
 
         return data
 
