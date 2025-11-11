@@ -238,6 +238,8 @@ class Workflow:
             'StepSelectSmartCorr',
             # Interaction Detection Steps
             'StepHStat',
+            # Time Series Lag Selection Steps
+            'StepBestLag',
         }
 
         for step in steps:
