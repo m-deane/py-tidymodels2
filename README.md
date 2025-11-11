@@ -2,9 +2,9 @@
 
 **A Python implementation of R's tidymodels ecosystem for time series forecasting and machine learning.**
 
-[![Tests](https://img.shields.io/badge/tests-900%2B%20passing-brightgreen)]()
-[![Models](https://img.shields.io/badge/models-20-blue)]()
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)]()
+[![Tests](https://img.shields.io/badge/tests-782%2B%20passing-brightgreen)]()
+[![Models](https://img.shields.io/badge/models-23-blue)]()
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)]()
 
 ## Overview
@@ -13,32 +13,37 @@ py-tidymodels brings the power and elegance of R's tidymodels to Python, with a 
 
 ### Key Features
 
-- **20 Production-Ready Models** - Comprehensive toolkit from baselines to gradient boosting
+- **23 Production-Ready Models** - Comprehensive toolkit from baselines to hybrid models
 - **Unified Model Interface** - Single API across sklearn, statsmodels, Prophet, XGBoost, LightGBM, CatBoost
 - **Composable Workflows** - Build reproducible pipelines with formulas or recipes
-- **Time Series Focus** - ARIMA, Prophet, ETS, STL, hybrid models, and recursive forecasting
-- **Comprehensive Testing** - 900+ tests across all packages
+- **Time Series Focus** - ARIMA, Prophet, ETS, STL, VARMAX, hybrid models, and recursive forecasting
+- **Comprehensive Testing** - 782+ tests across all packages
 - **Interactive Visualization** - Plotly-based plots for forecasts, diagnostics, and comparisons
+- **Panel/Grouped Modeling** - Fit separate models per group or globally with WorkflowSet support
 - **Model Ensembling** - Stack models with elastic net meta-learning
 - **Production Ready** - Three-DataFrame output structure, train/test evaluation, hyperparameter tuning
 
 ## Installation
 
+### Quick Install
+
 ```bash
 # Clone repository
-git clone https://github.com/your-username/py-tidymodels.git
+git clone https://github.com/m-deane/py-tidymodels2.git
 cd py-tidymodels
 
 # Create virtual environment
 python -m venv py-tidymodels-env
 source py-tidymodels-env/bin/activate  # On Windows: py-tidymodels-env\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install in development mode
+# Install package
 pip install -e .
+
+# Verify installation
+python -c "from py_parsnip import linear_reg; print('✓ Installation successful!')"
 ```
+
+**📖 [Complete Installation Guide](INSTALLATION.md)** - Detailed instructions, troubleshooting, Jupyter setup, and optional dependencies
 
 ## Quick Start
 
@@ -166,7 +171,7 @@ comparison = ensemble.compare_to_candidates()
 print(comparison)
 ```
 
-## Available Models (20 Total)
+## Available Models (23 Total)
 
 ### Baseline Models (2)
 - **null_model()** - Mean/median baseline for benchmarking
@@ -193,11 +198,12 @@ print(comparison)
 - **mars()** - Multivariate Adaptive Regression Splines (py-earth)
 - **mlp()** - Multi-layer perceptron neural network (sklearn)
 
-### Time Series Models (4)
-- **arima_reg()** - ARIMA/SARIMAX models (statsmodels)
+### Time Series Models (5)
+- **arima_reg()** - ARIMA/SARIMAX models (statsmodels, auto_arima)
 - **prophet_reg()** - Facebook Prophet (prophet)
 - **exp_smoothing()** - Exponential smoothing / ETS (statsmodels)
 - **seasonal_reg()** - STL decomposition models (statsmodels)
+- **varmax_reg()** - Multivariate VARMAX (statsmodels) - requires 2+ outcome variables
 
 ### Hybrid Time Series (2)
 - **arima_boost()** - ARIMA + XGBoost (statsmodels + xgboost)
@@ -205,6 +211,10 @@ print(comparison)
 
 ### Recursive Forecasting (1)
 - **recursive_reg()** - ML models for multi-step forecasting (skforecast)
+
+### Special Models (3)
+- **hybrid_model()** - Generic hybrid combining any two models (residual/sequential/weighted/custom_data)
+- **manual_reg()** - User-specified coefficients (no fitting) - compare with external forecasts
 
 ---
 
@@ -225,10 +235,10 @@ py-tidymodels consists of 10 integrated packages:
 
 | Package | Purpose | Status |
 |---------|---------|--------|
-| **py-recipes** | Feature engineering | ✅ 265 tests, 51 steps |
+| **py-recipes** | Feature engineering | ✅ 265 tests, 78 steps |
 | **py-yardstick** | Performance metrics | ✅ 59 tests, 17 metrics |
 | **py-tune** | Hyperparameter optimization | ✅ 36 tests |
-| **py-workflowsets** | Multi-model comparison | ✅ 20 tests |
+| **py-workflowsets** | Multi-model comparison | ✅ 40 tests |
 
 ### Phase 3: Advanced Features (✅ Complete)
 
@@ -243,11 +253,11 @@ py-tidymodels consists of 10 integrated packages:
 
 | Feature | Status |
 |---------|--------|
-| **15 New Models** | ✅ Implemented |
-| **26+ Engines** | ✅ Registered |
-| **317+ New Tests** | ✅ All passing |
+| **18 New Models** | ✅ Implemented (5 → 23 total) |
+| **30+ Engines** | ✅ Registered |
+| **WorkflowSet Grouped Modeling** | ✅ 20 new tests |
 
-**Total: 900+ tests passing**
+**Total: 782+ tests passing**
 
 ## Documentation
 
@@ -315,14 +325,14 @@ Flexible engine system supporting:
 
 ### Recipe Steps
 
-51 feature engineering steps across 14 categories:
-- Time series (lag, date, rolling, diff, pct_change)
-- Feature selection (PCA, VIP, Boruta, RFE, correlation)
+78 feature engineering steps across 14 categories:
+- Time series (lag, date, rolling, diff, pct_change, fourier, trend, seasonal)
+- Feature selection (PCA, VIP, Boruta, RFE, correlation, VIF, p-value, stability, LOFO, Granger, stepwise, probe)
 - Scaling (normalize, center, scale, range)
-- Encoding (dummy, one-hot, integer)
-- Imputation (mean, median, mode, KNN, linear)
+- Encoding (dummy, one-hot, integer, target, ordinal)
+- Imputation (mean, median, mode, KNN, linear, bag)
 - Transformations (log, sqrt, Box-Cox, Yeo-Johnson)
-- Basis functions (splines, polynomial, harmonic)
+- Basis functions (splines, polynomial, harmonic, interactions)
 - And more...
 
 ## Examples
@@ -515,22 +525,23 @@ pytest tests/test_parsnip/
 
 ## Project Status
 
-### Completed (Phases 1-4A)
+### Completed (Phases 1-4A + WorkflowSet Grouped Modeling)
 
 - ✅ Core infrastructure (hardhat, workflows, rsample, parsnip)
-- ✅ Feature engineering (51 recipe steps)
+- ✅ Feature engineering (78 recipe steps)
 - ✅ Model evaluation (17 metrics)
 - ✅ Hyperparameter tuning (grid search)
-- ✅ Multi-model comparison (workflow sets)
+- ✅ Multi-model comparison (workflow sets + grouped modeling)
 - ✅ Recursive forecasting (skforecast integration)
-- ✅ Panel/grouped models (nested and global)
+- ✅ Panel/grouped models (nested and global + WorkflowSet support)
 - ✅ Interactive visualization (4 plot functions)
 - ✅ Model stacking (elastic net meta-learning)
-- ✅ **20 Production Models** - 300% expansion (5 → 20 models)
+- ✅ **23 Production Models** - 360% expansion (5 → 23 models)
 - ✅ **Gradient Boosting** - XGBoost, LightGBM, CatBoost engines
-- ✅ **Time Series Models** - ETS, STL, ARIMA+boost, Prophet+boost
+- ✅ **Time Series Models** - ARIMA, Prophet, ETS, STL, VARMAX, hybrid models
 - ✅ **Advanced Regression** - MARS, GAMs, SVM, k-NN, neural networks
 - ✅ **Baseline Models** - Null model, naive forecasting methods
+- ✅ **Special Models** - Generic hybrid, manual coefficients
 
 ### Planned (Phase 4B+)
 
