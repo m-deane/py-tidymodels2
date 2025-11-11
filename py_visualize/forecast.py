@@ -60,30 +60,62 @@ def plot_forecast(
     # Extract outputs from fit
     outputs, _, _ = fit.extract_outputs()
 
-    # Check if this is a nested fit (has group column)
-    from py_workflows.workflow import NestedWorkflowFit
-    from py_parsnip.model_spec import NestedModelFit
-    is_nested = isinstance(fit, (NestedWorkflowFit, NestedModelFit))
+    # Detect group column for grouped plotting
+    # Check if outputs has a group column with multiple groups
+    group_col = None
 
-    if is_nested:
+    # Priority: 1) fit.group_col from nested fits, 2) Standard 'group' column with multiple values
+    # Check fit.group_col first (for NestedWorkflowFit where group_col preserves original name)
+    if hasattr(fit, 'group_col') and fit.group_col and fit.group_col in outputs.columns:
+        # Nested fits may have custom group column name (e.g., 'country', 'region')
+        n_groups = outputs[fit.group_col].nunique()
+        if n_groups > 1:
+            group_col = fit.group_col
+    # Check standard 'group' column (for WorkflowFit with fit_global)
+    elif 'group' in outputs.columns:
+        # Check if there are multiple groups (not just 'global')
+        n_groups = outputs['group'].nunique()
+        if n_groups > 1:
+            group_col = 'group'
+    # Fallback: Check for common group column names
+    elif 'country' in outputs.columns:
+        n_groups = outputs['country'].nunique()
+        if n_groups > 1:
+            group_col = 'country'
+    elif 'region' in outputs.columns:
+        n_groups = outputs['region'].nunique()
+        if n_groups > 1:
+            group_col = 'region'
+    elif 'store' in outputs.columns:
+        n_groups = outputs['store'].nunique()
+        if n_groups > 1:
+            group_col = 'store'
+    elif 'id' in outputs.columns:
+        n_groups = outputs['id'].nunique()
+        if n_groups > 1:
+            group_col = 'id'
+
+    # Use grouped plotting if group column exists with multiple groups
+    if group_col:
         return _plot_forecast_nested(
             outputs,
-            group_col=fit.group_col,
+            group_col=group_col,
             prediction_intervals=prediction_intervals,
             title=title,
             height=height,
             width=width,
             show_legend=show_legend
         )
-    else:
-        return _plot_forecast_single(
-            outputs,
-            prediction_intervals=prediction_intervals,
-            title=title,
-            height=height,
-            width=width,
-            show_legend=show_legend
-        )
+
+    # Default to single plot
+    return _plot_forecast_single(
+        outputs,
+        prediction_intervals=prediction_intervals,
+        title=title,
+        height=height,
+        width=width,
+        show_legend=show_legend
+    )
 
 
 def _plot_forecast_single(

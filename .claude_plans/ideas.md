@@ -3,14 +3,14 @@ Models
 
 sktime - PieceWiseTrendForecaster
 piecewise linear regression
+panel regression
+auto_arima
+auto_ets
 
 Ideas
 
 1. pytimetk -> create steps out of feature engineering functions
 2. parallel processing for workflowsets
-3. check statsforecasts models in reference folder
-4. check neuralforecast models in reference folder
-5. check hierarchicalforecast in reference folder
 7. integrate steps from timetk
 8. tuning enhnacements from finetune package
 9. model interpretibilty - SHAP suite
@@ -19,27 +19,60 @@ Ideas
 12. check any remaining functionality in dials package
 13. implement tailor package
 14. bayesian models
-15. step_splitwise() -- done -- add interactions argument
-16. step_safe - surrogate assisted feature extraction -- done -- deprecate original step_safe() with step_safe_v2()
 19. helper to create large number of recipes
-21. step_causal()
-22. step_granger_causality()
-23. step_h_stat()
 24. comprehensive testing for all recipes - behaving as expected
 26. feature-engine integration
-27. step_select_pvalue() - filter for p values based on a threshold
-28. select_select_vif() - filter for vif values based on a threshold
-
+30. workflowsets - leave_out_formula_vars
 
 enhancements from testing and to check
 13. explode formula
 18. mars - pyearth doesnt work -- ignore
 20. py-rsample - plot splits function?
 22. inverse transformations
-23. time series cv/ train test split as a recipe step
+24. fit_global - outcome has to be renamed "target"
+25. test inplace recipe transformations
 
-to test
+## RECIPES
 
-13. step_normalize() etc are group specific transformations
-14. order of recipe steps
+# Feature Engineering
 
+1. step_h_stat - create interactions based on h stat score above a certain threshold, or top_n highest scoring interactions
+2. featureengine - DecisionTreeDiscretiser
+3. anomaly - winsoriser
+4. anomaly - outlier trimmer
+5. feature-engine - DecisionTreeFeatures
+6. best_lag_creator() - granger lag selection
+7. anomaly - clean_anomalies based on pytimetk
+8. step_stationary()
+9. step_deseasonalise()
+10. step_detrend()
+
+# Feature Selection
+1. step_vif - select for vif values based on a threshold based on fitting a linear model
+2. step_pvalue - select for p values based on a threshold based on fitting a linear model
+3. feature selection - stability score selection
+4. feature selection - lofo importance
+5. important library - - step_predictor_desirability()
+6. step_granger_causality()
+7. step_causality()
+8. feature-engine - smart correlated selection
+9. feature-engine - drophighpsifeatures
+10. step_rfe()
+11. step_stepwise_selection()
+11. step_probe_feature_selection()
+12. step_select_lasso()/ridge()
+13. step_select_rulefit()
+14. step_select_skope_rules()
+15. step_select_boruta()
+16. step_select_stationarity()
+17. causal - transfer entropy
+
+# Dimensionality Reduction
+
+1. t-sne
+2. umap
+
+## To Test
+
+statsforecast - auto_arima
+daily grouped data - gas

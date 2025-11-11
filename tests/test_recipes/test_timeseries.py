@@ -98,9 +98,9 @@ class TestStepDiff:
         rec_fit = rec.prep(ts_data)
         transformed = rec_fit.bake(ts_data)
 
-        assert "value_diff_1" in transformed.columns
-        assert pd.isna(transformed["value_diff_1"].iloc[0])  # First diff is NA
-        assert transformed["value_diff_1"].iloc[1] == 2  # 102 - 100
+        assert "value_diff_lag_1" in transformed.columns
+        assert pd.isna(transformed["value_diff_lag_1"].iloc[0])  # First diff is NA
+        assert transformed["value_diff_lag_1"].iloc[1] == 2  # 102 - 100
 
     def test_diff_custom_lag(self, ts_data):
         """Test differencing with custom lag"""
@@ -108,8 +108,8 @@ class TestStepDiff:
         rec_fit = rec.prep(ts_data)
         transformed = rec_fit.bake(ts_data)
 
-        assert "value_diff_2" in transformed.columns
-        assert transformed["value_diff_2"].iloc[2] == 5  # 105 - 100
+        assert "value_diff_lag_2" in transformed.columns
+        assert transformed["value_diff_lag_2"].iloc[2] == 5  # 105 - 100
 
     def test_diff_multiple_differences(self, ts_data):
         """Test second-order differencing"""
@@ -117,7 +117,7 @@ class TestStepDiff:
         rec_fit = rec.prep(ts_data)
         transformed = rec_fit.bake(ts_data)
 
-        assert "value_diff_1_2" in transformed.columns
+        assert "value_diff_lag_1_order_2" in transformed.columns
 
     def test_diff_all_numeric_default(self, ts_data):
         """Test differencing all numeric columns by default"""
@@ -125,8 +125,8 @@ class TestStepDiff:
         rec_fit = rec.prep(ts_data)
         transformed = rec_fit.bake(ts_data)
 
-        assert "value_diff_1" in transformed.columns
-        assert "other_diff_1" in transformed.columns
+        assert "value_diff_lag_1" in transformed.columns
+        assert "other_diff_lag_1" in transformed.columns
 
     def test_diff_preserves_originals(self, ts_data):
         """Test that original columns are preserved"""

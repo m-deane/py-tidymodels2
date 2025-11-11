@@ -49,3 +49,7 @@ Thumbs.db
 # Environment variables
 .env
 .env.local
+
+# Project-specific
+reference/
+.claude*/

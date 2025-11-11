@@ -1,10 +1,78 @@
 # py-tidymodels Project Plan
-**Version:** 3.5
-**Date:** 2025-11-10
-**Last Updated:** 2025-11-10 (Evening Session - Part 3)
-**Status:** Model Naming Methods ADDED - Added .add_model_name() and .add_model_group_name() to Workflow class. 72 workflow tests passing. Ready for multi-model comparison workflows.
+**Version:** 3.6
+**Date:** 2025-11-11
+**Last Updated:** 2025-11-11 (Phase 3 Complete)
+**Status:** Phase 3 COMPLETE - All 7 advanced selection steps implemented and tested (24/24 tests passing). Recipe library now has 78 steps total. Documentation updated. Ready for Phase 4.
 
-## Recent Work (2025-11-10 Evening - Part 3): Workflow Model Naming Methods
+## Recent Work (2025-11-11): Phase 3 Advanced Selection Steps COMPLETE ✅
+
+**Summary:** Successfully implemented and tested all 7 advanced selection steps for Phase 3 of the recipe expansion plan. All 24 tests passing, comprehensive documentation created, COMPLETE_RECIPE_REFERENCE.md updated with full examples.
+
+### What Was Completed:
+
+**Phase 3 Implementation** (7 advanced selection steps):
+1. **StepVif** - VIF-based multicollinearity removal (iterative VIF calculation)
+2. **StepPvalue** - Statistical significance selection (OLS/Logit p-values)
+3. **StepSelectStability** - Bootstrap-based stability selection (robust importance)
+4. **StepSelectLofo** - Leave-One-Feature-Out importance (performance drop measure)
+5. **StepSelectGranger** - Granger causality for time series (leading indicators)
+6. **StepSelectStepwise** - Forward/backward/bidirectional selection (AIC/BIC)
+7. **StepSelectProbe** - Random probe threshold determination (noise baseline)
+
+**Files Created**:
+- `py_recipes/steps/advanced_selection.py` (1,562 lines)
+- `tests/test_recipes/test_advanced_selection.py` (434 lines, 24 tests)
+- `.claude_plans/PHASE_3_COMPLETE.md` (comprehensive documentation)
+- `.claude_plans/PHASE_3_SUMMARY.md` (executive summary)
+
+**Files Modified**:
+- `py_recipes/recipe.py` (+326 lines) - Added 7 convenience methods
+- `py_recipes/steps/__init__.py` (+16 lines) - Added imports and exports
+- `_guides/COMPLETE_RECIPE_REFERENCE.md` (+363 lines) - Added Phase 3 documentation
+
+**Test Results**:
+- ✅ 24/24 Phase 3 tests passing (100%)
+- ✅ 73/73 core recipe tests passing (no regressions)
+- ✅ Test execution time: 9.63s
+
+**Key Implementation Patterns**:
+1. **Correct dataclass pattern**: `prepared = replace(self)` then set fields
+2. **Flexible column selection**: None, callable, string, or list
+3. **Outcome preservation**: Always keep outcome column in bake()
+4. **Integration ready**: Works seamlessly with existing steps
+
+**Issues Fixed**:
+1. replace() pattern with init=False fields
+2. Syntax errors from automated fixes
+3. Duplicate column reindex error (used set for cols_to_keep)
+4. Test assertion for VIF (made robust to non-deterministic removal)
+5. UnboundLocalError in StepSelectProbe (fixed indentation)
+
+**Recipe Step Count**:
+- **Before Phase 3**: 71 steps
+- **After Phase 3**: 78 steps
+- **Phase 3 Contribution**: 7 new advanced selection steps
+
+**Overall Recipe Expansion Progress**:
+- Phase 1: ✅ 6 feature-engine steps (15 tests passing)
+- Phase 2: ✅ 6 time series transformation steps (20 tests passing)
+- Phase 3: ✅ 7 advanced selection steps (24 tests passing)
+- **Total**: 19/27 steps complete (70%)
+- **Total Tests**: 59 tests (all passing)
+
+**Documentation**:
+- `.claude_plans/PHASE_3_COMPLETE.md` - Full implementation details
+- `.claude_plans/PHASE_3_SUMMARY.md` - Executive summary
+- `_guides/COMPLETE_RECIPE_REFERENCE.md` - Updated with Phase 3 steps
+
+**Next Steps**:
+- Phase 4: Implement remaining specialized steps
+- Estimated: 8 steps remaining in 27-step plan
+- Expected quality: Similar to Phases 1-3 (100% test pass rate)
+
+---
+
+## Earlier Work (2025-11-10 Evening - Part 3): Workflow Model Naming Methods
 
 **Summary:** Added `.add_model_name()` and `.add_model_group_name()` methods to Workflow class, enabling custom labeling of models in extract_outputs() DataFrames for better multi-model comparison and organization.
 

@@ -6,7 +6,7 @@ They are fitted on training data (prep) and then applied to new data (bake).
 """
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Protocol, Union, Callable
+from typing import List, Dict, Any, Optional, Protocol, Union, Callable, Literal
 import pandas as pd
 import numpy as np
 
@@ -2244,6 +2244,1173 @@ class Recipe:
             n_features=n_features,
             step=step,
             estimator=estimator
+        ))
+
+    def step_dt_discretiser(
+        self,
+        outcome: str,
+        columns: Union[None, str, List[str], Callable] = None,
+        cv: int = 3,
+        scoring: str = 'neg_mean_squared_error',
+        regression: bool = True,
+        random_state: Optional[int] = None
+    ) -> "Recipe":
+        """
+        Discretize continuous variables using decision trees.
+
+        Uses feature-engine's DecisionTreeDiscretiser to bin numeric variables
+        based on decision tree splits optimized for predicting the outcome.
+
+        Args:
+            outcome: Name of outcome column
+            columns: Column selector (None = all numeric except outcome)
+            cv: Cross-validation folds
+            scoring: Scoring metric
+            regression: True for regression tree, False for classification
+            random_state: Random state for reproducibility
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_dt_discretiser(outcome='target', cv=5)
+        """
+        from py_recipes.steps.feature_engine_steps import StepDtDiscretiser
+        return self.add_step(StepDtDiscretiser(
+            outcome=outcome,
+            columns=columns,
+            cv=cv,
+            scoring=scoring,
+            regression=regression,
+            random_state=random_state
+        ))
+
+    def step_winsorizer(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        capping_method: str = 'iqr',
+        tail: str = 'both',
+        fold: float = 1.5,
+        quantiles: Optional[tuple] = None
+    ) -> "Recipe":
+        """
+        Cap extreme values using Winsorization.
+
+        Uses feature-engine's Winsorizer to replace extreme values with less
+        extreme values at specified percentiles.
+
+        Args:
+            columns: Column selector (None = all numeric)
+            capping_method: 'iqr', 'gaussian', or 'quantiles'
+            tail: 'right', 'left', or 'both'
+            fold: Multiplier for IQR or number of std deviations
+            quantiles: For 'quantiles' method: (lower, upper)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_winsorizer(
+            ...     columns=['income', 'age'], capping_method='iqr', fold=1.5
+            ... )
+        """
+        from py_recipes.steps.feature_engine_steps import StepWinsorizer
+        return self.add_step(StepWinsorizer(
+            columns=columns,
+            capping_method=capping_method,
+            tail=tail,
+            fold=fold,
+            quantiles=quantiles
+        ))
+
+    def step_outlier_trimmer(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        capping_method: str = 'iqr',
+        tail: str = 'both',
+        fold: float = 1.5,
+        quantiles: Optional[tuple] = None
+    ) -> "Recipe":
+        """
+        Remove observations with outliers.
+
+        Uses feature-engine's OutlierTrimmer to remove rows containing outliers
+        in specified columns.
+
+        Args:
+            columns: Column selector (None = all numeric)
+            capping_method: 'iqr', 'gaussian', or 'quantiles'
+            tail: 'right', 'left', or 'both'
+            fold: Multiplier for IQR or number of std deviations
+            quantiles: For 'quantiles' method: (lower, upper)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_outlier_trimmer(
+            ...     columns=['score'], capping_method='gaussian', tail='right', fold=3.0
+            ... )
+
+        Warnings:
+            This step removes rows, which can cause index misalignment.
+            Use early in recipe pipeline.
+        """
+        from py_recipes.steps.feature_engine_steps import StepOutlierTrimmer
+        return self.add_step(StepOutlierTrimmer(
+            columns=columns,
+            capping_method=capping_method,
+            tail=tail,
+            fold=fold,
+            quantiles=quantiles
+        ))
+
+    def step_dt_features(
+        self,
+        outcome: str,
+        columns: Union[None, str, List[str], Callable] = None,
+        features_to_combine: Union[int, None] = None,
+        cv: int = 3,
+        scoring: str = 'neg_mean_squared_error',
+        regression: bool = True,
+        random_state: Optional[int] = None
+    ) -> "Recipe":
+        """
+        Create new features using decision trees.
+
+        Uses feature-engine's DecisionTreeFeatures to create engineered features
+        by combining existing features through decision tree models.
+
+        Args:
+            outcome: Name of outcome column
+            columns: Column selector (None = all numeric except outcome)
+            features_to_combine: Number of features to combine (None = all combinations)
+            cv: Cross-validation folds
+            scoring: Scoring metric
+            regression: True for regression tree, False for classification
+            random_state: Random state for reproducibility
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_dt_features(
+            ...     outcome='price', features_to_combine=5, cv=5
+            ... )
+        """
+        from py_recipes.steps.feature_engine_steps import StepDtFeatures
+        return self.add_step(StepDtFeatures(
+            outcome=outcome,
+            columns=columns,
+            features_to_combine=features_to_combine,
+            cv=cv,
+            scoring=scoring,
+            regression=regression,
+            random_state=random_state
+        ))
+
+    def step_select_smart_corr(
+        self,
+        outcome: str,
+        columns: Union[None, str, List[str], Callable] = None,
+        threshold: float = 0.8,
+        method: str = 'pearson',
+        selection_method: str = 'variance'
+    ) -> "Recipe":
+        """
+        Select features using smart correlation selection.
+
+        Uses feature-engine's SmartCorrelatedSelection to remove correlated features
+        intelligently by keeping the one most correlated with the outcome.
+
+        Args:
+            outcome: Name of outcome column
+            columns: Column selector (None = all numeric except outcome)
+            threshold: Correlation threshold (0-1)
+            method: 'pearson', 'spearman', or 'kendall'
+            selection_method: 'variance', 'cardinality', or 'model_performance'
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_select_smart_corr(
+            ...     outcome='target', threshold=0.9, selection_method='model_performance'
+            ... )
+        """
+        from py_recipes.steps.feature_engine_steps import StepSelectSmartCorr
+        return self.add_step(StepSelectSmartCorr(
+            outcome=outcome,
+            columns=columns,
+            threshold=threshold,
+            method=method,
+            selection_method=selection_method
+        ))
+
+    def step_select_psi(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        threshold: float = 0.25,
+        bins: int = 10,
+        strategy: str = 'equal_frequency'
+    ) -> "Recipe":
+        """
+        Remove features with high Population Stability Index (PSI).
+
+        Uses feature-engine's DropHighPSIFeatures to identify and remove features
+        with high PSI, indicating distribution shifts between training and test data.
+
+        Args:
+            columns: Column selector (None = all numeric)
+            threshold: PSI threshold (>0.25 = significant change)
+            bins: Number of bins for discretization
+            strategy: 'equal_frequency' or 'equal_width'
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_select_psi(threshold=0.25, bins=10)
+        """
+        from py_recipes.steps.feature_engine_steps import StepSelectPsi
+        return self.add_step(StepSelectPsi(
+            columns=columns,
+            threshold=threshold,
+            bins=bins,
+            strategy=strategy
+        ))
+
+    def step_clean_anomalies(
+        self,
+        date_column: str,
+        value_columns: Union[None, str, List[str], Callable] = None,
+        period: Optional[int] = None,
+        trend: Optional[int] = None,
+        method: str = 'stl',
+        decomp: str = 'additive',
+        clean: str = 'min_max',
+        iqr_alpha: float = 0.05,
+        clean_alpha: float = 0.75,
+        max_anomalies: float = 0.2
+    ) -> "Recipe":
+        """
+        Detect and clean anomalies in time series data.
+
+        Uses pytimetk's anomalize to detect and clean anomalies via STL decomposition
+        or Twitter's AnomalyDetection algorithm.
+
+        Args:
+            date_column: Name of date/time column
+            value_columns: Columns to check (None = all numeric)
+            period: Seasonal period (auto-detected if None)
+            trend: Trend window for STL (auto-detected if None)
+            method: 'stl' or 'twitter'
+            decomp: 'additive' or 'multiplicative'
+            clean: 'min_max' or 'linear'
+            iqr_alpha: Alpha for IQR detection (lower = more sensitive)
+            clean_alpha: Cleaning strength 0-1 (higher = more aggressive)
+            max_anomalies: Max proportion of anomalies 0-1
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_clean_anomalies(
+            ...     date_column='date',
+            ...     value_columns=['sales'],
+            ...     method='stl'
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepCleanAnomalies
+        return self.add_step(StepCleanAnomalies(
+            date_column=date_column,
+            value_columns=value_columns,
+            period=period,
+            trend=trend,
+            method=method,
+            decomp=decomp,
+            clean=clean,
+            iqr_alpha=iqr_alpha,
+            clean_alpha=clean_alpha,
+            max_anomalies=max_anomalies
+        ))
+
+    def step_stationary(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        max_diff: int = 2,
+        test: str = 'adf',
+        alpha: float = 0.05,
+        seasonal_diff: bool = False,
+        seasonal_period: Optional[int] = None
+    ) -> "Recipe":
+        """
+        Transform time series to make it stationary.
+
+        Applies differencing verified by ADF/KPSS test until stationary.
+
+        Args:
+            columns: Columns to transform (None = all numeric)
+            max_diff: Maximum differencing order (1 or 2)
+            test: 'adf', 'kpss', or 'both'
+            alpha: Significance level for test
+            seasonal_diff: Apply seasonal differencing first
+            seasonal_period: Seasonal period (required if seasonal_diff=True)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_stationary(
+            ...     columns=['sales'],
+            ...     max_diff=2,
+            ...     test='adf'
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepStationary
+        return self.add_step(StepStationary(
+            columns=columns,
+            max_diff=max_diff,
+            test=test,
+            alpha=alpha,
+            seasonal_diff=seasonal_diff,
+            seasonal_period=seasonal_period
+        ))
+
+    def step_deseasonalize(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        period: Optional[int] = None,
+        model: str = 'additive',
+        method: str = 'stl',
+        extrapolate_trend: int = 0
+    ) -> "Recipe":
+        """
+        Remove seasonal component from time series.
+
+        Uses STL or classical decomposition to extract and remove seasonality.
+
+        Args:
+            columns: Columns to deseasonalize (None = all numeric)
+            period: Seasonal period (auto-detected if None)
+            model: 'additive' or 'multiplicative'
+            method: 'stl' or 'classical'
+            extrapolate_trend: Points to extrapolate at boundaries
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_deseasonalize(
+            ...     columns=['sales'],
+            ...     period=12,
+            ...     model='additive'
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepDeseasonalize
+        return self.add_step(StepDeseasonalize(
+            columns=columns,
+            period=period,
+            model=model,
+            method=method,
+            extrapolate_trend=extrapolate_trend
+        ))
+
+    def step_detrend(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        method: str = 'linear',
+        breakpoints: Union[int, List[int]] = 0
+    ) -> "Recipe":
+        """
+        Remove trend from time series.
+
+        Fits and subtracts linear or constant trend.
+
+        Args:
+            columns: Columns to detrend (None = all numeric)
+            method: 'linear' or 'constant'
+            breakpoints: 0 for single line, int for number of breaks, list for positions
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_detrend(
+            ...     columns=['sales'],
+            ...     method='linear'
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepDetrend
+        return self.add_step(StepDetrend(
+            columns=columns,
+            method=method,
+            breakpoints=breakpoints
+        ))
+
+    def step_h_stat(
+        self,
+        outcome: str,
+        columns: Union[None, str, List[str], Callable] = None,
+        top_n: int = 10,
+        threshold: Optional[float] = None,
+        n_estimators: int = 100,
+        max_depth: int = 5,
+        random_state: Optional[int] = None
+    ) -> "Recipe":
+        """
+        Detect interactions using Friedman's H-statistic.
+
+        Uses gradient boosting to identify pairwise feature interactions.
+
+        Args:
+            outcome: Name of outcome variable
+            columns: Columns to check (None = all numeric except outcome)
+            top_n: Number of top interactions to keep
+            threshold: H-statistic threshold (alternative to top_n)
+            n_estimators: Number of gradient boosting trees
+            max_depth: Maximum tree depth
+            random_state: Random state for reproducibility
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_h_stat(
+            ...     outcome='target',
+            ...     top_n=10
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepHStat
+        return self.add_step(StepHStat(
+            outcome=outcome,
+            columns=columns,
+            top_n=top_n,
+            threshold=threshold,
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=random_state
+        ))
+
+    def step_best_lag(
+        self,
+        outcome: str,
+        columns: Union[None, str, List[str], Callable] = None,
+        max_lag: int = 12,
+        test: str = 'ssr_ftest',
+        alpha: float = 0.05,
+        add_const: bool = True
+    ) -> "Recipe":
+        """
+        Select optimal lags using Granger causality test.
+
+        Tests multiple lags and creates features for significant ones.
+
+        Args:
+            outcome: Name of outcome variable
+            columns: Columns to create lags for (None = all numeric except outcome)
+            max_lag: Maximum lag to test
+            test: Granger test type ('ssr_ftest', 'ssr_chi2test', 'lrtest', 'params_ftest')
+            alpha: Significance level
+            add_const: Add constant to regression
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> rec = recipe().step_best_lag(
+            ...     outcome='sales',
+            ...     max_lag=12,
+            ...     alpha=0.05
+            ... )
+        """
+        from py_recipes.steps.timeseries_transformations import StepBestLag
+        return self.add_step(StepBestLag(
+            outcome=outcome,
+            columns=columns,
+            max_lag=max_lag,
+            test=test,
+            alpha=alpha,
+            add_const=add_const
+        ))
+
+    # Phase 3: Advanced Selection Steps
+
+    def step_vif(
+        self,
+        threshold: float = 10.0,
+        columns: Union[None, str, List[str], Callable] = None,
+        outcome: Optional[str] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Remove features with high Variance Inflation Factor (VIF).
+
+        VIF measures multicollinearity by quantifying how much the variance of a
+        coefficient is inflated due to collinearity with other features. Features
+        with VIF > threshold are iteratively removed.
+
+        Args:
+            threshold: VIF threshold (default 10.0). Common: VIF < 5 (stringent), VIF < 10 (moderate)
+            columns: Which columns to check for VIF
+            outcome: Name of outcome variable (excluded from VIF calculation)
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_vif(threshold=10.0, outcome='target')
+            >>> rec = recipe().step_vif(threshold=5.0)  # Stricter threshold
+        """
+        from py_recipes.steps.advanced_selection import StepVif
+        return self.add_step(StepVif(
+            threshold=threshold,
+            columns=columns,
+            outcome=outcome,
+            skip=skip,
+            id=id
+        ))
+
+    def step_pvalue(
+        self,
+        outcome: str,
+        threshold: float = 0.05,
+        model_type: Literal['auto', 'linear', 'logistic'] = 'auto',
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features based on p-values from statistical models.
+
+        Fits a linear or logistic regression model and selects features with
+        p-values below the threshold.
+
+        Args:
+            outcome: Name of outcome variable
+            threshold: P-value threshold (default 0.05)
+            model_type: 'auto', 'linear', or 'logistic'
+            columns: Which columns to test
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_pvalue(outcome='target', threshold=0.05)
+            >>> rec = recipe().step_pvalue(outcome='species', model_type='logistic')
+        """
+        from py_recipes.steps.advanced_selection import StepPvalue
+        return self.add_step(StepPvalue(
+            outcome=outcome,
+            threshold=threshold,
+            model_type=model_type,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_stability(
+        self,
+        outcome: str,
+        threshold: float = 0.8,
+        n_bootstrap: int = 100,
+        sample_fraction: float = 0.5,
+        estimator: Optional[Any] = None,
+        n_features_per_bootstrap: Optional[int] = None,
+        columns: Union[None, str, List[str], Callable] = None,
+        random_state: Optional[int] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Stability selection for robust feature selection.
+
+        Performs feature selection on multiple bootstrap samples and selects
+        features that appear frequently across samples.
+
+        Args:
+            outcome: Name of outcome variable
+            threshold: Selection frequency threshold (0-1, default 0.8)
+            n_bootstrap: Number of bootstrap samples (default 100)
+            sample_fraction: Fraction of data per bootstrap (default 0.5)
+            estimator: Sklearn estimator (default RandomForest)
+            n_features_per_bootstrap: Features to select per bootstrap
+            columns: Which columns to test
+            random_state: Random seed
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_stability(
+            ...     outcome='target', threshold=0.8, n_bootstrap=100
+            ... )
+        """
+        from py_recipes.steps.advanced_selection import StepSelectStability
+        return self.add_step(StepSelectStability(
+            outcome=outcome,
+            threshold=threshold,
+            n_bootstrap=n_bootstrap,
+            sample_fraction=sample_fraction,
+            estimator=estimator,
+            n_features_per_bootstrap=n_features_per_bootstrap,
+            columns=columns,
+            random_state=random_state,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_lofo(
+        self,
+        outcome: str,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        estimator: Optional[Any] = None,
+        cv: int = 3,
+        scoring: Optional[str] = None,
+        columns: Union[None, str, List[str], Callable] = None,
+        random_state: Optional[int] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Leave-One-Feature-Out (LOFO) importance for feature selection.
+
+        Measures each feature's importance by comparing model performance with
+        and without that feature.
+
+        Args:
+            outcome: Name of outcome variable
+            threshold: Minimum importance to keep feature
+            top_n: Keep top N features by importance
+            top_p: Keep top proportion of features
+            estimator: Sklearn estimator (default RandomForest)
+            cv: Number of CV folds (default 3)
+            scoring: Scoring metric
+            columns: Which columns to test
+            random_state: Random seed
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_lofo(outcome='target', top_n=10)
+            >>> rec = recipe().step_select_lofo(outcome='target', threshold=0.01, cv=5)
+        """
+        from py_recipes.steps.advanced_selection import StepSelectLofo
+        return self.add_step(StepSelectLofo(
+            outcome=outcome,
+            threshold=threshold,
+            top_n=top_n,
+            top_p=top_p,
+            estimator=estimator,
+            cv=cv,
+            scoring=scoring,
+            columns=columns,
+            random_state=random_state,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_granger(
+        self,
+        outcome: str,
+        max_lag: int = 5,
+        test: str = 'ssr_ftest',
+        alpha: float = 0.05,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features using Granger causality test.
+
+        Tests if past values of each feature help predict the outcome.
+        Features that Granger-cause the outcome are selected.
+
+        Args:
+            outcome: Name of outcome variable
+            max_lag: Maximum number of lags to test (default 5)
+            test: Test type ('ssr_ftest', 'ssr_chi2test', 'lrtest', 'params_ftest')
+            alpha: Significance level (default 0.05)
+            columns: Which columns to test
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_granger(
+            ...     outcome='sales', max_lag=5, alpha=0.05
+            ... )
+        """
+        from py_recipes.steps.advanced_selection import StepSelectGranger
+        return self.add_step(StepSelectGranger(
+            outcome=outcome,
+            max_lag=max_lag,
+            test=test,
+            alpha=alpha,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_stepwise(
+        self,
+        outcome: str,
+        direction: Literal['forward', 'backward', 'both'] = 'both',
+        criterion: Literal['aic', 'bic'] = 'aic',
+        max_steps: Optional[int] = None,
+        model_type: Literal['auto', 'linear', 'logistic'] = 'auto',
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Stepwise feature selection based on AIC/BIC.
+
+        Performs forward, backward, or bidirectional stepwise selection by
+        iteratively adding/removing features based on information criteria.
+
+        Args:
+            outcome: Name of outcome variable
+            direction: 'forward', 'backward', or 'both' (default 'both')
+            criterion: 'aic' or 'bic' (default 'aic')
+            max_steps: Maximum number of steps
+            model_type: 'auto', 'linear', or 'logistic'
+            columns: Which columns to consider
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_stepwise(
+            ...     outcome='target', direction='forward', criterion='aic'
+            ... )
+        """
+        from py_recipes.steps.advanced_selection import StepSelectStepwise
+        return self.add_step(StepSelectStepwise(
+            outcome=outcome,
+            direction=direction,
+            criterion=criterion,
+            max_steps=max_steps,
+            model_type=model_type,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_probe(
+        self,
+        outcome: str,
+        n_probes: int = 10,
+        estimator: Optional[Any] = None,
+        threshold_percentile: float = 100,
+        columns: Union[None, str, List[str], Callable] = None,
+        random_state: Optional[int] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Probe feature selection using random features.
+
+        Creates random "probe" features and compares real feature importances to
+        probe importances. Selects only real features with importance greater than
+        the maximum probe importance.
+
+        Args:
+            outcome: Name of outcome variable
+            n_probes: Number of random probe features (default 10)
+            estimator: Sklearn estimator (default RandomForest)
+            threshold_percentile: Percentile of probe importances (0-100, default 100)
+            columns: Which columns to test
+            random_state: Random seed
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_probe(outcome='target', n_probes=10)
+            >>> rec = recipe().step_select_probe(
+            ...     outcome='target', n_probes=20, threshold_percentile=95
+            ... )
+        """
+        from py_recipes.steps.advanced_selection import StepSelectProbe
+        return self.add_step(StepSelectProbe(
+            outcome=outcome,
+            n_probes=n_probes,
+            estimator=estimator,
+            threshold_percentile=threshold_percentile,
+            columns=columns,
+            random_state=random_state,
+            skip=skip,
+            id=id
+        ))
+
+    # ============================================================
+    # Phase 4: Practical Selection Steps
+    # ============================================================
+
+    def step_select_lasso(
+        self,
+        outcome: str,
+        alpha: float = 1.0,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        normalize: bool = True,
+        max_iter: int = 1000,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features using Lasso (L1 regularization) regression.
+
+        Lasso shrinks coefficients toward zero, performing automatic feature
+        selection. Features with non-zero coefficients are kept.
+
+        Args:
+            outcome: Name of outcome variable
+            alpha: Regularization strength (default 1.0)
+            threshold: Keep features with |coefficient| >= threshold
+            top_n: Keep top N features by |coefficient|
+            normalize: Normalize features before fitting
+            max_iter: Maximum iterations for solver
+            columns: Which columns to consider
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_lasso(outcome='target', alpha=0.1)
+            >>> rec = recipe().step_select_lasso(outcome='target', top_n=10)
+        """
+        from py_recipes.steps.practical_selection import StepSelectLasso
+        return self.add_step(StepSelectLasso(
+            outcome=outcome,
+            alpha=alpha,
+            threshold=threshold,
+            top_n=top_n,
+            normalize=normalize,
+            max_iter=max_iter,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_ridge(
+        self,
+        outcome: str,
+        alpha: float = 1.0,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        normalize: bool = True,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features using Ridge (L2 regularization) regression.
+
+        Ridge provides stable coefficient estimates. Features ranked by
+        absolute coefficient values.
+
+        Args:
+            outcome: Name of outcome variable
+            alpha: Regularization strength (default 1.0)
+            threshold: Keep features with |coefficient| >= threshold
+            top_n: Keep top N features by |coefficient|
+            normalize: Normalize features before fitting
+            columns: Which columns to consider
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_ridge(outcome='target', alpha=0.5)
+            >>> rec = recipe().step_select_ridge(outcome='target', top_n=15)
+        """
+        from py_recipes.steps.practical_selection import StepSelectRidge
+        return self.add_step(StepSelectRidge(
+            outcome=outcome,
+            alpha=alpha,
+            threshold=threshold,
+            top_n=top_n,
+            normalize=normalize,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_elastic_net(
+        self,
+        outcome: str,
+        alpha: float = 1.0,
+        l1_ratio: float = 0.5,
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        normalize: bool = True,
+        max_iter: int = 1000,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features using Elastic Net (L1 + L2 regularization).
+
+        Combines Lasso and Ridge benefits - can zero out coefficients
+        while maintaining stability.
+
+        Args:
+            outcome: Name of outcome variable
+            alpha: Overall regularization strength (default 1.0)
+            l1_ratio: L1 vs L2 balance - 1.0=Lasso, 0.0=Ridge (default 0.5)
+            threshold: Keep features with |coefficient| >= threshold
+            top_n: Keep top N features by |coefficient|
+            normalize: Normalize features before fitting
+            max_iter: Maximum iterations for solver
+            columns: Which columns to consider
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_elastic_net(outcome='target', l1_ratio=0.7)
+            >>> rec = recipe().step_select_elastic_net(outcome='target', top_n=10)
+        """
+        from py_recipes.steps.practical_selection import StepSelectElasticNet
+        return self.add_step(StepSelectElasticNet(
+            outcome=outcome,
+            alpha=alpha,
+            l1_ratio=l1_ratio,
+            threshold=threshold,
+            top_n=top_n,
+            normalize=normalize,
+            max_iter=max_iter,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_univariate(
+        self,
+        outcome: str,
+        score_func: str = 'f_regression',
+        threshold: Optional[float] = None,
+        top_n: Optional[int] = None,
+        top_p: Optional[float] = None,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features using univariate statistical tests.
+
+        Tests each feature independently using f_classif, f_regression,
+        chi2, or mutual information.
+
+        Args:
+            outcome: Name of outcome variable
+            score_func: Scoring function ('f_regression', 'f_classif', 'chi2',
+                       'mutual_info_regression', 'mutual_info_classif')
+            threshold: Keep features with score >= threshold
+            top_n: Keep top N features by score
+            top_p: Keep top proportion of features (0-1)
+            columns: Which columns to consider
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_univariate(outcome='target', top_n=10)
+            >>> rec = recipe().step_select_univariate(
+            ...     outcome='class', score_func='f_classif', top_p=0.5
+            ... )
+        """
+        from py_recipes.steps.practical_selection import StepSelectUnivariate
+        return self.add_step(StepSelectUnivariate(
+            outcome=outcome,
+            score_func=score_func,
+            threshold=threshold,
+            top_n=top_n,
+            top_p=top_p,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_variance_threshold(
+        self,
+        threshold: float = 0.0,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Remove low-variance features.
+
+        Features with variance below threshold are removed. Useful for
+        removing near-constant features.
+
+        Args:
+            threshold: Variance threshold (default 0.0 = remove only constants)
+            columns: Which columns to check
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_variance_threshold(threshold=0.01)
+            >>> rec = recipe().step_select_variance_threshold()  # Remove constants
+        """
+        from py_recipes.steps.practical_selection import StepSelectVarianceThreshold
+        return self.add_step(StepSelectVarianceThreshold(
+            threshold=threshold,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_stationary(
+        self,
+        alpha: float = 0.05,
+        max_lag: Optional[int] = None,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select stationary time series features using ADF test.
+
+        Tests each feature for stationarity using Augmented Dickey-Fuller test.
+        Only stationary features (p-value < alpha) are kept.
+
+        Args:
+            alpha: Significance level for ADF test (default 0.05)
+            max_lag: Maximum lag for ADF test (default None = auto)
+            columns: Which columns to test
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_stationary(alpha=0.05)
+            >>> rec = recipe().step_select_stationary(alpha=0.01, max_lag=12)
+        """
+        from py_recipes.steps.practical_selection import StepSelectStationary
+        return self.add_step(StepSelectStationary(
+            alpha=alpha,
+            max_lag=max_lag,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_cointegration(
+        self,
+        outcome: str,
+        alpha: float = 0.05,
+        max_lag: Optional[int] = None,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features cointegrated with outcome (time series).
+
+        Tests for cointegration between each feature and outcome using
+        Engle-Granger test. Features with p-value < alpha are kept.
+
+        Args:
+            outcome: Name of outcome variable
+            alpha: Significance level (default 0.05)
+            max_lag: Maximum lag for cointegration test (default None = auto)
+            columns: Which columns to test
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_cointegration(outcome='target', alpha=0.05)
+            >>> rec = recipe().step_select_cointegration(
+            ...     outcome='target', alpha=0.01, max_lag=12
+            ... )
+        """
+        from py_recipes.steps.practical_selection import StepSelectCointegration
+        return self.add_step(StepSelectCointegration(
+            outcome=outcome,
+            alpha=alpha,
+            max_lag=max_lag,
+            columns=columns,
+            skip=skip,
+            id=id
+        ))
+
+    def step_select_seasonal(
+        self,
+        period: Optional[int] = None,
+        threshold: float = 0.1,
+        columns: Union[None, str, List[str], Callable] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Select features with significant seasonal patterns.
+
+        Tests for seasonality using FFT to detect periodic patterns.
+        Features with strong seasonality are kept.
+
+        Args:
+            period: Expected seasonal period (e.g., 12 for monthly, 7 for daily)
+                   If None, automatically detects dominant period
+            threshold: Minimum spectral power ratio (default 0.1)
+            columns: Which columns to test
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_select_seasonal(period=12, threshold=0.1)
+            >>> rec = recipe().step_select_seasonal()  # Auto-detect period
+        """
+        from py_recipes.steps.practical_selection import StepSelectSeasonal
+        return self.add_step(StepSelectSeasonal(
+            period=period,
+            threshold=threshold,
+            columns=columns,
+            skip=skip,
+            id=id
         ))
 
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedRecipe":

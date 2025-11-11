@@ -838,10 +838,22 @@ class Workflow:
 
             # Update workflow with new formula
             updated_workflow = self.update_formula(updated_formula)
-            return updated_workflow.fit(data)
+            fit_result = updated_workflow.fit(data)
+            # Mark this as a global fit and store the group column
+            fit_result.is_global_fit = True
+            fit_result.group_col = group_col
+            # Store group column values from training data (indexed by original data index)
+            fit_result._train_group_values = data[[group_col]].copy() if group_col in data.columns else None
+            return fit_result
         elif isinstance(self.preprocessor, Recipe):
             # For recipes, group column will be included automatically if present in data
-            return self.fit(data)
+            fit_result = self.fit(data)
+            # Mark this as a global fit and store the group column
+            fit_result.is_global_fit = True
+            fit_result.group_col = group_col
+            # Store group column values from training data (indexed by original data index)
+            fit_result._train_group_values = data[[group_col]].copy() if group_col in data.columns else None
+            return fit_result
         else:
             raise ValueError("Workflow must have a formula or recipe preprocessor")
 
@@ -870,6 +882,10 @@ class WorkflowFit:
     post: Optional[Any] = None
     formula: Optional[str] = None  # Formula used for model fitting
     recipe_prepped_without_outcome: bool = False  # True only for per-group preprocessing
+    is_global_fit: bool = False  # True if created via fit_global()
+    group_col: Optional[str] = None  # Group column name for global fits (for plotting)
+    _train_group_values: Optional[pd.DataFrame] = None  # Original group values from training data
+    _test_group_values: Optional[pd.DataFrame] = None  # Original group values from test data
 
     def predict(
         self,
@@ -981,6 +997,11 @@ class WorkflowFit:
         # Delegate to the underlying ModelFit with both original and preprocessed data
         # Pass original test data so engines can access raw datetime/categorical values
         self.fit = self.fit.evaluate(processed_test_data, outcome_col, original_test_data=test_data)
+
+        # For global fits, store test group values for plotting
+        if self.is_global_fit and self.group_col and self.group_col in test_data.columns:
+            self._test_group_values = test_data[[self.group_col]].copy()
+
         return self
 
     def extract_fit_parsnip(self) -> ModelFit:
@@ -1036,6 +1057,24 @@ class WorkflowFit:
             >>> print(stats[stats["metric"].isin(["rmse", "mae", "r_squared"])])
         """
         outputs, coefficients, stats = self.fit.extract_outputs()
+
+        # For global fits, replace the 'group' column with original group values
+        if self.is_global_fit and self.group_col and 'group' in outputs.columns:
+            # Combine train and test group values
+            if self._train_group_values is not None or self._test_group_values is not None:
+                # Create combined group DataFrame indexed by original data indices
+                all_group_values = []
+                if self._train_group_values is not None:
+                    all_group_values.append(self._train_group_values)
+                if self._test_group_values is not None:
+                    all_group_values.append(self._test_group_values)
+
+                if all_group_values:
+                    combined_groups = pd.concat(all_group_values)
+                    # Map original indices to group values
+                    # outputs index should match the original data indices
+                    if len(outputs) == len(combined_groups):
+                        outputs['group'] = combined_groups[self.group_col].values
 
         # Reorder columns for consistent ordering: date first, then core columns
         from py_parsnip.utils.output_ordering import (

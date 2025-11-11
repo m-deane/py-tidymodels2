@@ -2,7 +2,7 @@
 
 **py-tidymodels Recipe Step Library - Comprehensive Documentation**
 
-This reference covers all 71+ recipe steps with complete parameter signatures and usage examples.
+This reference covers all 79+ recipe steps with complete parameter signatures and usage examples.
 
 ---
 
@@ -16,14 +16,16 @@ This reference covers all 71+ recipe steps with complete parameter signatures an
 6. [Categorical Encoding](#categorical-encoding)
 7. [Feature Selection](#feature-selection)
 8. [Supervised Filters](#supervised-filters)
-9. [Adaptive Transformations](#adaptive-transformations)
-10. [Data Quality Filters](#data-quality-filters)
-11. [Dimensionality Reduction](#dimensionality-reduction)
-12. [Basis Functions](#basis-functions)
-13. [Discretization](#discretization)
-14. [Interactions & Ratios](#interactions--ratios)
-15. [Row Operations](#row-operations)
-16. [Column Selectors](#column-selectors)
+9. [Advanced Selection Steps](#advanced-selection-steps)
+10. [Practical Selection Steps](#practical-selection-steps)
+11. [Adaptive Transformations](#adaptive-transformations)
+12. [Data Quality Filters](#data-quality-filters)
+13. [Dimensionality Reduction](#dimensionality-reduction)
+14. [Basis Functions](#basis-functions)
+15. [Discretization](#discretization)
+16. [Interactions & Ratios](#interactions--ratios)
+17. [Row Operations](#row-operations)
+18. [Column Selectors](#column-selectors)
 
 ---
 
@@ -1146,6 +1148,850 @@ rf = RandomForestRegressor(n_estimators=100, random_state=42)
 **Comparison with SHAP:**
 - **SHAP:** Game theory-based, explains individual predictions, faster for tree models
 - **Permutation:** Simpler concept, model-agnostic, slower but works with any model
+
+---
+
+## Advanced Selection Steps
+
+These advanced selection methods provide statistical, model-based, and time series-specific feature selection beyond basic filtering.
+
+#### `step_vif(threshold=10.0, columns=None, outcome=None)`
+Remove features with high Variance Inflation Factor (multicollinearity detection).
+
+**Parameters:**
+- `threshold` (float): VIF threshold - features above this are removed (default: 10.0)
+- `columns` (list, str, or None): Columns to check (None = all numeric predictors)
+- `outcome` (str or None): Outcome column to exclude from VIF calculation
+
+**Algorithm:**
+Iteratively calculates VIF for each feature and removes the one with highest VIF until all remaining features have VIF ≤ threshold.
+
+**VIF Interpretation:**
+- VIF = 1: No correlation with other features
+- VIF = 1-5: Moderate correlation (acceptable)
+- VIF = 5-10: High correlation (concerning)
+- VIF > 10: Severe multicollinearity (remove)
+
+**Example:**
+```python
+# Remove highly correlated features
+.step_vif(threshold=10.0, outcome='target')
+
+# More strict threshold
+.step_vif(threshold=5.0, outcome='price')
+
+# Specific columns only
+.step_vif(threshold=10.0, columns=['x1', 'x2', 'x3'], outcome='y')
+```
+
+**Use case:** Remove redundant features before linear regression, improve model interpretability
+
+**Note:** VIF requires at least 2 features; outcome column is always preserved
+
+---
+
+#### `step_pvalue(outcome, threshold=0.05, model_type='linear', columns=None)`
+Select features based on statistical significance (p-values from regression).
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `threshold` (float): P-value threshold - keep features with p < threshold (default: 0.05)
+- `model_type` (str): Regression type - 'linear' (OLS) or 'logistic' (default: 'linear')
+- `columns` (list, str, or None): Columns to test (None = all numeric predictors)
+
+**Algorithm:**
+1. Fits statsmodels regression (OLS or Logit) with all features
+2. Extracts p-values for each coefficient
+3. Keeps features with p-value < threshold
+
+**Example:**
+```python
+# Keep significant features (α = 0.05)
+.step_pvalue(outcome='target', threshold=0.05)
+
+# More conservative (α = 0.01)
+.step_pvalue(outcome='sales', threshold=0.01)
+
+# Logistic regression for classification
+.step_pvalue(outcome='diagnosis', threshold=0.05, model_type='logistic')
+
+# Specific columns
+.step_pvalue(outcome='price', threshold=0.05, columns=['x1', 'x2', 'x3'])
+```
+
+**Use case:** Statistical feature selection, identify significant predictors
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_stability(outcome, threshold=0.75, n_bootstrap=100, n_select=None, estimator=None, random_state=None, columns=None)`
+Bootstrap-based stability selection - select features consistently important across samples.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `threshold` (float): Frequency threshold - keep features selected in ≥ threshold fraction of bootstraps (default: 0.75)
+- `n_bootstrap` (int): Number of bootstrap samples (default: 100)
+- `n_select` (int or None): Number of features to select per bootstrap (None = all)
+- `estimator` (sklearn model or None): Base estimator (default: RandomForestRegressor)
+- `random_state` (int or None): Random seed for reproducibility
+- `columns` (list, str, or None): Columns to consider (None = all numeric predictors)
+
+**Algorithm:**
+1. Generate n_bootstrap bootstrap samples (with replacement)
+2. Fit estimator on each sample
+3. Select top n_select features by importance per bootstrap
+4. Keep features appearing in ≥ threshold fraction of bootstraps
+
+**Example:**
+```python
+# Keep features selected in 75% of bootstraps
+.step_select_stability(
+    outcome='target',
+    threshold=0.75,
+    n_bootstrap=100,
+    random_state=42
+)
+
+# More conservative (90% threshold)
+.step_select_stability(
+    outcome='sales',
+    threshold=0.90,
+    n_bootstrap=50,
+    n_select=10,
+    random_state=42
+)
+
+# Custom estimator
+from sklearn.ensemble import GradientBoostingRegressor
+.step_select_stability(
+    outcome='price',
+    threshold=0.70,
+    n_bootstrap=100,
+    estimator=GradientBoostingRegressor(n_estimators=50),
+    random_state=42
+)
+```
+
+**Use case:** Robust feature selection, identify consistently important features
+
+**Performance:** Computationally expensive - fits n_bootstrap models. Reduce n_bootstrap for speed.
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_lofo(outcome, threshold=None, top_n=None, cv=5, scoring='r2', estimator=None, random_state=None, columns=None)`
+Leave-One-Feature-Out importance - measure performance drop when each feature is removed.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `threshold` (float or None): Minimum importance - keep features with importance ≥ threshold
+- `top_n` (int or None): Keep top N features by importance
+- `cv` (int): Cross-validation folds (default: 5)
+- `scoring` (str): Metric for evaluation (default: 'r2') - 'r2', 'neg_mean_squared_error', etc.
+- `estimator` (sklearn model or None): Base estimator (default: RandomForestRegressor)
+- `random_state` (int or None): Random seed
+- `columns` (list, str, or None): Columns to consider (None = all numeric predictors)
+
+**Algorithm:**
+1. Calculate baseline CV score with all features
+2. For each feature:
+   - Remove feature
+   - Calculate CV score without that feature
+   - Importance = baseline_score - lofo_score
+3. Select features by threshold or top_n
+
+**Example:**
+```python
+# Keep top 10 features
+.step_select_lofo(
+    outcome='target',
+    top_n=10,
+    cv=5,
+    random_state=42
+)
+
+# Threshold-based selection
+.step_select_lofo(
+    outcome='sales',
+    threshold=0.01,
+    cv=3,
+    scoring='neg_mean_squared_error',
+    random_state=42
+)
+
+# Custom estimator
+from sklearn.linear_model import Ridge
+.step_select_lofo(
+    outcome='price',
+    top_n=15,
+    cv=5,
+    estimator=Ridge(alpha=1.0),
+    random_state=42
+)
+```
+
+**Use case:** Model-agnostic feature importance, identify impactful features
+
+**Performance:** Very expensive - fits (n_features + 1) × cv models. Use smaller cv for speed.
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_granger(outcome, max_lag=5, alpha=0.05, columns=None)`
+Granger causality test - select features that Granger-cause the outcome (time series).
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `max_lag` (int): Maximum lag to test (default: 5)
+- `alpha` (float): Significance level (default: 0.05)
+- `columns` (list, str, or None): Columns to test (None = all numeric predictors)
+
+**Algorithm:**
+1. For each feature:
+   - Run Granger causality test with outcome
+   - Test lags from 1 to max_lag
+   - Check if any lag has p-value < alpha
+2. Keep features that Granger-cause outcome at any lag
+
+**Granger Causality:**
+Tests if past values of X help predict Y beyond Y's own history.
+- X Granger-causes Y: Past X improves Y prediction
+- Does NOT imply true causation
+
+**Example:**
+```python
+# Basic Granger test
+.step_select_granger(
+    outcome='sales',
+    max_lag=7,
+    alpha=0.05
+)
+
+# More lags for longer dependencies
+.step_select_granger(
+    outcome='stock_price',
+    max_lag=30,
+    alpha=0.01
+)
+
+# Specific predictors
+.step_select_granger(
+    outcome='demand',
+    max_lag=5,
+    columns=['price', 'advertising', 'temperature'],
+    alpha=0.05
+)
+```
+
+**Use case:** Time series feature selection, identify leading indicators
+
+**Requirements:** Requires statsmodels package
+
+**Note:** This is a supervised step designed for time series data - requires outcome during prep()
+
+---
+
+#### `step_select_stepwise(outcome, direction='both', criterion='aic', columns=None)`
+Stepwise feature selection using information criteria (AIC/BIC).
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `direction` (str): Selection direction - 'forward', 'backward', or 'both' (default: 'both')
+- `criterion` (str): Information criterion - 'aic' or 'bic' (default: 'aic')
+- `columns` (list, str, or None): Columns to consider (None = all numeric predictors)
+
+**Algorithm:**
+- **Forward:** Start empty, add features that improve criterion
+- **Backward:** Start full, remove features that improve criterion
+- **Both:** Alternates forward addition and backward elimination
+
+**AIC vs BIC:**
+- **AIC:** More features selected (less penalty)
+- **BIC:** Fewer features selected (stronger penalty for complexity)
+
+**Example:**
+```python
+# Bidirectional stepwise with AIC
+.step_select_stepwise(
+    outcome='target',
+    direction='both',
+    criterion='aic'
+)
+
+# Forward selection only
+.step_select_stepwise(
+    outcome='sales',
+    direction='forward',
+    criterion='bic'
+)
+
+# Backward elimination with BIC (more conservative)
+.step_select_stepwise(
+    outcome='price',
+    direction='backward',
+    criterion='bic'
+)
+
+# Specific columns
+.step_select_stepwise(
+    outcome='revenue',
+    direction='both',
+    columns=['x1', 'x2', 'x3', 'x4'],
+    criterion='aic'
+)
+```
+
+**Use case:** Classic statistical feature selection, model selection
+
+**Performance:** Can be slow for many features (tests many model combinations)
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_probe(outcome, n_probes=10, threshold_percentile=100, estimator=None, random_state=None, columns=None)`
+Probe feature selection - use random features to determine importance threshold.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `n_probes` (int): Number of random probe features to create (default: 10)
+- `threshold_percentile` (int): Percentile of probe importances for threshold (default: 100 = max)
+- `estimator` (sklearn model or None): Base estimator (default: RandomForestRegressor)
+- `random_state` (int or None): Random seed
+- `columns` (list, str, or None): Columns to consider (None = all numeric predictors)
+
+**Algorithm:**
+1. Create n_probes random features by permuting existing features
+2. Fit estimator on real + probe features
+3. Calculate feature importances
+4. Set threshold = percentile of probe importances
+5. Keep real features with importance > threshold
+
+**Example:**
+```python
+# Use maximum probe importance as threshold
+.step_select_probe(
+    outcome='target',
+    n_probes=10,
+    threshold_percentile=100,  # Max probe importance
+    random_state=42
+)
+
+# More lenient (95th percentile)
+.step_select_probe(
+    outcome='sales',
+    n_probes=20,
+    threshold_percentile=95,
+    random_state=42
+)
+
+# Custom estimator
+from sklearn.ensemble import GradientBoostingRegressor
+.step_select_probe(
+    outcome='price',
+    n_probes=10,
+    threshold_percentile=100,
+    estimator=GradientBoostingRegressor(n_estimators=100),
+    random_state=42
+)
+
+# Specific columns
+.step_select_probe(
+    outcome='revenue',
+    n_probes=15,
+    columns=['x1', 'x2', 'x3', 'x4', 'x5'],
+    random_state=42
+)
+```
+
+**Use case:** Data-driven threshold selection, robust to importance scale
+
+**Interpretation:** Features more important than random noise are kept
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+## Practical Selection Steps
+
+These practical selection methods provide efficient, production-ready feature selection using regularization, statistical tests, variance filtering, and time series analysis. All steps use standard dependencies (sklearn, statsmodels, scipy) with no additional requirements.
+
+**Use sklearn 1.2+:** The `normalize` parameter has been removed from Lasso/Ridge/ElasticNet in sklearn 1.2+. If normalization is needed, use `step_normalize()` before these steps.
+
+### Regularization-Based Selection
+
+#### `step_select_lasso(outcome, alpha=1.0, threshold=None, top_n=None, normalize=True, max_iter=1000, columns=None)`
+Select features using Lasso (L1 regularization) regression coefficients.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `alpha` (float): Regularization strength (default: 1.0). Larger values = more regularization
+- `threshold` (float or None): Keep features with |coefficient| ≥ threshold (default: None = all non-zero)
+- `top_n` (int or None): Keep top N features by |coefficient| (default: None)
+- `normalize` (bool): Normalize features before fitting (default: True) - **Note:** Ignored in sklearn 1.2+
+- `max_iter` (int): Maximum iterations for solver (default: 1000)
+- `columns` (list, str, callable, or None): Columns to consider (default: None = all numeric predictors)
+
+**Algorithm:**
+Lasso performs automatic feature selection by shrinking coefficients to exactly zero through L1 penalty.
+1. Fits Lasso regression: `minimize ||y - Xβ||² + α||β||₁`
+2. Features with non-zero coefficients are selected
+3. Optional filtering by threshold or top_n
+
+**L1 Regularization:**
+- **α = 0**: No regularization (OLS)
+- **α small (0.001-0.1)**: Mild feature selection
+- **α moderate (0.1-10)**: Aggressive feature selection
+- **α large (>10)**: Very few features selected
+
+**Example:**
+```python
+# Basic Lasso selection (all non-zero coefficients)
+.step_select_lasso(outcome='target', alpha=0.1)
+
+# Top 10 features by coefficient magnitude
+.step_select_lasso(outcome='sales', alpha=1.0, top_n=10)
+
+# Threshold-based selection
+.step_select_lasso(outcome='price', alpha=0.5, threshold=0.1)
+
+# Strong regularization for aggressive selection
+.step_select_lasso(outcome='revenue', alpha=10.0, top_n=5)
+
+# Specific columns only
+.step_select_lasso(
+    outcome='target',
+    alpha=0.1,
+    columns=['x1', 'x2', 'x3', 'x4', 'x5'],
+    top_n=3
+)
+```
+
+**Use case:** Fast coefficient-based selection, highly correlated features, sparse solutions
+
+**Performance:** Fast (single model fit)
+
+**sklearn 1.2+ Note:** The `normalize` parameter is ignored. Use `step_normalize()` before this step if normalization is needed.
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_ridge(outcome, alpha=1.0, threshold=None, top_n=None, normalize=True, columns=None)`
+Select features using Ridge (L2 regularization) regression coefficients.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `alpha` (float): Regularization strength (default: 1.0). Larger values = more regularization
+- `threshold` (float or None): Keep features with |coefficient| ≥ threshold (default: None = all features)
+- `top_n` (int or None): Keep top N features by |coefficient| (default: None)
+- `normalize` (bool): Normalize features before fitting (default: True) - **Note:** Ignored in sklearn 1.2+
+- `columns` (list, str, callable, or None): Columns to consider (default: None = all numeric predictors)
+
+**Algorithm:**
+Ridge provides stable coefficient estimates through L2 penalty. Unlike Lasso, Ridge does NOT zero out coefficients.
+1. Fits Ridge regression: `minimize ||y - Xβ||² + α||β||²`
+2. Ranks features by absolute coefficient magnitude
+3. Selects features by threshold or top_n
+
+**L2 Regularization:**
+- **α = 0**: No regularization (OLS)
+- **α small (0.01-1)**: Mild shrinkage
+- **α moderate (1-100)**: Strong shrinkage
+- **α large (>100)**: Extreme shrinkage (all coefficients near zero)
+
+**Example:**
+```python
+# Top 15 features by Ridge coefficients
+.step_select_ridge(outcome='target', alpha=1.0, top_n=15)
+
+# Threshold-based selection
+.step_select_ridge(outcome='sales', alpha=10.0, threshold=0.05)
+
+# Mild regularization for stability
+.step_select_ridge(outcome='price', alpha=0.1, top_n=20)
+
+# Strong regularization
+.step_select_ridge(outcome='revenue', alpha=100.0, threshold=0.1)
+```
+
+**Use case:** Stable coefficient ranking, multicollinear features, when feature count is needed
+
+**Performance:** Fast (single model fit)
+
+**sklearn 1.2+ Note:** The `normalize` parameter is ignored. Use `step_normalize()` before this step if normalization is needed.
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_elastic_net(outcome, alpha=1.0, l1_ratio=0.5, threshold=None, top_n=None, normalize=True, max_iter=1000, columns=None)`
+Select features using Elastic Net (L1 + L2 regularization) regression.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `alpha` (float): Overall regularization strength (default: 1.0)
+- `l1_ratio` (float): L1 vs L2 balance (default: 0.5). Range: [0, 1]
+  - `l1_ratio = 1.0`: Pure Lasso (L1)
+  - `l1_ratio = 0.0`: Pure Ridge (L2)
+  - `l1_ratio = 0.5`: Equal L1 and L2
+- `threshold` (float or None): Keep features with |coefficient| ≥ threshold (default: None = all non-zero)
+- `top_n` (int or None): Keep top N features by |coefficient| (default: None)
+- `normalize` (bool): Normalize features before fitting (default: True) - **Note:** Ignored in sklearn 1.2+
+- `max_iter` (int): Maximum iterations for solver (default: 1000)
+- `columns` (list, str, callable, or None): Columns to consider (default: None = all numeric predictors)
+
+**Algorithm:**
+Elastic Net combines Lasso and Ridge penalties for balanced feature selection.
+1. Fits Elastic Net: `minimize ||y - Xβ||² + α(l1_ratio||β||₁ + (1-l1_ratio)||β||²)`
+2. Balances feature selection (L1) with stability (L2)
+3. Selects features by threshold or top_n
+
+**l1_ratio Selection:**
+- **0.9-1.0**: Aggressive feature selection (Lasso-like)
+- **0.5-0.7**: Balanced selection and stability
+- **0.1-0.3**: Mild selection, strong stability (Ridge-like)
+
+**Example:**
+```python
+# Balanced L1/L2 (default)
+.step_select_elastic_net(outcome='target', alpha=1.0, l1_ratio=0.5, top_n=10)
+
+# Lasso-like (aggressive selection)
+.step_select_elastic_net(outcome='sales', alpha=1.0, l1_ratio=0.9, top_n=5)
+
+# Ridge-like (mild selection)
+.step_select_elastic_net(outcome='price', alpha=1.0, l1_ratio=0.1, top_n=20)
+
+# Threshold-based
+.step_select_elastic_net(
+    outcome='revenue',
+    alpha=0.5,
+    l1_ratio=0.5,
+    threshold=0.05
+)
+
+# Strong regularization with balance
+.step_select_elastic_net(
+    outcome='demand',
+    alpha=10.0,
+    l1_ratio=0.5,
+    top_n=8
+)
+```
+
+**Use case:** Best of both worlds - feature selection with multicollinearity handling
+
+**Performance:** Fast (single model fit)
+
+**sklearn 1.2+ Note:** The `normalize` parameter is ignored. Use `step_normalize()` before this step if normalization is needed.
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+### Statistical Selection
+
+#### `step_select_univariate(outcome, score_func='f_regression', threshold=None, top_n=None, top_p=None, columns=None)`
+Select features using univariate statistical tests.
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `score_func` (str): Scoring function (default: 'f_regression')
+  - **'f_regression'**: ANOVA F-test for regression (linear relationships)
+  - **'f_classif'**: ANOVA F-test for classification
+  - **'chi2'**: Chi-squared test (classification, non-negative features)
+  - **'mutual_info_classif'**: Mutual information for classification
+  - **'mutual_info_regression'**: Mutual information for regression (non-linear)
+- `threshold` (float or None): Keep features with score ≥ threshold (default: None)
+- `top_n` (int or None): Keep top N features by score (default: None)
+- `top_p` (float or None): Keep top proportion of features (e.g., 0.5 = top 50%) (default: None)
+- `columns` (list, str, callable, or None): Columns to consider (default: None = all numeric predictors)
+
+**Algorithm:**
+Tests each feature independently against the outcome.
+1. Computes univariate score for each feature-outcome pair
+2. Ranks features by score
+3. Selects features by threshold, top_n, or top_p
+
+**Score Function Selection:**
+- **f_regression/f_classif**: Fast, detects linear relationships
+- **chi2**: For classification with non-negative features (e.g., counts, TF-IDF)
+- **mutual_info**: Detects non-linear relationships, slower
+
+**Example:**
+```python
+# Top 15 features by F-test
+.step_select_univariate(
+    outcome='target',
+    score_func='f_regression',
+    top_n=15
+)
+
+# Top 50% of features
+.step_select_univariate(
+    outcome='sales',
+    score_func='f_regression',
+    top_p=0.5
+)
+
+# Mutual information for non-linear relationships
+.step_select_univariate(
+    outcome='price',
+    score_func='mutual_info_regression',
+    top_n=20
+)
+
+# Classification with chi-squared
+.step_select_univariate(
+    outcome='diagnosis',
+    score_func='chi2',
+    top_n=10
+)
+
+# Threshold-based selection
+.step_select_univariate(
+    outcome='revenue',
+    score_func='f_regression',
+    threshold=10.0
+)
+```
+
+**Use case:** Fast univariate screening, large feature sets, baseline feature selection
+
+**Performance:** Very fast - no model fitting, independent feature tests
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+### Variance-Based Selection
+
+#### `step_select_variance_threshold(threshold=0.0, columns=None)`
+Remove low-variance features.
+
+**Parameters:**
+- `threshold` (float): Variance threshold (default: 0.0 = remove only constants)
+- `columns` (list, str, callable, or None): Columns to consider (default: None = all numeric)
+
+**Algorithm:**
+1. Computes variance for each feature: `Var(X) = E[(X - μ)²]`
+2. Removes features with `Var(X) ≤ threshold`
+
+**Variance Interpretation:**
+- **Var = 0**: Constant feature (no variation)
+- **Var < 0.01**: Very low variance (nearly constant)
+- **Var < 0.1**: Low variance (limited variation)
+
+**Example:**
+```python
+# Remove only constants (default)
+.step_select_variance_threshold(threshold=0.0)
+
+# Remove low-variance features
+.step_select_variance_threshold(threshold=0.01)
+
+# More aggressive filtering
+.step_select_variance_threshold(threshold=0.1)
+
+# Specific columns
+.step_select_variance_threshold(
+    threshold=0.05,
+    columns=['x1', 'x2', 'x3', 'x4', 'x5']
+)
+```
+
+**Use case:** Preprocessing step, remove uninformative features, improve computational efficiency
+
+**Performance:** Very fast (simple variance calculation)
+
+**Recommendation:** Use as first step before more expensive selection methods
+
+**Note:** This is an unsupervised step - no outcome required
+
+---
+
+### Time Series Selection
+
+#### `step_select_stationary(alpha=0.05, max_lag=None, columns=None)`
+Select stationary time series features using ADF test.
+
+**Parameters:**
+- `alpha` (float): Significance level for ADF test (default: 0.05)
+- `max_lag` (int or None): Maximum lag for ADF test (default: None = auto-selected)
+- `columns` (list, str, callable, or None): Columns to test (default: None = all numeric)
+
+**Algorithm:**
+Uses Augmented Dickey-Fuller (ADF) test for unit root.
+1. Tests null hypothesis: "Series has unit root (non-stationary)"
+2. If p-value < alpha: Reject null → Series is stationary → Keep feature
+3. If p-value ≥ alpha: Fail to reject → Series is non-stationary → Remove feature
+
+**Stationarity:**
+- **Stationary**: Mean, variance, autocorrelation constant over time
+- **Non-stationary**: Trends, seasonality, changing variance
+
+**ADF Test Interpretation:**
+- **p-value < 0.01**: Strong evidence of stationarity
+- **p-value < 0.05**: Evidence of stationarity (default threshold)
+- **p-value < 0.10**: Weak evidence of stationarity
+- **p-value ≥ 0.10**: No evidence of stationarity
+
+**Example:**
+```python
+# Basic stationarity test (α = 0.05)
+.step_select_stationary(alpha=0.05)
+
+# More lenient (α = 0.10)
+.step_select_stationary(alpha=0.10)
+
+# Stricter (α = 0.01)
+.step_select_stationary(alpha=0.01)
+
+# Specific lag
+.step_select_stationary(alpha=0.05, max_lag=12)
+
+# Specific columns
+.step_select_stationary(
+    alpha=0.05,
+    columns=['feature1', 'feature2', 'feature3']
+)
+```
+
+**Use case:** Time series preprocessing, remove non-stationary features, improve model stability
+
+**Requirements:** Requires statsmodels package
+
+**Note:** Requires at least 12 observations per feature
+
+**Note:** This is an unsupervised step - no outcome required
+
+---
+
+#### `step_select_cointegration(outcome, alpha=0.05, max_lag=None, columns=None)`
+Select features cointegrated with outcome (time series).
+
+**Parameters:**
+- `outcome` (str): Outcome variable name (**required**)
+- `alpha` (float): Significance level (default: 0.05)
+- `max_lag` (int or None): Maximum lag for cointegration test (default: None = auto-selected)
+- `columns` (list, str, callable, or None): Columns to test (default: None = all numeric predictors)
+
+**Algorithm:**
+Uses Engle-Granger cointegration test.
+1. Tests null hypothesis: "No cointegration between feature and outcome"
+2. If p-value < alpha: Reject null → Cointegrated → Keep feature
+3. If p-value ≥ alpha: Fail to reject → Not cointegrated → Remove feature
+
+**Cointegration:**
+- Two non-stationary series that maintain long-run relationship
+- Linear combination of series is stationary
+- Example: Stock prices of similar companies move together
+
+**Cointegration vs Correlation:**
+- **Correlation**: Short-term linear relationship
+- **Cointegration**: Long-term equilibrium relationship (more stable)
+
+**Example:**
+```python
+# Basic cointegration test
+.step_select_cointegration(outcome='sales', alpha=0.05)
+
+# More lenient
+.step_select_cointegration(outcome='stock_price', alpha=0.10)
+
+# Stricter
+.step_select_cointegration(outcome='demand', alpha=0.01)
+
+# Specific lag
+.step_select_cointegration(
+    outcome='revenue',
+    alpha=0.05,
+    max_lag=24
+)
+
+# Specific columns
+.step_select_cointegration(
+    outcome='target',
+    alpha=0.05,
+    columns=['feature1', 'feature2', 'feature3']
+)
+```
+
+**Use case:** Time series with long-run relationships, economic/financial data, pair trading
+
+**Requirements:** Requires statsmodels package
+
+**Note:** Requires at least 12 observations per feature
+
+**Note:** This is a supervised step - requires outcome during prep()
+
+---
+
+#### `step_select_seasonal(period=None, threshold=0.1, columns=None)`
+Select features with significant seasonal patterns.
+
+**Parameters:**
+- `period` (int or None): Expected seasonal period (e.g., 12 for monthly, 7 for daily). If None, automatically detects dominant period
+- `threshold` (float): Minimum spectral power ratio to consider seasonal (default: 0.1)
+- `columns` (list, str, callable, or None): Columns to test (default: None = all numeric)
+
+**Algorithm:**
+Uses Fast Fourier Transform (FFT) to detect periodic patterns.
+1. Applies FFT to decompose series into frequency components
+2. Calculates spectral power at each frequency
+3. If `period` specified:
+   - Checks power at frequency = 1/period
+   - Strength = power(1/period) / mean(power)
+4. If `period` = None:
+   - Finds dominant frequency (excluding DC component)
+   - Strength = max(power) / mean(power)
+5. Keep features with strength > threshold
+
+**Seasonality Strength Interpretation:**
+- **Strength < 0.05**: No seasonality
+- **Strength 0.05-0.1**: Weak seasonality
+- **Strength 0.1-0.5**: Moderate seasonality (default threshold)
+- **Strength > 0.5**: Strong seasonality
+
+**Example:**
+```python
+# Auto-detect seasonality
+.step_select_seasonal(threshold=0.1)
+
+# Check for weekly pattern (7-day)
+.step_select_seasonal(period=7, threshold=0.1)
+
+# Check for monthly pattern (30-day)
+.step_select_seasonal(period=30, threshold=0.15)
+
+# Check for yearly pattern (365-day)
+.step_select_seasonal(period=365, threshold=0.1)
+
+# More sensitive (lower threshold)
+.step_select_seasonal(threshold=0.05)
+
+# More conservative (higher threshold)
+.step_select_seasonal(period=12, threshold=0.3)
+
+# Specific columns
+.step_select_seasonal(
+    period=7,
+    threshold=0.1,
+    columns=['sales', 'traffic', 'temperature']
+)
+```
+
+**Use case:** Detect seasonal features, calendar effects, periodic patterns
+
+**Requirements:** Requires scipy package
+
+**Note:** Requires at least 20 observations per feature
+
+**Note:** This is an unsupervised step - no outcome required
 
 ---
 

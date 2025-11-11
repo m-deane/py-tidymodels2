@@ -159,7 +159,11 @@ class PreparedStepDiff:
                 for _ in range(self.differences):
                     diff_col = diff_col.diff(periods=self.lag)
 
-                diff_col_name = f"{col}_diff_{self.lag}" if self.differences == 1 else f"{col}_diff_{self.lag}_{self.differences}"
+                # Include "lag" in column name for clarity
+                if self.differences == 1:
+                    diff_col_name = f"{col}_diff_lag_{self.lag}"
+                else:
+                    diff_col_name = f"{col}_diff_lag_{self.lag}_order_{self.differences}"
                 result[diff_col_name] = diff_col
 
         return result

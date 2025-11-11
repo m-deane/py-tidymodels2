@@ -158,6 +158,41 @@ from py_recipes.steps.financial_oscillators import (
     StepOscillators,
     PreparedStepOscillators,
 )
+from py_recipes.steps.feature_engine_steps import (
+    StepDtDiscretiser,
+    StepWinsorizer,
+    StepOutlierTrimmer,
+    StepDtFeatures,
+    StepSelectSmartCorr,
+    StepSelectPsi,
+)
+from py_recipes.steps.timeseries_transformations import (
+    StepCleanAnomalies,
+    StepStationary,
+    StepDeseasonalize,
+    StepDetrend,
+    StepHStat,
+    StepBestLag,
+)
+from py_recipes.steps.advanced_selection import (
+    StepVif,
+    StepPvalue,
+    StepSelectStability,
+    StepSelectLofo,
+    StepSelectGranger,
+    StepSelectStepwise,
+    StepSelectProbe,
+)
+from py_recipes.steps.practical_selection import (
+    StepSelectLasso,
+    StepSelectRidge,
+    StepSelectElasticNet,
+    StepSelectUnivariate,
+    StepSelectVarianceThreshold,
+    StepSelectStationary,
+    StepSelectCointegration,
+    StepSelectSeasonal,
+)
 
 __all__ = [
     # Column selection steps
@@ -296,4 +331,35 @@ __all__ = [
     # Financial indicator steps
     "StepOscillators",
     "PreparedStepOscillators",
+    # Feature-engine steps (Phase 1)
+    "StepDtDiscretiser",
+    "StepWinsorizer",
+    "StepOutlierTrimmer",
+    "StepDtFeatures",
+    "StepSelectSmartCorr",
+    "StepSelectPsi",
+    # Time series transformation steps (Phase 2)
+    "StepCleanAnomalies",
+    "StepStationary",
+    "StepDeseasonalize",
+    "StepDetrend",
+    "StepHStat",
+    "StepBestLag",
+    # Advanced selection steps (Phase 3)
+    "StepVif",
+    "StepPvalue",
+    "StepSelectStability",
+    "StepSelectLofo",
+    "StepSelectGranger",
+    "StepSelectStepwise",
+    "StepSelectProbe",
+    # Practical selection steps (Phase 4)
+    "StepSelectLasso",
+    "StepSelectRidge",
+    "StepSelectElasticNet",
+    "StepSelectUnivariate",
+    "StepSelectVarianceThreshold",
+    "StepSelectStationary",
+    "StepSelectCointegration",
+    "StepSelectSeasonal",
 ]
