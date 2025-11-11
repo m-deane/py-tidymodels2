@@ -2,7 +2,7 @@
 
 **py-tidymodels Recipe Step Library - Comprehensive Documentation**
 
-This reference covers all 79+ recipe steps with complete parameter signatures and usage examples.
+This reference covers all 91+ recipe steps with complete parameter signatures and usage examples.
 
 ---
 
@@ -297,6 +297,288 @@ Add holiday indicator features.
 
 **Requires:** `pytimetk` package
 **Creates:** Binary indicator columns for each holiday
+
+---
+
+### Advanced Time Series Transformations
+
+These advanced transformations provide anomaly detection, stationarity testing, decomposition, and interaction detection for time series data.
+
+#### `step_clean_anomalies(date_column, value_columns=None, period=None, trend=None, method='stl', decomp='additive', clean='min_max', iqr_alpha=0.05, clean_alpha=0.75, max_anomalies=0.2)`
+Detect and clean anomalies in time series using STL decomposition or Twitter's method.
+
+**Algorithm:**
+Uses STL (Seasonal-Trend decomposition using LOESS) or Twitter's AnomalyDetection to identify anomalies in the remainder component after removing trend and seasonality. Anomalies are cleaned using min/max bounds or linear interpolation.
+
+**Parameters:**
+- `date_column` (str): Name of the date/time column
+- `value_columns` (selector or None): Columns to check for anomalies (None = all numeric)
+- `period` (int or None): Seasonal period (auto-detected if None)
+- `trend` (int or None): Trend window (auto-detected if None)
+- `method` (str): 'stl' or 'twitter' anomaly detection
+- `decomp` (str): 'additive' or 'multiplicative' decomposition
+- `clean` (str): 'min_max' (replace with bounds) or 'linear' (interpolate)
+- `iqr_alpha` (float): IQR sensitivity (lower = more sensitive, default: 0.05)
+- `clean_alpha` (float): Cleaning strength 0-1 (default: 0.75)
+- `max_anomalies` (float): Maximum proportion of data as anomalies (default: 0.2)
+
+**Example:**
+```python
+# Clean anomalies in sales data
+.step_clean_anomalies(
+    date_column='date',
+    value_columns=['sales', 'revenue'],
+    method='stl',
+    clean='min_max'
+)
+
+# More aggressive detection
+.step_clean_anomalies(
+    date_column='date',
+    iqr_alpha=0.01,      # More sensitive
+    clean_alpha=0.9,     # More aggressive cleaning
+    max_anomalies=0.15
+)
+
+# Twitter method with multiplicative decomposition
+.step_clean_anomalies(
+    date_column='timestamp',
+    method='twitter',
+    decomp='multiplicative'
+)
+```
+
+**Use case:** Robust forecasting by removing outliers and anomalous observations that could distort model training.
+
+**Requires:** `pytimetk` package
+
+---
+
+#### `step_stationary(columns=None, max_diff=2, test='adf', alpha=0.05, seasonal_diff=False, seasonal_period=None)`
+Transform time series to achieve stationarity using differencing, verified by statistical tests.
+
+**Algorithm:**
+Applies differencing operations (with optional seasonal differencing) until the series becomes stationary according to Augmented Dickey-Fuller (ADF) or KPSS tests. Stops when stationary or max_diff reached.
+- ADF test: H0 = non-stationary (reject if p < alpha)
+- KPSS test: H0 = stationary (accept if p >= alpha)
+
+**Parameters:**
+- `columns` (selector or None): Columns to transform (None = all numeric)
+- `max_diff` (int): Maximum differencing order, 1 or 2 (default: 2)
+- `test` (str): 'adf', 'kpss', or 'both' stationarity test
+- `alpha` (float): Significance level (default: 0.05)
+- `seasonal_diff` (bool): Apply seasonal differencing first (default: False)
+- `seasonal_period` (int or None): Period for seasonal differencing (required if seasonal_diff=True)
+
+**Example:**
+```python
+# Make series stationary with ADF test
+.step_stationary(
+    columns=['sales', 'revenue'],
+    max_diff=2,
+    test='adf'
+)
+
+# Seasonal differencing for monthly data
+.step_stationary(
+    seasonal_diff=True,
+    seasonal_period=12,
+    max_diff=1
+)
+
+# Strict stationarity (both tests must agree)
+.step_stationary(
+    test='both',
+    alpha=0.01  # More strict
+)
+```
+
+**Use case:** Pre-processing for ARIMA models and time series forecasting. Most statistical time series models require stationary data.
+
+**Requires:** `statsmodels` package
+
+---
+
+#### `step_deseasonalize(columns=None, period=None, model='additive', method='stl', extrapolate_trend=0)`
+Remove seasonal component from time series using decomposition.
+
+**Algorithm:**
+Uses seasonal decomposition to separate time series into trend + seasonal + residual components:
+- Additive model: y = trend + seasonal + residual → deseasonalized = y - seasonal
+- Multiplicative model: y = trend × seasonal × residual → deseasonalized = y / seasonal
+STL decomposition is more robust to outliers than classical decomposition.
+
+**Parameters:**
+- `columns` (selector or None): Columns to deseasonalize (None = all numeric)
+- `period` (int or None): Seasonal period (auto-detected if None, e.g., 12 for monthly, 7 for daily)
+- `model` (str): 'additive' or 'multiplicative'
+- `method` (str): 'stl' (robust) or 'classical'
+- `extrapolate_trend` (int): Points to extrapolate trend at edges (default: 0)
+
+**Example:**
+```python
+# Remove monthly seasonality
+.step_deseasonalize(
+    columns=['sales'],
+    period=12,
+    model='additive'
+)
+
+# Robust STL for weekly data
+.step_deseasonalize(
+    period=7,
+    method='stl'
+)
+
+# Multiplicative for percentage-based seasonality
+.step_deseasonalize(
+    model='multiplicative',
+    period=4  # Quarterly
+)
+```
+
+**Use case:** Extract trend and random components by removing predictable seasonal patterns. Useful when seasonality is already captured by other features.
+
+**Requires:** `statsmodels` package
+**Note:** Requires at least 2 full seasonal periods of data
+
+---
+
+#### `step_detrend(columns=None, method='linear', breakpoints=0)`
+Remove systematic trend from time series.
+
+**Algorithm:**
+Fits and removes trend component:
+- Linear: Fits line y = slope × t + intercept, subtracts it
+- Constant: Subtracts mean (centers data)
+- Piecewise: Multiple linear segments for changing trends (specify breakpoints)
+
+**Parameters:**
+- `columns` (selector or None): Columns to detrend (None = all numeric)
+- `method` (str): 'linear' or 'constant' (mean removal)
+- `breakpoints` (int or list): Number or positions of breakpoints for piecewise (0 = single line)
+
+**Example:**
+```python
+# Simple linear detrending
+.step_detrend(
+    columns=['sales', 'revenue'],
+    method='linear'
+)
+
+# Piecewise with 2 breakpoints (3 segments)
+.step_detrend(
+    method='linear',
+    breakpoints=2
+)
+
+# Remove mean (center data)
+.step_detrend(
+    method='constant'
+)
+```
+
+**Use case:** Remove long-term trends to focus on short-term dynamics and seasonal patterns. Often used before fitting stationary models.
+
+**Requires:** `scipy` package
+
+---
+
+#### `step_h_stat(outcome, columns=None, top_n=10, threshold=None, n_estimators=100, max_depth=5, random_state=None)`
+Detect and create interaction features using Friedman's H-statistic.
+
+**Algorithm:**
+Uses gradient boosting to measure interaction strength between feature pairs via H-statistic:
+- H-statistic measures how much the joint partial dependence deviates from the sum of individual partial dependences
+- Values range from 0 (no interaction) to 1 (strong interaction)
+- Creates interaction features: x1 × x2 for detected pairs
+
+**Parameters:**
+- `outcome` (str): Outcome variable name
+- `columns` (selector or None): Columns to check (None = all numeric except outcome)
+- `top_n` (int): Keep top N interactions (default: 10)
+- `threshold` (float or None): H-statistic threshold (alternative to top_n)
+- `n_estimators` (int): Number of trees in gradient boosting (default: 100)
+- `max_depth` (int): Maximum tree depth (default: 5)
+- `random_state` (int or None): Random seed
+
+**Example:**
+```python
+# Find top 10 interactions
+.step_h_stat(
+    outcome='target',
+    top_n=10
+)
+
+# Use threshold instead
+.step_h_stat(
+    outcome='sales',
+    threshold=0.1,
+    n_estimators=200
+)
+
+# Specific features only
+.step_h_stat(
+    outcome='price',
+    columns=['feature1', 'feature2', 'feature3'],
+    top_n=5
+)
+```
+
+**Use case:** Automatic interaction detection for linear models. Captures non-linear relationships by creating multiplicative features.
+
+**Requires:** `scikit-learn` package
+**Performance:** O(n_features²) complexity - can be slow for many features
+
+---
+
+#### `step_best_lag(outcome, columns=None, max_lag=12, test='ssr_ftest', alpha=0.05, add_const=True)`
+Select optimal lag features using Granger causality test.
+
+**Algorithm:**
+Tests Granger causality for each lag from 1 to max_lag:
+- Granger causality: X Granger-causes Y if past values of X help predict Y
+- Tests whether adding lagged X improves prediction of Y beyond lagged Y alone
+- Keeps lags with p-value < alpha (statistically significant)
+Creates lag features: x_lag1, x_lag2, ... for selected lags
+
+**Parameters:**
+- `outcome` (str): Outcome variable name
+- `columns` (selector or None): Columns to create lags for (None = all numeric except outcome)
+- `max_lag` (int): Maximum lag to test (default: 12)
+- `test` (str): 'ssr_ftest', 'ssr_chi2test', 'lrtest', or 'params_ftest'
+- `alpha` (float): Significance level (default: 0.05)
+- `add_const` (bool): Add constant to regression (default: True)
+
+**Example:**
+```python
+# Find best lags up to 12 periods
+.step_best_lag(
+    outcome='target',
+    max_lag=12,
+    alpha=0.05
+)
+
+# Test specific predictors
+.step_best_lag(
+    outcome='sales',
+    columns=['price', 'advertising'],
+    max_lag=6
+)
+
+# More strict test
+.step_best_lag(
+    outcome='revenue',
+    max_lag=24,
+    alpha=0.01,     # More conservative
+    test='lrtest'   # Likelihood ratio test
+)
+```
+
+**Use case:** Automatic lag selection for time series regression. Better than using all lags (reduces overfitting) or arbitrary lag choice.
+
+**Requires:** `statsmodels` package
+**Note:** Requires stationary data for valid results. Consider using after step_stationary()
 
 ---
 
@@ -1148,6 +1430,300 @@ rf = RandomForestRegressor(n_estimators=100, random_state=42)
 **Comparison with SHAP:**
 - **SHAP:** Game theory-based, explains individual predictions, faster for tree models
 - **Permutation:** Simpler concept, model-agnostic, slower but works with any model
+
+---
+
+### Feature-Engine Selection Steps
+
+These selection steps use feature-engine library for supervised discretization, outlier handling, and intelligent correlation-based selection.
+
+#### `step_dt_discretiser(outcome, columns=None, cv=3, scoring='neg_mean_squared_error', regression=True, random_state=None)`
+Discretize continuous variables using decision tree splits optimized for predicting the outcome.
+
+**Algorithm:**
+Uses DecisionTreeDiscretiser to bin numeric variables based on decision tree splits:
+- Fits decision tree to predict outcome from each continuous feature
+- Uses CV to find optimal tree complexity
+- Bin boundaries are tree split points
+- Creates discrete intervals optimized for outcome prediction
+
+**Parameters:**
+- `outcome` (str): Outcome variable name
+- `columns` (selector or None): Columns to discretize (None = all numeric except outcome)
+- `cv` (int): Cross-validation folds (default: 3)
+- `scoring` (str): Scoring metric - regression ('neg_mean_squared_error', 'r2') or classification ('roc_auc', 'f1', 'accuracy')
+- `regression` (bool): True for regression tree, False for classification tree (default: True)
+- `random_state` (int or None): Random seed
+
+**Example:**
+```python
+# Discretize numeric features for regression
+.step_dt_discretiser(
+    outcome='target',
+    columns=['age', 'income', 'credit_score'],
+    cv=5
+)
+
+# Classification with specific scoring
+.step_dt_discretiser(
+    outcome='species',
+    regression=False,
+    scoring='roc_auc',
+    cv=10
+)
+
+# Auto-discretize all numeric predictors
+.step_dt_discretiser(
+    outcome='price'
+)
+```
+
+**Use case:** Supervised binning that preserves relationship with outcome. Better than equal-width/equal-frequency binning for predictive modeling.
+
+**Requires:** `feature-engine` package
+**Creates:** Replaces continuous columns with discrete bins (categories)
+
+---
+
+#### `step_winsorizer(columns=None, capping_method='iqr', tail='both', fold=1.5, quantiles=None)`
+Cap extreme values using Winsorization (outlier capping).
+
+**Algorithm:**
+Replaces outliers with less extreme values at specified thresholds:
+- **IQR method**: Caps at Q1 - fold×IQR and Q3 + fold×IQR
+- **Gaussian method**: Caps at mean ± fold×std
+- **Quantiles method**: Caps at specified quantiles
+Learns capping values from training data, applies same bounds to test data.
+
+**Parameters:**
+- `columns` (selector or None): Columns to winsorize (None = all numeric)
+- `capping_method` (str): 'iqr', 'gaussian', or 'quantiles'
+- `tail` (str): 'right' (upper only), 'left' (lower only), or 'both'
+- `fold` (float): Multiplier for IQR (1.5 = standard) or std for gaussian (default: 1.5)
+- `quantiles` (tuple or None): (lower, upper) quantiles for 'quantiles' method (e.g., (0.05, 0.95))
+
+**Example:**
+```python
+# Standard IQR winsorization (1.5×IQR)
+.step_winsorizer(
+    columns=['income', 'age'],
+    capping_method='iqr',
+    fold=1.5
+)
+
+# Quantile-based capping (5th and 95th percentile)
+.step_winsorizer(
+    capping_method='quantiles',
+    quantiles=(0.05, 0.95)
+)
+
+# Upper tail only using gaussian (mean + 3σ)
+.step_winsorizer(
+    columns=['score'],
+    capping_method='gaussian',
+    tail='right',
+    fold=3.0
+)
+```
+
+**Use case:** Reduce impact of outliers without removing observations. Preserves sample size while making models more robust.
+
+**Requires:** `feature-engine` package
+**Note:** Preserves all observations (unlike outlier removal)
+
+---
+
+#### `step_outlier_trimmer(columns=None, capping_method='iqr', tail='both', fold=1.5, quantiles=None)`
+Remove observations containing outliers.
+
+**Algorithm:**
+Identifies and removes rows with outlier values:
+- Uses same detection methods as Winsorizer (IQR, Gaussian, Quantiles)
+- Removes entire row if ANY selected column contains outlier
+- Outlier thresholds learned from training data
+
+**Parameters:**
+- `columns` (selector or None): Columns to check for outliers (None = all numeric)
+- `capping_method` (str): 'iqr', 'gaussian', or 'quantiles' detection method
+- `tail` (str): 'right', 'left', or 'both' tails to check
+- `fold` (float): IQR multiplier or std multiplier (default: 1.5)
+- `quantiles` (tuple or None): (lower, upper) quantiles for 'quantiles' method
+
+**Example:**
+```python
+# Remove rows with IQR outliers
+.step_outlier_trimmer(
+    columns=['income', 'age'],
+    capping_method='iqr',
+    fold=1.5
+)
+
+# Remove extreme upper values only
+.step_outlier_trimmer(
+    columns=['score'],
+    capping_method='gaussian',
+    tail='right',
+    fold=3.0
+)
+
+# Quantile-based trimming
+.step_outlier_trimmer(
+    capping_method='quantiles',
+    quantiles=(0.01, 0.99)
+)
+```
+
+**Use case:** Aggressive outlier handling for clean training data. Use with caution on test data (may remove valid observations).
+
+**Requires:** `feature-engine` package
+**Warning:** Modifies row count - use early in recipe pipeline to avoid index misalignment
+
+---
+
+#### `step_dt_features(outcome, columns=None, features_to_combine=None, cv=3, scoring='neg_mean_squared_error', regression=True, random_state=None)`
+Create new features using decision tree leaf membership.
+
+**Algorithm:**
+Uses DecisionTreeFeatures to create engineered features:
+- Fits decision trees on feature combinations
+- Each tree leaf becomes a binary feature
+- Features capture non-linear interactions between inputs
+- Optimized via CV for predicting outcome
+
+**Parameters:**
+- `outcome` (str): Outcome variable name
+- `columns` (selector or None): Columns to use (None = all numeric except outcome)
+- `features_to_combine` (int or None): Number of feature combinations (None = all possible, can be expensive)
+- `cv` (int): Cross-validation folds (default: 3)
+- `scoring` (str): Scoring metric for regression or classification
+- `regression` (bool): True for regression, False for classification (default: True)
+- `random_state` (int or None): Random seed
+
+**Example:**
+```python
+# Create decision tree features for regression
+.step_dt_features(
+    outcome='price',
+    features_to_combine=5,
+    cv=5
+)
+
+# Classification with limited combinations
+.step_dt_features(
+    outcome='species',
+    columns=['sepal_length', 'sepal_width'],
+    regression=False,
+    features_to_combine=3
+)
+
+# All possible combinations (computationally expensive)
+.step_dt_features(
+    outcome='target'
+)
+```
+
+**Use case:** Automatic non-linear feature engineering. Captures complex interactions between features using tree-based transformations.
+
+**Requires:** `feature-engine` package
+**Performance:** Can be slow with many features. Use `features_to_combine` to limit complexity.
+**Creates:** Multiple binary indicator columns (original_col_tree_N)
+
+---
+
+#### `step_select_smart_corr(outcome, columns=None, threshold=0.8, method='pearson', selection_method='variance')`
+Intelligent correlation-based feature selection keeping most predictive features.
+
+**Algorithm:**
+Smart correlation selection that considers relationship with outcome:
+1. Identifies correlated feature groups (correlation > threshold)
+2. Within each group, selects one feature to keep based on selection_method:
+   - **variance**: Keep feature with highest variance
+   - **cardinality**: Keep categorical with most categories
+   - **model_performance**: Keep feature most correlated with outcome
+
+**Parameters:**
+- `outcome` (str): Outcome variable name
+- `columns` (selector or None): Columns to consider (None = all numeric except outcome)
+- `threshold` (float): Correlation threshold (0-1, default: 0.8)
+- `method` (str): 'pearson', 'spearman', or 'kendall' correlation
+- `selection_method` (str): 'variance', 'cardinality', or 'model_performance'
+
+**Example:**
+```python
+# Remove highly correlated features, keep most predictive
+.step_select_smart_corr(
+    outcome='target',
+    threshold=0.9,
+    selection_method='model_performance'
+)
+
+# Variance-based selection
+.step_select_smart_corr(
+    columns=['feature1', 'feature2', 'feature3'],
+    threshold=0.85,
+    method='spearman',
+    selection_method='variance'
+)
+
+# Conservative threshold
+.step_select_smart_corr(
+    outcome='price',
+    threshold=0.95,
+    method='pearson'
+)
+```
+
+**Use case:** Smarter than simple correlation filtering. Reduces multicollinearity while preserving predictive power by considering outcome relationship.
+
+**Requires:** `feature-engine` package
+
+---
+
+#### `step_select_psi(columns=None, threshold=0.25, bins=10, strategy='equal_frequency')`
+Remove features with high Population Stability Index (PSI) indicating distribution shift.
+
+**Algorithm:**
+Detects features with significant distribution changes between train and test:
+1. Splits training data to estimate train/test distributions
+2. Discretizes features into bins
+3. Calculates PSI: Σ (% test - % train) × ln(% test / % train)
+4. Removes features with PSI > threshold
+- PSI < 0.1: No significant change
+- PSI 0.1-0.25: Moderate change
+- PSI > 0.25: Significant change (drop)
+
+**Parameters:**
+- `columns` (selector or None): Columns to check (None = all numeric)
+- `threshold` (float): PSI threshold for dropping features (default: 0.25)
+- `bins` (int): Number of bins for discretization (default: 10)
+- `strategy` (str): 'equal_frequency' or 'equal_width' binning
+
+**Example:**
+```python
+# Remove features with significant drift
+.step_select_psi(
+    threshold=0.25,
+    bins=10
+)
+
+# More conservative threshold
+.step_select_psi(
+    columns=['feature1', 'feature2'],
+    threshold=0.15,
+    strategy='equal_width'
+)
+
+# Fine-grained binning
+.step_select_psi(
+    threshold=0.2,
+    bins=20
+)
+```
+
+**Use case:** Detect and remove features with data drift. Critical for production models where train/test distributions may shift over time.
+
+**Requires:** `feature-engine` package
+**Note:** Requires sufficient data in both splits for reliable PSI estimation
 
 ---
 
