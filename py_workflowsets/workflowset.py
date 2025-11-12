@@ -1073,28 +1073,41 @@ class WorkflowSetNestedResults:
                     # Get ACTUAL feature names from the fitted model
                     # This is more reliable than preprocessing because it shows what the model ACTUALLY used
                     model_fit = wf_fit.fit  # The ModelFit object
+                    predictor_cols = None
 
-                    if hasattr(model_fit, 'fit_data') and 'X_train' in model_fit.fit_data:
-                        # Get the training predictors DataFrame that was used for fitting
-                        X_train = model_fit.fit_data['X_train']
+                    if hasattr(model_fit, 'fit_data'):
+                        fit_data = model_fit.fit_data
 
-                        if isinstance(X_train, pd.DataFrame):
-                            # Get column names from the actual training data used by model
-                            # This reflects what survived ALL preprocessing including feature selection
-                            predictor_cols = [
-                                col for col in X_train.columns
-                                if col != 'Intercept'  # Exclude patsy's Intercept column
-                            ]
-                        else:
-                            # Fallback: X_train is array, can't get column names
-                            formula = original_formula
-                            n_features = X_train.shape[1] if hasattr(X_train, 'shape') else 0
-                            predictor_cols = None
-                    else:
-                        # Fallback: no X_train in fit_data
+                        # Try sklearn-based engines first (store X_train DataFrame)
+                        if 'X_train' in fit_data:
+                            X_train = fit_data['X_train']
+
+                            if isinstance(X_train, pd.DataFrame):
+                                # Get column names from the actual training data used by model
+                                # This reflects what survived ALL preprocessing including feature selection
+                                predictor_cols = [
+                                    col for col in X_train.columns
+                                    if col != 'Intercept'  # Exclude patsy's Intercept column
+                                ]
+                            else:
+                                # X_train is array, can't get column names
+                                n_features = X_train.shape[1] if hasattr(X_train, 'shape') else 0
+
+                        # Try time series engines (store exog_vars list)
+                        elif 'exog_vars' in fit_data:
+                            exog_vars = fit_data['exog_vars']
+
+                            if isinstance(exog_vars, list):
+                                # Time series models store exogenous variable names as list
+                                predictor_cols = exog_vars
+                            else:
+                                # Unexpected format
+                                pass
+
+                    # Fallback if we couldn't extract features
+                    if predictor_cols is None:
                         formula = original_formula
                         n_features = formula.count('+') + 1 if '+' in formula else 1
-                        predictor_cols = None
 
                     # Reconstruct formula with actual features
                     if predictor_cols is not None:
