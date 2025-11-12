@@ -30,6 +30,7 @@ enhancements from testing and to check
 22. inverse transformations
 24. fit_global - outcome has to be renamed "target"
 25. test inplace recipe transformations
+26. trelliscopejs integration
 
 ## RECIPES
 

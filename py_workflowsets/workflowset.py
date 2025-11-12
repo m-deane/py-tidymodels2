@@ -1014,26 +1014,38 @@ class WorkflowSetNestedResults:
 
         return (outputs_df, coefs_df, stats_df)
 
-    def extract_formulas(self) -> dict:
+    def extract_formulas(self) -> pd.DataFrame:
         """
-        Extract formulas from all workflows.
+        Extract formulas from all workflows for all groups.
 
-        Returns a dictionary mapping workflow ID to formula string.
-        All workflows in a WorkflowSet use the same formula across groups,
-        so this extracts one formula per workflow.
+        Returns a DataFrame showing the formula used by each workflow
+        for each group. When per_group_prep=True, different groups may
+        have different formulas due to group-specific preprocessing.
 
         Returns:
-            Dictionary with workflow IDs as keys and formula strings as values
+            DataFrame with columns:
+            - wflow_id: Workflow identifier
+            - group: Group name
+            - formula: Formula string used for that workflow-group combination
+            - preprocessor: Preprocessor type (formula or recipe)
+            - model: Model type
 
         Examples:
             >>> # Get formulas from all workflows
-            >>> formulas = results.extract_formulas()
-            >>> for wf_id, formula in formulas.items():
-            ...     print(f"{wf_id}: {formula}")
-            prep_1_linear_reg_1: y ~ x1 + x2
-            prep_2_rand_forest_2: y ~ x1 + x2 + x3
+            >>> formulas_df = results.extract_formulas()
+            >>> print(formulas_df)
+               wflow_id   group          formula preprocessor      model
+            0  prep_1...     USA      y ~ x1 + x2      formula  linear_reg
+            1  prep_1... Germany      y ~ x1 + x2      formula  linear_reg
+            2  prep_2...     USA  y ~ x1 + x2 + x3      formula rand_forest
+
+            >>> # Filter to specific workflow
+            >>> wf1_formulas = formulas_df[formulas_df['wflow_id'] == 'prep_1_linear_reg_1']
+
+            >>> # Check if formulas differ across groups
+            >>> formulas_df.groupby('wflow_id')['formula'].nunique()
         """
-        formulas = {}
+        all_formulas = []
 
         for result in self.results:
             wf_id = result["wflow_id"]
@@ -1042,20 +1054,32 @@ class WorkflowSetNestedResults:
             if nested_fit is None:
                 continue  # Skip failed workflows
 
-            # Get first group's fit to extract formula
-            # (same formula across all groups for a given workflow)
-            if nested_fit.group_fits:
-                first_group = list(nested_fit.group_fits.keys())[0]
-                wf_fit = nested_fit.group_fits[first_group]
-
+            # Extract formula from each group's fit
+            for group_name, wf_fit in nested_fit.group_fits.items():
                 try:
                     formula = wf_fit.extract_formula()
-                    formulas[wf_id] = formula
+
+                    all_formulas.append({
+                        'wflow_id': wf_id,
+                        'group': group_name,
+                        'formula': formula
+                    })
                 except Exception:
-                    # If extract_formula() fails, skip this workflow
+                    # If extract_formula() fails, skip this group
                     continue
 
-        return formulas
+        # Create DataFrame
+        formulas_df = pd.DataFrame(all_formulas)
+
+        # Add workflow info from workflow_set
+        if not formulas_df.empty:
+            formulas_df = formulas_df.merge(
+                self.workflow_set.info[['wflow_id', 'preprocessor', 'model']],
+                on='wflow_id',
+                how='left'
+            )
+
+        return formulas_df
 
     def autoplot(self,
                 metric: str,
