@@ -968,6 +968,12 @@ class WorkflowSetNestedResults:
 
             outputs = outputs.copy()
             outputs["wflow_id"] = wf_id
+
+            # FIX: Ensure generic 'group' column matches specific group column
+            # This handles cases where 'group' is 'global' but self.group_col has actual values
+            if self.group_col in outputs.columns and 'group' in outputs.columns:
+                outputs['group'] = outputs[self.group_col]
+
             all_outputs.append(outputs)
 
         if not all_outputs:
@@ -986,6 +992,12 @@ class WorkflowSetNestedResults:
 
             coefs = coefs.copy()
             coefs["wflow_id"] = wf_id
+
+            # FIX: Ensure generic 'group' column matches specific group column
+            # This handles cases where 'group' is 'global' but self.group_col has actual values
+            if self.group_col in coefs.columns and 'group' in coefs.columns:
+                coefs['group'] = coefs[self.group_col]
+
             all_coefs.append(coefs)
 
         if not all_coefs:

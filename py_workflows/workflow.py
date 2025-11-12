@@ -1570,10 +1570,16 @@ class NestedWorkflowFit:
                         if test_mask.sum() == len(test_dates):
                             outputs.loc[test_mask, 'date'] = test_dates
 
-            # Add group column
+            # Add group column (both specific and generic)
             outputs[self.group_col] = group
             coefficients[self.group_col] = group
             stats[self.group_col] = group
+
+            # FIX: Also update the generic 'group' column
+            # This ensures df[df['group'] == 'USA'] filtering works
+            outputs['group'] = group
+            coefficients['group'] = group
+            stats['group'] = group
 
             all_outputs.append(outputs)
             all_coefficients.append(coefficients)
