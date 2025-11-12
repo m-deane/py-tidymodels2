@@ -127,6 +127,8 @@ class StepSelectGeneticAlgorithm:
     cv_folds: int = 5
     convergence_threshold: float = 1e-4
     convergence_patience: int = 10
+    adaptive_mutation: bool = False
+    adaptive_crossover: bool = False
     random_state: Optional[int] = None
     verbose: bool = False
     skip: bool = False
@@ -282,6 +284,8 @@ class StepSelectGeneticAlgorithm:
             tournament_size=self.tournament_size,
             convergence_threshold=self.convergence_threshold,
             convergence_patience=self.convergence_patience,
+            adaptive_mutation=self.adaptive_mutation,
+            adaptive_crossover=self.adaptive_crossover,
             random_state=self.random_state,
             verbose=self.verbose
         )
@@ -481,6 +485,8 @@ def step_select_genetic_algorithm(
     cv_folds: int = 5,
     convergence_threshold: float = 1e-4,
     convergence_patience: int = 10,
+    adaptive_mutation: bool = False,
+    adaptive_crossover: bool = False,
     random_state: Optional[int] = None,
     verbose: bool = False,
     skip: bool = False,
@@ -587,6 +593,8 @@ def step_select_genetic_algorithm(
         cv_folds=cv_folds,
         convergence_threshold=convergence_threshold,
         convergence_patience=convergence_patience,
+        adaptive_mutation=adaptive_mutation,
+        adaptive_crossover=adaptive_crossover,
         random_state=random_state,
         verbose=verbose,
         skip=skip,

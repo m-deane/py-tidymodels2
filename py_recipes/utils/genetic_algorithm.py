@@ -22,6 +22,8 @@ class GAConfig:
     tournament_size: int = 3
     convergence_threshold: float = 1e-4
     convergence_patience: int = 10
+    adaptive_mutation: bool = False
+    adaptive_crossover: bool = False
     random_state: Optional[int] = None
     verbose: bool = False
 
@@ -146,6 +148,14 @@ class GeneticAlgorithm:
         self.converged_: bool = False
         self.n_generations_: int = 0
 
+        # Adaptive rate tracking
+        self.initial_mutation_rate_: float = self.config.mutation_rate
+        self.initial_crossover_rate_: float = self.config.crossover_rate
+        self.current_mutation_rate_: float = self.config.mutation_rate
+        self.current_crossover_rate_: float = self.config.crossover_rate
+        self.mutation_rate_history_: List[float] = []
+        self.crossover_rate_history_: List[float] = []
+
     def initialize_population(self) -> np.ndarray:
         """
         Initialize binary population with optional warm start.
@@ -266,8 +276,8 @@ class GeneticAlgorithm:
         offspring1, offspring2 : Tuple[np.ndarray, np.ndarray]
             Two offspring chromosomes
         """
-        # Apply crossover with probability
-        if np.random.random() < self.config.crossover_rate:
+        # Apply crossover with probability (use adaptive rate if enabled)
+        if np.random.random() < self.current_crossover_rate_:
             # Select random crossover point
             point = np.random.randint(1, self.n_features)
 
@@ -307,7 +317,7 @@ class GeneticAlgorithm:
             if i in self.mandatory_indices or i in self.forbidden_indices:
                 continue
 
-            if np.random.random() < self.config.mutation_rate:
+            if np.random.random() < self.current_mutation_rate_:
                 mutated[i] = 1 - mutated[i]
 
         # Ensure mandatory features are set
@@ -391,6 +401,59 @@ class GeneticAlgorithm:
 
         return max_improvement < self.config.convergence_threshold
 
+    def adapt_rates(self) -> None:
+        """
+        Adapt mutation and crossover rates based on evolution progress.
+
+        Adaptation strategy:
+        - Low fitness variance (converging) → increase mutation (explore)
+        - High improvement rate → decrease mutation (exploit)
+        - Rates bounded between 0.05 and 0.5 for stability
+
+        Updates self.current_mutation_rate_ and self.current_crossover_rate_.
+        """
+        if len(self.fitness_history_) < 5:
+            # Need at least 5 generations for meaningful adaptation
+            return
+
+        # Calculate fitness variance across population
+        fitness_variance = np.var(self.fitness_scores_) if self.fitness_scores_ is not None else 1.0
+
+        # Calculate recent improvement rate
+        recent_history = self.fitness_history_[-5:]
+        improvement_rate = (recent_history[-1] - recent_history[0]) / len(recent_history)
+
+        # Normalize metrics for adaptation
+        # High variance = diverse population (exploring) → decrease mutation
+        # Low variance = converging population → increase mutation
+        variance_factor = 1.0 / (1.0 + fitness_variance) if fitness_variance > 0 else 1.0
+
+        # High improvement = making progress → decrease mutation (exploit)
+        # Low improvement = stuck → increase mutation (explore)
+        improvement_factor = 1.0 / (1.0 + abs(improvement_rate)) if improvement_rate != 0 else 1.0
+
+        # Adapt mutation rate
+        if self.config.adaptive_mutation:
+            # Increase mutation when converging (low variance) or not improving
+            adaptation = variance_factor * improvement_factor
+            self.current_mutation_rate_ = self.initial_mutation_rate_ * (1.0 + 2.0 * adaptation)
+
+            # Bound mutation rate
+            self.current_mutation_rate_ = np.clip(self.current_mutation_rate_, 0.05, 0.5)
+
+        # Adapt crossover rate (inverse of mutation - more crossover when exploiting)
+        if self.config.adaptive_crossover:
+            # Increase crossover when making progress (low adaptation)
+            adaptation = variance_factor * improvement_factor
+            self.current_crossover_rate_ = self.initial_crossover_rate_ * (1.0 + adaptation)
+
+            # Bound crossover rate
+            self.current_crossover_rate_ = np.clip(self.current_crossover_rate_, 0.5, 0.95)
+
+        # Track rate history
+        self.mutation_rate_history_.append(self.current_mutation_rate_)
+        self.crossover_rate_history_.append(self.current_crossover_rate_)
+
     def evolve(self) -> Tuple[np.ndarray, float, List[float]]:
         """
         Run the genetic algorithm evolution process.
@@ -456,6 +519,10 @@ class GeneticAlgorithm:
                 self.best_fitness_ = self.fitness_scores_[best_idx]
 
             self.fitness_history_.append(self.best_fitness_)
+
+            # Adapt mutation and crossover rates if enabled
+            if self.config.adaptive_mutation or self.config.adaptive_crossover:
+                self.adapt_rates()
 
             if self.config.verbose and generation % 10 == 0:
                 print(f"Generation {generation}: Best fitness = {self.best_fitness_:.6f}")
