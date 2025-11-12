@@ -1016,17 +1016,22 @@ class WorkflowSetNestedResults:
 
     def extract_formulas(self) -> pd.DataFrame:
         """
-        Extract formulas from all workflows for all groups.
+        Extract actual formulas from all workflows for all groups.
 
-        Returns a DataFrame showing the formula used by each workflow
-        for each group. When per_group_prep=True, different groups may
-        have different formulas due to group-specific preprocessing.
+        Returns a DataFrame showing the ACTUAL formula used by each workflow
+        for each group after all preprocessing. This is critical when using
+        supervised feature selection steps (like step_select_corr, step_select_vif),
+        which may select different features per group.
+
+        The returned formulas reflect the features that actually made it through
+        preprocessing, not the original formula before feature selection.
 
         Returns:
             DataFrame with columns:
             - wflow_id: Workflow identifier
             - group: Group name
-            - formula: Formula string used for that workflow-group combination
+            - formula: Actual formula with features that survived preprocessing
+            - n_features: Number of predictor features
             - preprocessor: Preprocessor type (formula or recipe)
             - model: Model type
 
@@ -1034,16 +1039,19 @@ class WorkflowSetNestedResults:
             >>> # Get formulas from all workflows
             >>> formulas_df = results.extract_formulas()
             >>> print(formulas_df)
-               wflow_id   group          formula preprocessor      model
-            0  prep_1...     USA      y ~ x1 + x2      formula  linear_reg
-            1  prep_1... Germany      y ~ x1 + x2      formula  linear_reg
-            2  prep_2...     USA  y ~ x1 + x2 + x3      formula rand_forest
+               wflow_id   group          formula  n_features preprocessor      model
+            0  prep_1...     USA      y ~ x1 + x2           2       recipe  linear_reg
+            1  prep_1... Germany          y ~ x1           1       recipe  linear_reg
+            2  prep_2...     USA  y ~ x1 + x2 + x3           3       recipe rand_forest
 
             >>> # Filter to specific workflow
             >>> wf1_formulas = formulas_df[formulas_df['wflow_id'] == 'prep_1_linear_reg_1']
 
             >>> # Check if formulas differ across groups
             >>> formulas_df.groupby('wflow_id')['formula'].nunique()
+
+            >>> # See which groups have different feature counts
+            >>> formulas_df.pivot(index='wflow_id', columns='group', values='n_features')
         """
         all_formulas = []
 
@@ -1054,18 +1062,52 @@ class WorkflowSetNestedResults:
             if nested_fit is None:
                 continue  # Skip failed workflows
 
-            # Extract formula from each group's fit
+            # Extract ACTUAL formula from each group's fit
+            # This shows which features survived preprocessing
             for group_name, wf_fit in nested_fit.group_fits.items():
                 try:
-                    formula = wf_fit.extract_formula()
+                    # Get original formula for outcome variable
+                    original_formula = wf_fit.extract_formula()
+                    outcome_name = original_formula.split('~')[0].strip()
+
+                    # Get training data for this group to see what features survived
+                    group_train_data = nested_fit.group_train_data.get(group_name)
+
+                    if group_train_data is None:
+                        # Fallback to original formula if no training data
+                        formula = original_formula
+                        n_features = formula.count('+') + 1 if '+' in formula else 1
+                    else:
+                        # Apply preprocessing to get ACTUAL features used
+                        preprocessed = wf_fit.extract_preprocessed_data(group_train_data)
+
+                        # Get predictor columns (exclude outcome, group column, and Intercept)
+                        # Patsy adds "Intercept" column for formulas, which we don't want in the formula
+                        predictor_cols = [
+                            col for col in preprocessed.columns
+                            if col != outcome_name
+                            and col != nested_fit.group_col
+                            and col != 'Intercept'
+                        ]
+
+                        # Reconstruct formula with actual features
+                        if len(predictor_cols) == 0:
+                            formula = f"{outcome_name} ~ 1"  # Intercept only
+                            n_features = 0
+                        else:
+                            formula = f"{outcome_name} ~ {' + '.join(predictor_cols)}"
+                            n_features = len(predictor_cols)
 
                     all_formulas.append({
                         'wflow_id': wf_id,
                         'group': group_name,
-                        'formula': formula
+                        'formula': formula,
+                        'n_features': n_features
                     })
-                except Exception:
-                    # If extract_formula() fails, skip this group
+                except Exception as e:
+                    # If extraction fails, skip this group
+                    import warnings
+                    warnings.warn(f"Failed to extract formula for {wf_id}, {group_name}: {e}")
                     continue
 
         # Create DataFrame

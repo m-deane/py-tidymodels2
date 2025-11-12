@@ -37,7 +37,7 @@ def test_extract_formulas():
     assert isinstance(formulas_df, pd.DataFrame), "extract_formulas should return a DataFrame"
 
     # Verify columns
-    expected_cols = {'wflow_id', 'group', 'formula', 'preprocessor', 'model'}
+    expected_cols = {'wflow_id', 'group', 'formula', 'n_features', 'preprocessor', 'model'}
     assert set(formulas_df.columns) == expected_cols, \
         f"Expected columns {expected_cols}, got {set(formulas_df.columns)}"
 
@@ -86,6 +86,19 @@ def test_extract_formulas():
     formula_uniqueness = formulas_df.groupby('wflow_id')['formula'].nunique()
     assert (formula_uniqueness == 1).all(), \
         "With per_group_prep=False, formulas should be same across groups"
+
+    # Verify n_features column has correct counts
+    assert (formulas_df['n_features'] >= 0).all(), "n_features should be non-negative"
+
+    # For prep_1 (y ~ x1), should have 1 feature
+    prep_1_rows = formulas_df[formulas_df['wflow_id'].str.startswith('prep_1')]
+    assert (prep_1_rows['n_features'] == 1).all(), \
+        f"prep_1 should have 1 feature, got: {prep_1_rows['n_features'].unique()}"
+
+    # For prep_2 (y ~ x1 + x2), should have 2 features
+    prep_2_rows = formulas_df[formulas_df['wflow_id'].str.startswith('prep_2')]
+    assert (prep_2_rows['n_features'] == 2).all(), \
+        f"prep_2 should have 2 features, got: {prep_2_rows['n_features'].unique()}"
 
     print(f"✅ extract_formulas() returned {len(formulas_df)} rows")
     print("\nSample:")
