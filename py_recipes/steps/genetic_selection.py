@@ -111,6 +111,12 @@ class StepSelectGeneticAlgorithm:
     maximize: bool = False
     top_n: Optional[int] = None
     constraints: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    mandatory_features: List[str] = field(default_factory=list)
+    forbidden_features: List[str] = field(default_factory=list)
+    feature_costs: Dict[str, float] = field(default_factory=dict)
+    max_total_cost: Optional[float] = None
+    cost_weight: float = 0.0
+    sparsity_weight: float = 0.0
     population_size: int = 50
     generations: int = 100
     mutation_rate: float = 0.1
@@ -229,6 +235,42 @@ class StepSelectGeneticAlgorithm:
         else:
             fitness_fn = base_fitness_fn
 
+        # Map mandatory and forbidden features to indices
+        mandatory_indices = [numeric_cols.index(f) for f in self.mandatory_features if f in numeric_cols]
+        forbidden_indices = [numeric_cols.index(f) for f in self.forbidden_features if f in numeric_cols]
+
+        # Create cost array if specified
+        cost_array = None
+        if self.feature_costs:
+            cost_array = np.array([self.feature_costs.get(f, 0.0) for f in numeric_cols])
+
+        # Wrap fitness function with cost and sparsity penalties if needed
+        if self.cost_weight > 0 or self.sparsity_weight > 0:
+            base_fitness = fitness_fn
+
+            def enhanced_fitness(chromosome):
+                fitness = base_fitness(chromosome)
+
+                # Add cost penalty
+                if self.cost_weight > 0 and cost_array is not None:
+                    total_cost = np.sum(chromosome * cost_array)
+                    if self.max_total_cost and total_cost > self.max_total_cost:
+                        # Heavy penalty for exceeding budget
+                        fitness -= (total_cost - self.max_total_cost) * self.cost_weight * 10
+                    else:
+                        # Soft penalty proportional to cost
+                        fitness -= total_cost * self.cost_weight
+
+                # Add sparsity penalty (prefer fewer features)
+                if self.sparsity_weight > 0:
+                    n_selected = np.sum(chromosome)
+                    sparsity_penalty = (n_selected / len(chromosome)) * self.sparsity_weight
+                    fitness -= sparsity_penalty
+
+                return fitness
+
+            fitness_fn = enhanced_fitness
+
         # Configure GA
         ga_config = GAConfig(
             population_size=self.population_size,
@@ -247,7 +289,11 @@ class StepSelectGeneticAlgorithm:
         ga = GeneticAlgorithm(
             n_features=len(numeric_cols),
             fitness_function=fitness_fn,
-            config=ga_config
+            config=ga_config,
+            mandatory_indices=mandatory_indices,
+            forbidden_indices=forbidden_indices,
+            feature_costs=cost_array,
+            max_cost=self.max_total_cost
         )
 
         best_chromosome, best_fitness, history = ga.evolve()
@@ -389,6 +435,12 @@ def step_select_genetic_algorithm(
     maximize: bool = False,
     top_n: Optional[int] = None,
     constraints: Dict[str, Dict[str, Any]] = None,
+    mandatory_features: List[str] = None,
+    forbidden_features: List[str] = None,
+    feature_costs: Dict[str, float] = None,
+    max_total_cost: Optional[float] = None,
+    cost_weight: float = 0.0,
+    sparsity_weight: float = 0.0,
     population_size: int = 50,
     generations: int = 100,
     mutation_rate: float = 0.1,
@@ -473,6 +525,12 @@ def step_select_genetic_algorithm(
     """
     if constraints is None:
         constraints = {}
+    if mandatory_features is None:
+        mandatory_features = []
+    if forbidden_features is None:
+        forbidden_features = []
+    if feature_costs is None:
+        feature_costs = {}
 
     step = StepSelectGeneticAlgorithm(
         outcome=outcome,
@@ -482,6 +540,12 @@ def step_select_genetic_algorithm(
         maximize=maximize,
         top_n=top_n,
         constraints=constraints,
+        mandatory_features=mandatory_features,
+        forbidden_features=forbidden_features,
+        feature_costs=feature_costs,
+        max_total_cost=max_total_cost,
+        cost_weight=cost_weight,
+        sparsity_weight=sparsity_weight,
         population_size=population_size,
         generations=generations,
         mutation_rate=mutation_rate,
