@@ -1066,3 +1066,51 @@ class WorkflowSetNestedResults:
             plt.tight_layout()
 
         return fig
+
+    def evaluate(self, test_data: pd.DataFrame) -> "WorkflowSetNestedResults":
+        """
+        Evaluate all workflows on test data.
+
+        Calls evaluate() on each nested workflow fit to compute test metrics.
+        Updates the results in place and returns self for method chaining.
+
+        Args:
+            test_data: Test data DataFrame with group column
+
+        Returns:
+            Self (for method chaining)
+
+        Examples:
+            >>> # Fit on training data
+            >>> results = wf_set.fit_nested(train_data, group_col='country')
+            >>>
+            >>> # Evaluate on test data
+            >>> results = results.evaluate(test_data)
+            >>>
+            >>> # Now collect_metrics includes both train and test splits
+            >>> metrics = results.collect_metrics(split='test')
+        """
+        for i, result in enumerate(self.results):
+            nested_fit = result.get("nested_fit")
+
+            if nested_fit is None:
+                continue  # Skip failed workflows
+
+            try:
+                # Evaluate nested workflow on test data
+                evaluated_fit = nested_fit.evaluate(test_data)
+
+                # Extract updated outputs with test metrics
+                outputs, coefs, stats = evaluated_fit.extract_outputs()
+
+                # Update result with evaluated fit and new outputs
+                self.results[i]["nested_fit"] = evaluated_fit
+                self.results[i]["outputs"] = outputs
+                self.results[i]["coefs"] = coefs
+                self.results[i]["stats"] = stats
+
+            except Exception as e:
+                print(f"  ⚠ Error evaluating {result['wflow_id']}: {e}")
+                # Keep original results if evaluation fails
+
+        return self
