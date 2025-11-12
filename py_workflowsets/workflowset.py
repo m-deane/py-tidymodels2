@@ -5,7 +5,7 @@ Provides tools for comparing multiple workflows across different
 preprocessing strategies and model specifications.
 """
 
-from typing import List, Dict, Any, Optional, Union, Callable
+from typing import List, Dict, Any, Optional, Union, Callable, Tuple
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
@@ -85,7 +85,7 @@ class WorkflowSet:
 
     @classmethod
     def from_cross(cls,
-                   preproc: List[Union[str, Any]],
+                   preproc: Union[List[Union[str, Any]], Dict[str, Union[str, Any]], List[Tuple[str, Union[str, Any]]]],
                    models: List[Any],
                    ids: Optional[List[str]] = None):
         """
@@ -94,30 +94,54 @@ class WorkflowSet:
         Creates all combinations of preprocessors (formulas or recipes) and models.
 
         Args:
-            preproc: List of formulas (strings) or Recipe objects
+            preproc: Preprocessors in one of three formats:
+                - List: [recipe1, recipe2] or ["y ~ x1", "y ~ x2"] (generic IDs: prep_1, prep_2, ...)
+                - Dict: {'rec_lags': recipe1, 'rec_pca': recipe2} (uses keys as IDs)
+                - List of tuples: [('rec_lags', recipe1), ('rec_pca', recipe2)] (uses names as IDs)
             models: List of ModelSpec objects
-            ids: Optional list of ID prefixes for each preprocessor
+            ids: Optional list of ID prefixes for each preprocessor (only used with list format)
 
         Returns:
             WorkflowSet instance
 
         Examples:
+            >>> # List format with generic IDs
             >>> formulas = ["y ~ x1", "y ~ x1 + x2"]
             >>> models = [linear_reg(), rand_forest()]
             >>> wf_set = WorkflowSet.from_cross(formulas, models)
-            # Creates 4 workflows: 2 formulas × 2 models
+            # Creates: prep_1_linear_reg_1, prep_1_rand_forest_2, prep_2_linear_reg_1, prep_2_rand_forest_2
+
+            >>> # Dict format with custom names
+            >>> rec_lags = recipe().step_lag(['x1'], lag=7)
+            >>> rec_pca = recipe().step_pca(num_comp=3)
+            >>> wf_set = WorkflowSet.from_cross({'rec_lags': rec_lags, 'rec_pca': rec_pca}, models)
+            # Creates: rec_lags_linear_reg_1, rec_lags_rand_forest_2, rec_pca_linear_reg_1, rec_pca_rand_forest_2
+
+            >>> # Tuple format with custom names
+            >>> wf_set = WorkflowSet.from_cross([('rec_lags', rec_lags), ('rec_pca', rec_pca)], models)
+            # Same result as dict format
         """
         from py_workflows import workflow
 
         workflows_dict = {}
         info_data = []
 
-        if ids is None:
-            ids = [f"prep_{i+1}" for i in range(len(preproc))]
+        # Normalize preproc to list of (name, preprocessor) tuples
+        prep_items = []
+        if isinstance(preproc, dict):
+            # Dict format: {'rec_lags': recipe1, 'rec_pca': recipe2}
+            prep_items = list(preproc.items())
+        elif isinstance(preproc, list) and len(preproc) > 0 and isinstance(preproc[0], tuple):
+            # Tuple format: [('rec_lags', recipe1), ('rec_pca', recipe2)]
+            prep_items = preproc
+        else:
+            # List format (backward compatible): [recipe1, recipe2] or ["y ~ x1", "y ~ x2"]
+            if ids is None:
+                ids = [f"prep_{i+1}" for i in range(len(preproc))]
+            prep_items = [(ids[i] if i < len(ids) else f"prep_{i+1}", p) for i, p in enumerate(preproc)]
 
-        for i, prep in enumerate(preproc):
-            prep_id = ids[i] if i < len(ids) else f"prep_{i+1}"
-
+        # Create workflows from cross-product
+        for prep_id, prep in prep_items:
             for j, model in enumerate(models):
                 model_type = model.model_type
                 # Make ID unique by including model index
