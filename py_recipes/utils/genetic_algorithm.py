@@ -98,7 +98,11 @@ class GeneticAlgorithm:
         self,
         n_features: int,
         fitness_function: Callable[[np.ndarray], float],
-        config: Optional[GAConfig] = None
+        config: Optional[GAConfig] = None,
+        mandatory_indices: Optional[List[int]] = None,
+        forbidden_indices: Optional[List[int]] = None,
+        feature_costs: Optional[np.ndarray] = None,
+        max_cost: Optional[float] = None
     ):
         if n_features < 1:
             raise ValueError("n_features must be >= 1")
@@ -106,6 +110,16 @@ class GeneticAlgorithm:
         self.n_features = n_features
         self.fitness_function = fitness_function
         self.config = config if config is not None else GAConfig()
+
+        # Feature constraints
+        self.mandatory_indices = mandatory_indices if mandatory_indices is not None else []
+        self.forbidden_indices = forbidden_indices if forbidden_indices is not None else []
+        self.feature_costs = feature_costs
+        self.max_cost = max_cost
+
+        # Validate constraints
+        if set(self.mandatory_indices) & set(self.forbidden_indices):
+            raise ValueError("Feature cannot be both mandatory and forbidden")
 
         # Set random seed
         if self.config.random_state is not None:
@@ -126,6 +140,7 @@ class GeneticAlgorithm:
 
         Each chromosome has 50% probability of each bit being 1.
         Ensures at least one feature is selected per chromosome.
+        Respects mandatory and forbidden feature constraints.
 
         Returns
         -------
@@ -137,11 +152,21 @@ class GeneticAlgorithm:
             size=(self.config.population_size, self.n_features)
         )
 
-        # Ensure each chromosome has at least one feature selected
+        # Apply mandatory and forbidden constraints
         for i in range(self.config.population_size):
-            if np.sum(population[i]) == 0:
-                # Select random feature
-                population[i, np.random.randint(0, self.n_features)] = 1
+            # Set mandatory features to 1
+            if self.mandatory_indices:
+                population[i, self.mandatory_indices] = 1
+
+            # Set forbidden features to 0
+            if self.forbidden_indices:
+                population[i, self.forbidden_indices] = 0
+
+            # Ensure at least one non-forbidden feature is selected
+            selectable_indices = [j for j in range(self.n_features) if j not in self.forbidden_indices]
+            if np.sum(population[i, selectable_indices]) == 0 and selectable_indices:
+                # Select random selectable feature
+                population[i, np.random.choice(selectable_indices)] = 1
 
         return population
 
@@ -242,6 +267,7 @@ class GeneticAlgorithm:
 
         Each bit flips with probability mutation_rate.
         Ensures at least one feature remains selected.
+        Respects mandatory and forbidden feature constraints.
 
         Parameters
         ----------
@@ -255,14 +281,27 @@ class GeneticAlgorithm:
         """
         mutated = chromosome.copy()
 
-        # Flip each bit with mutation_rate probability
+        # Flip each bit with mutation_rate probability (except constrained features)
         for i in range(self.n_features):
+            # Skip mandatory and forbidden features
+            if i in self.mandatory_indices or i in self.forbidden_indices:
+                continue
+
             if np.random.random() < self.config.mutation_rate:
                 mutated[i] = 1 - mutated[i]
 
-        # Ensure at least one feature is selected
-        if np.sum(mutated) == 0:
-            mutated[np.random.randint(0, self.n_features)] = 1
+        # Ensure mandatory features are set
+        if self.mandatory_indices:
+            mutated[self.mandatory_indices] = 1
+
+        # Ensure forbidden features are unset
+        if self.forbidden_indices:
+            mutated[self.forbidden_indices] = 0
+
+        # Ensure at least one non-forbidden feature is selected
+        selectable_indices = [j for j in range(self.n_features) if j not in self.forbidden_indices]
+        if np.sum(mutated[selectable_indices]) == 0 and selectable_indices:
+            mutated[np.random.choice(selectable_indices)] = 1
 
         return mutated
 
