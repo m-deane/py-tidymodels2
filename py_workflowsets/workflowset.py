@@ -485,6 +485,261 @@ class WorkflowSet:
             metrics=None
         )
 
+    def fit_nested_resamples(self,
+                            data: pd.DataFrame,
+                            group_col: str,
+                            date_var: Optional[str] = None,
+                            initial: Union[int, str] = None,
+                            assess: Union[int, str] = None,
+                            skip: int = 0,
+                            cumulative: bool = True,
+                            metrics: Optional[Any] = None) -> "WorkflowSetNestedResamples":
+        """
+        Fit all workflows per group using cross-validation.
+
+        Creates CV splits for each group separately, then evaluates all workflows
+        on each group's CV folds. This provides robust per-group model evaluation.
+
+        Args:
+            data: Training data with group column
+            group_col: Column name identifying groups
+            date_var: Optional date column for time series CV (uses time_series_cv)
+                     If None, uses vfold_cv
+            initial: Initial training period (time series CV) or training proportion
+            assess: Assessment period (time series CV) or number of folds
+            skip: Skip parameter for time series CV
+            cumulative: Cumulative parameter for time series CV (expanding window)
+            metrics: Metric set for evaluation
+
+        Returns:
+            WorkflowSetNestedResamples with group-aware CV results
+
+        Examples:
+            >>> # Time series CV per group
+            >>> results = wf_set.fit_nested_resamples(
+            ...     data=train_data,
+            ...     group_col='country',
+            ...     date_var='date',
+            ...     initial='4 years',
+            ...     assess='1 year',
+            ...     metrics=metric_set(rmse, mae)
+            ... )
+            >>>
+            >>> # Collect average metrics per group
+            >>> metrics_by_group = results.collect_metrics(by_group=True)
+            >>>
+            >>> # Rank workflows overall
+            >>> ranked = results.rank_results('rmse', by_group=False)
+        """
+        from py_rsample import time_series_cv, vfold_cv
+
+        if metrics is None:
+            from py_yardstick import metric_set, rmse, mae, r_squared
+            metrics = metric_set(rmse, mae, r_squared)
+
+        groups = data[group_col].unique()
+        print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV...")
+        print()
+
+        # Store results by (workflow, group)
+        all_cv_results = []
+
+        for wf_id, wf in self.workflows.items():
+            print(f"Evaluating {wf_id} across groups...")
+
+            for group_name in groups:
+                try:
+                    # Filter to this group
+                    group_data = data[data[group_col] == group_name].copy()
+
+                    # Drop group column (it's constant within group)
+                    group_data = group_data.drop(columns=[group_col])
+
+                    # Create CV splits
+                    if date_var is not None:
+                        # Time series CV
+                        cv_splits = time_series_cv(
+                            group_data,
+                            date_column=date_var,
+                            initial=initial,
+                            assess=assess,
+                            skip=skip,
+                            cumulative=cumulative
+                        )
+                    else:
+                        # Standard k-fold CV
+                        n_folds = assess if isinstance(assess, int) else 5
+                        cv_splits = vfold_cv(group_data, v=n_folds)
+
+                    # Evaluate workflow on this group's CV splits
+                    from py_tune import fit_resamples as tune_fit_resamples
+                    cv_results = tune_fit_resamples(wf, resamples=cv_splits, metrics=metrics)
+
+                    # Extract metrics (fold-level)
+                    fold_metrics = cv_results.collect_metrics()
+
+                    # Add metadata columns
+                    fold_metrics['wflow_id'] = wf_id
+                    fold_metrics['group'] = group_name
+
+                    # Add fold column if not present
+                    if 'fold' not in fold_metrics.columns and 'id' in fold_metrics.columns:
+                        fold_metrics['fold'] = fold_metrics['id']
+
+                    all_cv_results.append({
+                        "wflow_id": wf_id,
+                        "group": group_name,
+                        "cv_results": cv_results,
+                        "fold_metrics": fold_metrics
+                    })
+
+                except Exception as e:
+                    print(f"  ⚠ Error with {wf_id} for {group_name}: {e}")
+                    continue
+
+        print("\n✓ CV evaluation complete")
+
+        return WorkflowSetNestedResamples(
+            results=all_cv_results,
+            workflow_set=self,
+            group_col=group_col,
+            metrics=metrics
+        )
+
+    def fit_global_resamples(self,
+                            data: pd.DataFrame,
+                            group_col: str,
+                            date_var: Optional[str] = None,
+                            initial: Union[int, str] = None,
+                            assess: Union[int, str] = None,
+                            skip: int = 0,
+                            cumulative: bool = True,
+                            metrics: Optional[Any] = None) -> "WorkflowSetNestedResamples":
+        """
+        Fit all workflows globally (with group as feature) using per-group CV.
+
+        Creates CV splits for each group separately, then evaluates global models
+        (with group as a feature) on each group's assessment sets. This shows how
+        a global model performs per-group.
+
+        Args:
+            data: Training data with group column
+            group_col: Column name identifying groups
+            date_var: Optional date column for time series CV
+            initial: Initial training period or training proportion
+            assess: Assessment period or number of folds
+            skip: Skip parameter for time series CV
+            cumulative: Cumulative parameter for time series CV
+            metrics: Metric set for evaluation
+
+        Returns:
+            WorkflowSetNestedResamples with per-group CV results for global models
+
+        Examples:
+            >>> # Global model with per-group CV evaluation
+            >>> results = wf_set.fit_global_resamples(
+            ...     data=train_data,
+            ...     group_col='country',
+            ...     date_var='date',
+            ...     initial='4 years',
+            ...     assess='1 year',
+            ...     metrics=metric_set(rmse, mae)
+            ... )
+            >>>
+            >>> # Compare performance across groups
+            >>> metrics_by_group = results.collect_metrics(by_group=True)
+        """
+        from py_rsample import time_series_cv, vfold_cv
+
+        if metrics is None:
+            from py_yardstick import metric_set, rmse, mae, r_squared
+            metrics = metric_set(rmse, mae, r_squared)
+
+        groups = data[group_col].unique()
+        print(f"Fitting {len(self.workflows)} global workflows with per-group CV across {len(groups)} groups...")
+        print()
+
+        # Store results by (workflow, group)
+        all_cv_results = []
+
+        for wf_id, wf in self.workflows.items():
+            print(f"Evaluating {wf_id} globally...")
+
+            for group_name in groups:
+                try:
+                    # Filter to this group for CV splits
+                    group_data = data[data[group_col] == group_name].copy()
+
+                    # Create CV splits (keep group_col for global model)
+                    if date_var is not None:
+                        cv_splits = time_series_cv(
+                            group_data,
+                            date_column=date_var,
+                            initial=initial,
+                            assess=assess,
+                            skip=skip,
+                            cumulative=cumulative
+                        )
+                    else:
+                        n_folds = assess if isinstance(assess, int) else 5
+                        cv_splits = vfold_cv(group_data, v=n_folds)
+
+                    # For each fold, fit global model and evaluate
+                    fold_results = []
+                    for fold_num, split in enumerate(cv_splits.splits):
+                        # Extract train/test indices from RSplit object
+                        train_idx = split._split.in_id
+                        test_idx = split._split.out_id
+
+                        # Get fold data (with group_col)
+                        fold_train = group_data.iloc[train_idx].copy()
+                        fold_test = group_data.iloc[test_idx].copy()
+
+                        # Fit global workflow on training fold
+                        fold_fit = wf.fit_global(fold_train, group_col=group_col)
+
+                        # Predict on test fold
+                        predictions = fold_fit.predict(fold_test)
+
+                        # Calculate metrics
+                        from py_yardstick import rmse, mae, r_squared
+                        truth = fold_test[fold_fit.extract_formula().split('~')[0].strip()]
+
+                        for metric_fn in [rmse, mae, r_squared]:
+                            result_df = metric_fn(truth, predictions['.pred'])
+                            metric_name = result_df.iloc[0]['metric']
+                            metric_value = result_df.iloc[0]['value']
+
+                            fold_results.append({
+                                'wflow_id': wf_id,
+                                'group': group_name,
+                                'fold': fold_num + 1,
+                                'metric': metric_name,
+                                'value': metric_value
+                            })
+
+                    fold_metrics_df = pd.DataFrame(fold_results)
+
+                    all_cv_results.append({
+                        "wflow_id": wf_id,
+                        "group": group_name,
+                        "cv_results": None,  # Not using standard fit_resamples
+                        "fold_metrics": fold_metrics_df
+                    })
+
+                except Exception as e:
+                    print(f"  ⚠ Error with {wf_id} for {group_name}: {e}")
+                    continue
+
+        print("\n✓ Global CV evaluation complete")
+
+        return WorkflowSetNestedResamples(
+            results=all_cv_results,
+            workflow_set=self,
+            group_col=group_col,
+            metrics=metrics
+        )
+
 
 @dataclass
 class WorkflowSetResults:
@@ -1349,3 +1604,216 @@ class WorkflowSetNestedResults:
                 # Keep original results if evaluation fails
 
         return self
+
+
+@dataclass
+class WorkflowSetNestedResamples:
+    """
+    Results from fit_nested_resamples() or fit_global_resamples().
+
+    Contains CV evaluation results for each workflow across each group.
+
+    Attributes:
+        results: List of dictionaries with CV results per (workflow, group)
+        workflow_set: The original WorkflowSet
+        group_col: Name of the group column
+        metrics: The metric set used for evaluation
+    """
+    results: List[Dict[str, Any]]
+    workflow_set: WorkflowSet
+    group_col: str
+    metrics: Any
+
+    def collect_metrics(self, by_group: bool = True, summarize: bool = True) -> pd.DataFrame:
+        """
+        Collect metrics from CV evaluations.
+
+        Args:
+            by_group: If True, return metrics per group; if False, average across groups
+            summarize: If True, average across CV folds; if False, return fold-level metrics
+
+        Returns:
+            DataFrame with metrics
+
+        Examples:
+            >>> # Average metrics per group
+            >>> metrics_by_group = results.collect_metrics(by_group=True, summarize=True)
+            >>>
+            >>> # Average across all groups
+            >>> metrics_overall = results.collect_metrics(by_group=False, summarize=True)
+            >>>
+            >>> # Fold-level metrics per group
+            >>> fold_metrics = results.collect_metrics(by_group=True, summarize=False)
+        """
+        all_metrics = []
+
+        for result in self.results:
+            fold_metrics = result['fold_metrics']
+
+            if summarize:
+                # Average across folds
+                summary = fold_metrics.groupby(['wflow_id', 'group', 'metric'])['value'].agg(['mean', 'std', 'count']).reset_index()
+                summary.columns = ['wflow_id', 'group', 'metric', 'mean', 'std', 'n']
+                all_metrics.append(summary)
+            else:
+                # Keep fold-level detail
+                all_metrics.append(fold_metrics)
+
+        if not all_metrics:
+            return pd.DataFrame()
+
+        metrics_df = pd.concat(all_metrics, ignore_index=True)
+
+        if not by_group and summarize:
+            # Average across groups
+            grouped = metrics_df.groupby(['wflow_id', 'metric']).agg({
+                'mean': 'mean',
+                'std': 'mean',
+                'n': 'sum'
+            }).reset_index()
+            grouped['group'] = 'global'
+            metrics_df = grouped
+
+        # Add workflow info
+        metrics_df = metrics_df.merge(
+            self.workflow_set.info[['wflow_id', 'preprocessor', 'model']],
+            on='wflow_id',
+            how='left'
+        )
+
+        return metrics_df
+
+    def rank_results(self,
+                    rank_metric: str = 'rmse',
+                    by_group: bool = False,
+                    n: int = 10) -> pd.DataFrame:
+        """
+        Rank workflows by CV performance.
+
+        Args:
+            rank_metric: Metric to rank by
+            by_group: If True, rank per group; if False, rank overall
+            n: Number of top workflows to return
+
+        Returns:
+            DataFrame with ranked workflows
+
+        Examples:
+            >>> # Top 10 workflows overall
+            >>> top_overall = results.rank_results('rmse', by_group=False, n=10)
+            >>>
+            >>> # Top 5 workflows per group
+            >>> top_per_group = results.rank_results('rmse', by_group=True, n=5)
+        """
+        metrics = self.collect_metrics(by_group=by_group, summarize=True)
+
+        # Filter to ranking metric
+        metric_df = metrics[metrics['metric'] == rank_metric].copy()
+
+        if by_group:
+            # Rank within each group
+            metric_df['rank'] = metric_df.groupby('group')['mean'].rank(method='min')
+            ranked = metric_df[metric_df['rank'] <= n].sort_values(['group', 'rank'])
+        else:
+            # Rank overall
+            metric_df['rank'] = metric_df['mean'].rank(method='min')
+            ranked = metric_df[metric_df['rank'] <= n].sort_values('rank')
+
+        return ranked[['group', 'rank', 'wflow_id', 'mean', 'std', 'preprocessor', 'model']]
+
+    def extract_best_workflow(self,
+                             rank_metric: str = 'rmse',
+                             by_group: bool = False) -> Union[str, pd.DataFrame]:
+        """
+        Extract ID of best workflow.
+
+        Args:
+            rank_metric: Metric to use for selection
+            by_group: If True, return best per group; if False, return single best
+
+        Returns:
+            If by_group=False: workflow ID string
+            If by_group=True: DataFrame with best workflow per group
+
+        Examples:
+            >>> # Best workflow overall
+            >>> best_id = results.extract_best_workflow('rmse', by_group=False)
+            >>>
+            >>> # Best workflow per group
+            >>> best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        """
+        ranked = self.rank_results(rank_metric=rank_metric, by_group=by_group, n=1)
+
+        if by_group:
+            return ranked[['group', 'wflow_id', 'mean', 'preprocessor', 'model']]
+        else:
+            return ranked.iloc[0]['wflow_id']
+
+    def autoplot(self,
+                metric: str = 'rmse',
+                by_group: bool = False,
+                top_n: int = 10):
+        """
+        Plot CV performance comparison.
+
+        Args:
+            metric: Metric to plot
+            by_group: If True, separate subplot per group
+            top_n: Number of top workflows to show
+
+        Returns:
+            Matplotlib figure
+
+        Examples:
+            >>> # Overall comparison with error bars
+            >>> fig = results.autoplot('rmse', by_group=False, top_n=10)
+            >>> plt.show()
+            >>>
+            >>> # Per-group comparison
+            >>> fig = results.autoplot('rmse', by_group=True, top_n=5)
+            >>> plt.show()
+        """
+        import matplotlib.pyplot as plt
+
+        metrics = self.collect_metrics(by_group=by_group, summarize=True)
+        metric_df = metrics[metrics['metric'] == metric].copy()
+
+        if by_group:
+            groups = metric_df['group'].unique()
+            n_groups = len(groups)
+            ncols = min(3, n_groups)
+            nrows = (n_groups + ncols - 1) // ncols
+
+            fig, axes = plt.subplots(nrows, ncols, figsize=(6*ncols, 4*nrows))
+            axes = axes.flatten() if n_groups > 1 else [axes]
+
+            for i, group in enumerate(groups):
+                group_df = metric_df[metric_df['group'] == group].sort_values('mean').head(top_n)
+
+                ax = axes[i]
+                ax.barh(range(len(group_df)), group_df['mean'], xerr=group_df['std'])
+                ax.set_yticks(range(len(group_df)))
+                ax.set_yticklabels(group_df['wflow_id'], fontsize=8)
+                ax.set_xlabel(metric.upper())
+                ax.set_title(f'{group}', fontweight='bold')
+                ax.invert_yaxis()
+
+            # Hide unused subplots
+            for i in range(n_groups, len(axes)):
+                axes[i].set_visible(False)
+
+            plt.tight_layout()
+        else:
+            # Overall plot
+            top_workflows = metric_df.sort_values('mean').head(top_n)
+
+            fig, ax = plt.subplots(figsize=(10, max(6, top_n * 0.4)))
+            ax.barh(range(len(top_workflows)), top_workflows['mean'], xerr=top_workflows['std'])
+            ax.set_yticks(range(len(top_workflows)))
+            ax.set_yticklabels(top_workflows['wflow_id'], fontsize=10)
+            ax.set_xlabel(f'{metric.upper()} (mean ± std across CV folds & groups)', fontsize=12)
+            ax.set_title(f'Top {top_n} Workflows by CV {metric.upper()}', fontsize=14, fontweight='bold')
+            ax.invert_yaxis()
+            plt.tight_layout()
+
+        return fig
