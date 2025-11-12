@@ -1063,34 +1063,41 @@ class WorkflowSetNestedResults:
                 continue  # Skip failed workflows
 
             # Extract ACTUAL formula from each group's fit
-            # This shows which features survived preprocessing
+            # This shows which features the MODEL actually used (critical for supervised feature selection)
             for group_name, wf_fit in nested_fit.group_fits.items():
                 try:
-                    # Get original formula for outcome variable
+                    # Get original formula for outcome variable name
                     original_formula = wf_fit.extract_formula()
                     outcome_name = original_formula.split('~')[0].strip()
 
-                    # Get training data for this group to see what features survived
-                    group_train_data = nested_fit.group_train_data.get(group_name)
+                    # Get ACTUAL feature names from the fitted model
+                    # This is more reliable than preprocessing because it shows what the model ACTUALLY used
+                    model_fit = wf_fit.fit  # The ModelFit object
 
-                    if group_train_data is None:
-                        # Fallback to original formula if no training data
+                    if hasattr(model_fit, 'fit_data') and 'X_train' in model_fit.fit_data:
+                        # Get the training predictors DataFrame that was used for fitting
+                        X_train = model_fit.fit_data['X_train']
+
+                        if isinstance(X_train, pd.DataFrame):
+                            # Get column names from the actual training data used by model
+                            # This reflects what survived ALL preprocessing including feature selection
+                            predictor_cols = [
+                                col for col in X_train.columns
+                                if col != 'Intercept'  # Exclude patsy's Intercept column
+                            ]
+                        else:
+                            # Fallback: X_train is array, can't get column names
+                            formula = original_formula
+                            n_features = X_train.shape[1] if hasattr(X_train, 'shape') else 0
+                            predictor_cols = None
+                    else:
+                        # Fallback: no X_train in fit_data
                         formula = original_formula
                         n_features = formula.count('+') + 1 if '+' in formula else 1
-                    else:
-                        # Apply preprocessing to get ACTUAL features used
-                        preprocessed = wf_fit.extract_preprocessed_data(group_train_data)
+                        predictor_cols = None
 
-                        # Get predictor columns (exclude outcome, group column, and Intercept)
-                        # Patsy adds "Intercept" column for formulas, which we don't want in the formula
-                        predictor_cols = [
-                            col for col in preprocessed.columns
-                            if col != outcome_name
-                            and col != nested_fit.group_col
-                            and col != 'Intercept'
-                        ]
-
-                        # Reconstruct formula with actual features
+                    # Reconstruct formula with actual features
+                    if predictor_cols is not None:
                         if len(predictor_cols) == 0:
                             formula = f"{outcome_name} ~ 1"  # Intercept only
                             n_features = 0
