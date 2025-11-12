@@ -1014,6 +1014,49 @@ class WorkflowSetNestedResults:
 
         return (outputs_df, coefs_df, stats_df)
 
+    def extract_formulas(self) -> dict:
+        """
+        Extract formulas from all workflows.
+
+        Returns a dictionary mapping workflow ID to formula string.
+        All workflows in a WorkflowSet use the same formula across groups,
+        so this extracts one formula per workflow.
+
+        Returns:
+            Dictionary with workflow IDs as keys and formula strings as values
+
+        Examples:
+            >>> # Get formulas from all workflows
+            >>> formulas = results.extract_formulas()
+            >>> for wf_id, formula in formulas.items():
+            ...     print(f"{wf_id}: {formula}")
+            prep_1_linear_reg_1: y ~ x1 + x2
+            prep_2_rand_forest_2: y ~ x1 + x2 + x3
+        """
+        formulas = {}
+
+        for result in self.results:
+            wf_id = result["wflow_id"]
+            nested_fit = result.get("nested_fit")
+
+            if nested_fit is None:
+                continue  # Skip failed workflows
+
+            # Get first group's fit to extract formula
+            # (same formula across all groups for a given workflow)
+            if nested_fit.group_fits:
+                first_group = list(nested_fit.group_fits.keys())[0]
+                wf_fit = nested_fit.group_fits[first_group]
+
+                try:
+                    formula = wf_fit.extract_formula()
+                    formulas[wf_id] = formula
+                except Exception:
+                    # If extract_formula() fails, skip this workflow
+                    continue
+
+        return formulas
+
     def autoplot(self,
                 metric: str,
                 split: str = "test",
