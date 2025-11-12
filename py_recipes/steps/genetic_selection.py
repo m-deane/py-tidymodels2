@@ -129,6 +129,8 @@ class StepSelectGeneticAlgorithm:
     convergence_patience: int = 10
     adaptive_mutation: bool = False
     adaptive_crossover: bool = False
+    relax_constraints_after: Optional[int] = None
+    relaxation_rate: float = 0.05
     random_state: Optional[int] = None
     verbose: bool = False
     skip: bool = False
@@ -227,16 +229,38 @@ class StepSelectGeneticAlgorithm:
 
         # Add constraints if specified
         if len(self.constraints) > 0:
+            # Create relaxation factor getter if relaxation is enabled
+            current_generation = [0]  # Mutable to allow updates from nested function
+
+            def get_relaxation_factor():
+                """Compute relaxation factor based on current generation."""
+                if self.relax_constraints_after is None:
+                    return 1.0  # No relaxation
+
+                gen = current_generation[0]
+                if gen < self.relax_constraints_after:
+                    return 1.0  # Full constraint strength
+
+                # Linear relaxation after threshold
+                generations_since_relax = gen - self.relax_constraints_after
+                relaxation_factor = max(0.0, 1.0 - (generations_since_relax * self.relaxation_rate))
+                return relaxation_factor
+
+            # Store current_generation reference so GA can update it
+            self._current_generation = current_generation
+
             fitness_fn = create_constrained_fitness_function(
                 data=data,
                 outcome_col=self.outcome,
                 feature_names=numeric_cols,
                 model_spec=self.model,
                 base_fitness_fn=base_fitness_fn,
-                constraints=self.constraints
+                constraints=self.constraints,
+                relaxation_factor_getter=get_relaxation_factor
             )
         else:
             fitness_fn = base_fitness_fn
+            self._current_generation = None  # No constraints, no relaxation
 
         # Map mandatory and forbidden features to indices
         mandatory_indices = [numeric_cols.index(f) for f in self.mandatory_features if f in numeric_cols]
@@ -318,6 +342,12 @@ class StepSelectGeneticAlgorithm:
             else:
                 raise ValueError("warm_start must be None, 'importance', 'low_correlation', or np.ndarray")
 
+        # Create generation callback for constraint relaxation
+        def update_generation(gen):
+            """Update current generation for relaxation."""
+            if self._current_generation is not None:
+                self._current_generation[0] = gen
+
         # Run GA
         ga = GeneticAlgorithm(
             n_features=len(numeric_cols),
@@ -327,7 +357,8 @@ class StepSelectGeneticAlgorithm:
             forbidden_indices=forbidden_indices,
             feature_costs=cost_array,
             max_cost=self.max_total_cost,
-            seed_chromosomes=seed_chromosomes
+            seed_chromosomes=seed_chromosomes,
+            generation_callback=update_generation
         )
 
         best_chromosome, best_fitness, history = ga.evolve()
@@ -487,6 +518,8 @@ def step_select_genetic_algorithm(
     convergence_patience: int = 10,
     adaptive_mutation: bool = False,
     adaptive_crossover: bool = False,
+    relax_constraints_after: Optional[int] = None,
+    relaxation_rate: float = 0.05,
     random_state: Optional[int] = None,
     verbose: bool = False,
     skip: bool = False,
@@ -595,6 +628,8 @@ def step_select_genetic_algorithm(
         convergence_patience=convergence_patience,
         adaptive_mutation=adaptive_mutation,
         adaptive_crossover=adaptive_crossover,
+        relax_constraints_after=relax_constraints_after,
+        relaxation_rate=relaxation_rate,
         random_state=random_state,
         verbose=verbose,
         skip=skip,

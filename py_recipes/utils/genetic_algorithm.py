@@ -105,7 +105,8 @@ class GeneticAlgorithm:
         forbidden_indices: Optional[List[int]] = None,
         feature_costs: Optional[np.ndarray] = None,
         max_cost: Optional[float] = None,
-        seed_chromosomes: Optional[np.ndarray] = None
+        seed_chromosomes: Optional[np.ndarray] = None,
+        generation_callback: Optional[Callable[[int], None]] = None
     ):
         if n_features < 1:
             raise ValueError("n_features must be >= 1")
@@ -134,6 +135,9 @@ class GeneticAlgorithm:
         # Validate constraints
         if set(self.mandatory_indices) & set(self.forbidden_indices):
             raise ValueError("Feature cannot be both mandatory and forbidden")
+
+        # Generation callback for relaxation
+        self.generation_callback = generation_callback
 
         # Set random seed
         if self.config.random_state is not None:
@@ -519,6 +523,10 @@ class GeneticAlgorithm:
                 self.best_fitness_ = self.fitness_scores_[best_idx]
 
             self.fitness_history_.append(self.best_fitness_)
+
+            # Call generation callback if provided (for constraint relaxation)
+            if self.generation_callback is not None:
+                self.generation_callback(generation)
 
             # Adapt mutation and crossover rates if enabled
             if self.config.adaptive_mutation or self.config.adaptive_crossover:

@@ -39,7 +39,8 @@ class ConstraintEvaluator:
     def evaluate_constraints(
         self,
         selected_features: List[str],
-        constraints: Dict[str, Dict[str, Any]]
+        constraints: Dict[str, Dict[str, Any]],
+        relaxation_factor: float = 1.0
     ) -> float:
         """
         Evaluate all constraints and return total penalty.
@@ -50,6 +51,9 @@ class ConstraintEvaluator:
             Names of selected features
         constraints : Dict
             Dictionary of constraint specifications
+        relaxation_factor : float, default=1.0
+            Factor to scale constraint penalties (1.0 = full strength, 0.0 = no constraints)
+            Values > 1.0 make constraints stricter, < 1.0 make them more lenient
 
         Returns
         -------
@@ -63,38 +67,43 @@ class ConstraintEvaluator:
 
         # P-value constraint
         if "p_value" in constraints:
-            total_penalty += self.p_value_penalty(
+            penalty = self.p_value_penalty(
                 selected_features,
                 constraints["p_value"]
             )
+            total_penalty += penalty * relaxation_factor
 
         # Coefficient stability constraint
         if "coef_stability" in constraints:
-            total_penalty += self.stability_penalty(
+            penalty = self.stability_penalty(
                 selected_features,
                 constraints["coef_stability"]
             )
+            total_penalty += penalty * relaxation_factor
 
         # VIF constraint
         if "vif" in constraints:
-            total_penalty += self.vif_penalty(
+            penalty = self.vif_penalty(
                 selected_features,
                 constraints["vif"]
             )
+            total_penalty += penalty * relaxation_factor
 
         # Effect size constraint
         if "effect_size" in constraints:
-            total_penalty += self.effect_size_penalty(
+            penalty = self.effect_size_penalty(
                 selected_features,
                 constraints["effect_size"]
             )
+            total_penalty += penalty * relaxation_factor
 
         # Outcome correlation constraint
         if "outcome_correlation" in constraints:
-            total_penalty += self.outcome_correlation_penalty(
+            penalty = self.outcome_correlation_penalty(
                 selected_features,
                 constraints["outcome_correlation"]
             )
+            total_penalty += penalty * relaxation_factor
 
         return total_penalty
 
@@ -449,7 +458,8 @@ def create_constrained_fitness_function(
     feature_names: List[str],
     model_spec,
     base_fitness_fn,
-    constraints: Dict[str, Dict[str, Any]]
+    constraints: Dict[str, Dict[str, Any]],
+    relaxation_factor_getter: Optional[callable] = None
 ) -> callable:
     """
     Create fitness function that combines performance + constraint penalties.
@@ -468,6 +478,8 @@ def create_constrained_fitness_function(
         Base fitness function (performance-based)
     constraints : Dict
         Constraint specifications
+    relaxation_factor_getter : Callable, optional
+        Function that returns current relaxation factor (default: None = 1.0)
 
     Returns
     -------
@@ -499,10 +511,16 @@ def create_constrained_fitness_function(
             if chromosome[i] == 1
         ]
 
-        # Evaluate constraints
+        # Get current relaxation factor
+        relaxation_factor = 1.0
+        if relaxation_factor_getter is not None:
+            relaxation_factor = relaxation_factor_getter()
+
+        # Evaluate constraints with relaxation
         penalty = constraint_evaluator.evaluate_constraints(
             selected_features,
-            constraints
+            constraints,
+            relaxation_factor=relaxation_factor
         )
 
         # Return fitness - penalty
