@@ -932,6 +932,76 @@ class WorkflowSetNestedResults:
 
         return pd.concat(all_outputs, ignore_index=True)
 
+    def extract_outputs(self) -> tuple:
+        """
+        Extract all outputs, coefficients, and stats from all workflows.
+
+        Returns the standard three-DataFrame pattern used throughout py-tidymodels.
+
+        Returns:
+            Tuple of (outputs, coefficients, stats) DataFrames:
+            - outputs: Observation-level data (actuals, fitted, forecast, residuals)
+            - coefficients: Model parameters/importances for all workflows and groups
+            - stats: Aggregated metrics for all workflows and groups
+
+        Examples:
+            >>> # Get all three DataFrames
+            >>> outputs, coefs, stats = results.extract_outputs()
+            >>>
+            >>> # Filter outputs to specific workflow
+            >>> wf_outputs = outputs[outputs['wflow_id'] == 'formula_1_rf_2']
+            >>>
+            >>> # Filter coefficients to specific group
+            >>> group_coefs = coefs[coefs['group'] == 'Germany']
+            >>>
+            >>> # Get test statistics
+            >>> test_stats = stats[stats['split'] == 'test']
+        """
+        # Collect outputs
+        all_outputs = []
+        for result in self.results:
+            wf_id = result["wflow_id"]
+            outputs = result.get("outputs")
+
+            if outputs is None:
+                continue
+
+            outputs = outputs.copy()
+            outputs["wflow_id"] = wf_id
+            all_outputs.append(outputs)
+
+        if not all_outputs:
+            outputs_df = pd.DataFrame()
+        else:
+            outputs_df = pd.concat(all_outputs, ignore_index=True)
+
+        # Collect coefficients
+        all_coefs = []
+        for result in self.results:
+            wf_id = result["wflow_id"]
+            coefs = result.get("coefs")
+
+            if coefs is None:
+                continue
+
+            coefs = coefs.copy()
+            coefs["wflow_id"] = wf_id
+            all_coefs.append(coefs)
+
+        if not all_coefs:
+            coefs_df = pd.DataFrame()
+        else:
+            coefs_df = pd.concat(all_coefs, ignore_index=True)
+
+        # Collect stats (use existing collect_metrics with all splits)
+        try:
+            stats_df = self.collect_metrics(by_group=True, split='all')
+        except ValueError:
+            # No valid results
+            stats_df = pd.DataFrame()
+
+        return (outputs_df, coefs_df, stats_df)
+
     def autoplot(self,
                 metric: str,
                 split: str = "test",

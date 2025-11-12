@@ -83,6 +83,35 @@ try:
     else:
         print("❌ FAILED: Test split not found after evaluation")
 
+    # Test extract_outputs()
+    print()
+    print("="*60)
+    print("Testing extract_outputs() method")
+    print("="*60)
+
+    outputs, coefs, stats = results.extract_outputs()
+    print(f"✓ extract_outputs() returned 3 DataFrames")
+    print(f"  Outputs shape: {outputs.shape}")
+    print(f"  Coefficients shape: {coefs.shape}")
+    print(f"  Stats shape: {stats.shape}")
+    print()
+
+    # Verify wflow_id column exists
+    if 'wflow_id' in outputs.columns:
+        print(f"✓ Outputs includes wflow_id column")
+        print(f"  Unique workflows: {outputs['wflow_id'].nunique()}")
+
+    if 'wflow_id' in coefs.columns:
+        print(f"✓ Coefficients includes wflow_id column")
+        print(f"  Unique workflows: {coefs['wflow_id'].nunique()}")
+
+    if 'wflow_id' in stats.columns:
+        print(f"✓ Stats includes wflow_id column")
+        print(f"  Unique workflows: {stats['wflow_id'].nunique()}")
+
+    print()
+    print("✅ SUCCESS! extract_outputs() method working correctly")
+
 except Exception as e:
     print("❌ FAILED!")
     print(f"Error: {e}")
