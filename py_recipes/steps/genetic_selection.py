@@ -131,6 +131,7 @@ class StepSelectGeneticAlgorithm:
     adaptive_crossover: bool = False
     relax_constraints_after: Optional[int] = None
     relaxation_rate: float = 0.05
+    n_jobs: int = 1
     random_state: Optional[int] = None
     verbose: bool = False
     skip: bool = False
@@ -310,6 +311,7 @@ class StepSelectGeneticAlgorithm:
             convergence_patience=self.convergence_patience,
             adaptive_mutation=self.adaptive_mutation,
             adaptive_crossover=self.adaptive_crossover,
+            n_jobs=self.n_jobs,
             random_state=self.random_state,
             verbose=self.verbose
         )
@@ -520,6 +522,7 @@ def step_select_genetic_algorithm(
     adaptive_crossover: bool = False,
     relax_constraints_after: Optional[int] = None,
     relaxation_rate: float = 0.05,
+    n_jobs: int = 1,
     random_state: Optional[int] = None,
     verbose: bool = False,
     skip: bool = False,
@@ -564,6 +567,16 @@ def step_select_genetic_algorithm(
         Convergence threshold
     convergence_patience : int, default=10
         Convergence patience
+    adaptive_mutation : bool, default=False
+        Enable adaptive mutation rate
+    adaptive_crossover : bool, default=False
+        Enable adaptive crossover rate
+    relax_constraints_after : int, optional
+        Generation to start relaxing constraints
+    relaxation_rate : float, default=0.05
+        Rate of constraint relaxation per generation
+    n_jobs : int, default=1
+        Number of parallel jobs for fitness evaluation (-1 = all cores)
     random_state : int, optional
         Random seed
     verbose : bool, default=False
@@ -630,6 +643,7 @@ def step_select_genetic_algorithm(
         adaptive_crossover=adaptive_crossover,
         relax_constraints_after=relax_constraints_after,
         relaxation_rate=relaxation_rate,
+        n_jobs=n_jobs,
         random_state=random_state,
         verbose=verbose,
         skip=skip,

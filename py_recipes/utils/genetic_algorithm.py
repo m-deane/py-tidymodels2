@@ -24,6 +24,7 @@ class GAConfig:
     convergence_patience: int = 10
     adaptive_mutation: bool = False
     adaptive_crossover: bool = False
+    n_jobs: int = 1
     random_state: Optional[int] = None
     verbose: bool = False
 
@@ -45,6 +46,8 @@ class GAConfig:
             raise ValueError("convergence_threshold must be >= 0")
         if self.convergence_patience < 1:
             raise ValueError("convergence_patience must be >= 1")
+        if self.n_jobs < -1 or self.n_jobs == 0:
+            raise ValueError("n_jobs must be -1 (all cores), or >= 1")
 
 
 class GeneticAlgorithm:
@@ -208,6 +211,8 @@ class GeneticAlgorithm:
         """
         Evaluate fitness for all chromosomes in population.
 
+        Uses parallel evaluation if n_jobs > 1.
+
         Parameters
         ----------
         population : np.ndarray
@@ -218,10 +223,28 @@ class GeneticAlgorithm:
         fitness_scores : np.ndarray
             Fitness scores (population_size,)
         """
-        fitness_scores = np.array([
-            self.fitness_function(chromosome)
-            for chromosome in population
-        ])
+        if self.config.n_jobs == 1:
+            # Sequential evaluation
+            fitness_scores = np.array([
+                self.fitness_function(chromosome)
+                for chromosome in population
+            ])
+        else:
+            # Parallel evaluation using joblib (handles closures better than multiprocessing)
+            from joblib import Parallel, delayed, cpu_count
+
+            # Determine number of workers
+            n_workers = cpu_count() if self.config.n_jobs == -1 else self.config.n_jobs
+            n_workers = min(n_workers, len(population))  # Don't use more workers than chromosomes
+
+            # Evaluate in parallel
+            fitness_scores = np.array(
+                Parallel(n_jobs=n_workers, backend='loky')(
+                    delayed(self.fitness_function)(chromosome)
+                    for chromosome in population
+                )
+            )
+
         return fitness_scores
 
     def tournament_selection(
