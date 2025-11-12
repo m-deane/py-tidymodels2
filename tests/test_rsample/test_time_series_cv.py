@@ -305,3 +305,82 @@ class TestTimeSeriesCV:
                 initial=1,
                 assess=1
             )
+
+    def test_slice_limit(self, sample_data):
+        """Test slice_limit parameter limits number of folds"""
+        # Without slice_limit - should create many folds
+        cv_all = time_series_cv(
+            data=sample_data,
+            date_column="date",
+            initial=50,
+            assess=20,
+            skip=10,
+            cumulative=True
+        )
+
+        total_folds = len(cv_all)
+        assert total_folds > 5  # Should have more than 5 folds with this data
+
+        # With slice_limit - should only create 5 folds
+        cv_limited = time_series_cv(
+            data=sample_data,
+            date_column="date",
+            initial=50,
+            assess=20,
+            skip=10,
+            cumulative=True,
+            slice_limit=5
+        )
+
+        assert len(cv_limited) == 5
+        assert len(cv_limited) < total_folds
+
+        # Verify the limited folds are the first N folds (not random)
+        for i in range(5):
+            train_all = cv_all[i].training()
+            train_limited = cv_limited[i].training()
+            test_all = cv_all[i].testing()
+            test_limited = cv_limited[i].testing()
+
+            # Should be identical to first 5 folds from full CV
+            assert len(train_all) == len(train_limited)
+            assert len(test_all) == len(test_limited)
+            assert train_all["value"].iloc[0] == train_limited["value"].iloc[0]
+
+    def test_slice_limit_zero(self, sample_data):
+        """Test slice_limit=0 creates no folds"""
+        cv = time_series_cv(
+            data=sample_data,
+            date_column="date",
+            initial=50,
+            assess=20,
+            cumulative=True,
+            slice_limit=0
+        )
+
+        # slice_limit=0 should result in empty list after slicing
+        assert len(cv) == 0
+
+    def test_slice_limit_none(self, sample_data):
+        """Test slice_limit=None creates all folds (default behavior)"""
+        cv_none = time_series_cv(
+            data=sample_data,
+            date_column="date",
+            initial=50,
+            assess=20,
+            skip=10,
+            cumulative=True,
+            slice_limit=None
+        )
+
+        cv_unspecified = time_series_cv(
+            data=sample_data,
+            date_column="date",
+            initial=50,
+            assess=20,
+            skip=10,
+            cumulative=True
+        )
+
+        # Both should have the same number of folds
+        assert len(cv_none) == len(cv_unspecified)

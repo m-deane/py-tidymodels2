@@ -36,7 +36,12 @@ Example:
 
 from py_rsample.split import Split, RSplit, training, testing
 from py_rsample.initial_split import initial_time_split
-from py_rsample.time_series_cv import time_series_cv, TimeSeriesCV
+from py_rsample.time_series_cv import (
+    time_series_cv,
+    time_series_nested_cv,
+    time_series_global_cv,
+    TimeSeriesCV
+)
 from py_rsample.vfold_cv import vfold_cv, VFoldCV
 
 # Alias for non-time-series data (matches R's rsample API)
@@ -50,6 +55,8 @@ __all__ = [
     "initial_split",
     "initial_time_split",
     "time_series_cv",
+    "time_series_nested_cv",
+    "time_series_global_cv",
     "TimeSeriesCV",
     "vfold_cv",
     "VFoldCV",

@@ -267,6 +267,44 @@ ModelSpec now supports grouped/panel modeling directly without requiring workflo
 **Key Functions:**
 - **initial_time_split()**: Chronological train/test split with period parsing
 - **time_series_cv()**: Rolling/expanding window cross-validation
+- **time_series_nested_cv()**: Per-group CV for nested modeling (NEW - 2025-11-12)
+  - Creates per-group CV splits automatically
+  - Each group gets its own independent CV splits
+  - Returns dict mapping group names → TimeSeriesCV objects
+  - Designed for use with `WorkflowSet.fit_nested_resamples()`
+  - Example:
+    ```python
+    cv_folds = time_series_nested_cv(
+        data=train_data,
+        group_col='country',
+        date_column='date',
+        initial='18 months',
+        assess='3 months',
+        skip='2 months',
+        cumulative=False
+    )
+    # Returns: {'USA': cv_usa, 'Germany': cv_germany, ...}
+    # Each group has different CV splits based on that group's data
+    ```
+- **time_series_global_cv()**: Global CV for global modeling (NEW - 2025-11-12)
+  - Creates CV splits on FULL dataset (not per-group)
+  - All groups share the same CV splits
+  - Returns dict mapping group names → same TimeSeriesCV object
+  - Designed for use with `WorkflowSet.fit_global_resamples()`
+  - Example:
+    ```python
+    cv_folds = time_series_global_cv(
+        data=train_data,
+        group_col='country',
+        date_column='date',
+        initial='18 months',
+        assess='3 months',
+        skip='2 months',
+        cumulative=False
+    )
+    # Returns: {'USA': cv_global, 'Germany': cv_global, ...}
+    # All groups share the same CV object (same reference)
+    ```
 - **vfold_cv()**: Standard k-fold cross-validation with stratification support
 
 **Features:**
@@ -274,13 +312,14 @@ ModelSpec now supports grouped/panel modeling directly without requiring workflo
 - Explicit date ranges (absolute, relative, mixed)
 - Stratified sampling for classification
 - Repeated CV support
+- Group-aware CV for panel/grouped data
 
 **Files:**
 - `py_rsample/initial_split.py` - Initial time-based splits
-- `py_rsample/time_series_cv.py` - Time series CV
+- `py_rsample/time_series_cv.py` - Time series CV, nested CV, and global CV
 - `py_rsample/vfold_cv.py` - K-fold CV
 - `py_rsample/split.py` - Split and RSplit classes
-- `tests/test_rsample/` - 35+ tests passing
+- `tests/test_rsample/` - 45+ tests passing (35 existing + 6 nested CV + 4 global CV)
 
 ### Layer 4: py-workflows (Pipelines)
 **Purpose:** Compose preprocessing + model + postprocessing into unified workflow.
@@ -520,6 +559,126 @@ outputs_df = results.collect_outputs()  # Includes predictions, actuals, forecas
 4. **`collect_outputs()`**: Collect all predictions, actuals, forecasts for all workflows and groups
 5. **`autoplot(metric, split, by_group, top_n)`**: Visualize comparison with error bars or subplots
 
+**WorkflowSetNestedResamples Helper Methods:**
+1. **`compare_train_cv(train_stats, metrics)`**: **NEW (2025-11-12)** - Compare training vs CV performance to identify overfitting
+   - Takes `train_stats` from `fit_nested().extract_outputs()[2]`
+   - Compares with CV metrics from `fit_nested_resamples()`
+   - Returns DataFrame with train/CV metrics side-by-side plus overfitting indicators
+   - Automatic format detection (long or wide format)
+   - Built-in status flags: 🟢 Good, 🟡 Moderate Overfit, 🔴 Severe Overfit
+   - Sorted by CV performance (most reliable metric)
+
+   ```python
+   # Fit on full training data
+   train_results = wf_set.fit_nested(train_data, group_col='country')
+   outputs, coeffs, train_stats = train_results.extract_outputs()
+
+   # Evaluate with CV
+   cv_results = wf_set.fit_nested_resamples(cv_folds, group_col='country', metrics=metrics)
+
+   # Compare (ONE LINE!)
+   comparison = cv_results.compare_train_cv(train_stats)
+
+   # Find overfitting workflows
+   overfit = comparison[comparison['rmse_overfit_ratio'] > 1.2]
+
+   # Best per group
+   best = comparison.sort_values('rmse_cv').groupby('group').first()
+   ```
+
+   Documentation: `.claude_debugging/COMPARE_TRAIN_CV_HELPER.md`
+   Tests: `tests/test_workflowsets/test_compare_train_cv.py` (5 tests, all passing)
+
+**Group-Aware Cross-Validation (NEW - 2025-11-12):**
+
+Two new methods for robust per-group CV evaluation:
+- **`fit_nested_resamples()`**: Fit per-group models with CV (excludes group column)
+- **`fit_global_resamples()`**: Fit global models with per-group CV evaluation (includes group as feature)
+
+**Problem Solved:** Supervised feature selection steps (step_select_permutation, step_select_shap) fail when group column is present in data, causing errors like "could not convert string to float: 'Algeria'". These methods automatically exclude the group column from CV splits before evaluation, preventing supervised selection steps from receiving categorical group data.
+
+**Technical Details of Fix:**
+- `fit_nested_resamples()` drops the group column from RSplit objects before passing to `tune_fit_resamples()`
+- Creates new Split objects with modified data (same train/test indices)
+- Supervised selection steps now only see numeric features
+- Group information preserved separately for results/metrics
+- Code: `py_workflowsets/workflowset.py:561-584`
+
+```python
+from py_rsample import time_series_cv
+
+# Create CV splits per group
+cv_by_group = {}
+for country in ['USA', 'Germany', 'Japan']:
+    country_data = data[data['country'] == country]
+    cv_by_group[country] = time_series_cv(
+        country_data,
+        date_column='date',
+        initial='4 years',
+        assess='1 year'
+    )
+
+# Evaluate all workflows on each group's CV splits (per-group models)
+# verbose=False (default): Simple progress messages
+results = wf_set.fit_nested_resamples(
+    resamples=cv_by_group,
+    group_col='country',
+    metrics=metric_set(rmse, mae)
+)
+
+# verbose=True: Detailed progress with workflow, group, and fold counts
+results = wf_set.fit_nested_resamples(
+    resamples=cv_by_group,
+    group_col='country',
+    metrics=metric_set(rmse, mae),
+    verbose=True  # Shows: [1/2] Workflow: prep_1_linear_reg_1
+                  #         [1/3] Group: USA (2 folds) ✓
+)
+
+# OR: Evaluate global models with per-group CV
+results = wf_set.fit_global_resamples(
+    data=train_data,
+    resamples=cv_by_group,
+    group_col='country',
+    metrics=metric_set(rmse, mae)
+)
+
+# Same analysis interface as fit_nested()
+metrics_by_group = results.collect_metrics(by_group=True, summarize=True)
+ranked = results.rank_results('rmse', by_group=False, n=5)
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+```
+
+**Verbose Output (verbose=True):**
+```
+Fitting 2 workflows across 3 groups with CV...
+Total evaluations: 2 workflows × 3 groups × avg 2 folds
+
+[1/2] Workflow: prep_1_linear_reg_1
+  [1/3] Group: USA (2 folds) ✓
+  [2/3] Group: Germany (2 folds) ✓
+  [3/3] Group: Japan (2 folds) ✓
+
+[2/2] Workflow: prep_2_linear_reg_1
+  [1/3] Group: USA (2 folds) ✓
+  [2/3] Group: Germany (2 folds) ✓
+  [3/3] Group: Japan (2 folds) ✓
+
+✓ CV evaluation complete
+```
+
+**Key Differences:**
+- **fit_nested_resamples()**: Per-group models, group column excluded, separate training per group
+- **fit_global_resamples()**: Global model, group column as feature, evaluated per-group
+- Both return `WorkflowSetNestedResamples` with same methods
+- **verbose parameter**: Control progress detail level (default: False)
+
+**Code References:**
+- `py_workflowsets/workflowset.py:488-716` - Method implementations
+- `tests/test_workflowsets/test_fit_nested_resamples.py` - 10 comprehensive tests (all passing)
+- `.claude_debugging/WORKFLOWSET_NESTED_RESAMPLES_IMPLEMENTATION.md` - Complete documentation
+- `.claude_debugging/demo_verbose_output.py` - Verbose output demonstration
+
 **Key Features:**
 - Parallel workflow evaluation for speed
 - Automatic ID generation (e.g., "minimal_linear_reg_1")
@@ -531,12 +690,13 @@ outputs_df = results.collect_outputs()  # Includes predictions, actuals, forecas
 - **NEW**: Identify heterogeneous patterns (different groups prefer different workflows)
 
 **Files:**
-- `py_workflowsets/workflowset.py` - WorkflowSet, WorkflowSetResults, and WorkflowSetNestedResults classes
-- `tests/test_workflowsets/` - 40 tests passing (20 general + 20 grouped modeling)
+- `py_workflowsets/workflowset.py` - WorkflowSet, WorkflowSetResults, and WorkflowSetNestedResamples classes
+- `tests/test_workflowsets/` - 72 tests passing (20 general + 20 grouped + 10 nested resamples + 3 supervised selection + 19 other)
 - `examples/11_workflowsets_demo.ipynb` - Standard CV-based demo
 - `_md/forecasting_workflowsets_grouped.ipynb` - Grouped modeling demo (NEW)
 - `_md/forecasting_workflowsets_cv_grouped.ipynb` - CV with grouped data demo (NEW)
 - `_md/forecasting_advanced_workflow_grouped.ipynb` - Advanced grouped workflow demo (NEW)
+- `.claude_debugging/SUPERVISED_SELECTION_FIX.md` - Supervised selection fix documentation (NEW)
 
 ## Critical Implementation Notes
 

@@ -4,7 +4,7 @@ Models
 sktime - PieceWiseTrendForecaster
 piecewise linear regression
 panel regression
-auto_arima
+auto_arima?
 auto_ets
 
 Ideas
@@ -16,7 +16,6 @@ Ideas
 9. model interpretibilty - SHAP suite
 10. mlflow integration
 11. conformal prediction intervals
-12. check any remaining functionality in dials package
 13. implement tailor package
 14. bayesian models
 19. helper to create large number of recipes
@@ -31,6 +30,7 @@ enhancements from testing and to check
 24. fit_global - outcome has to be renamed "target"
 25. test inplace recipe transformations
 26. trelliscopejs integration
+27. recipe - explode by list of recipes AND formulas
 
 ## RECIPES
 

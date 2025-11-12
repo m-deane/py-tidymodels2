@@ -34,6 +34,8 @@ def create_panel_data():
 
 def test_fit_nested_resamples_basic():
     """Test basic fit_nested_resamples with time series CV."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     # Create simple workflow set
@@ -42,13 +44,21 @@ def test_fit_nested_resamples_basic():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     # Fit with nested CV per group
     results = wf_set.fit_nested_resamples(
-        data=data,
+        resamples=cv_by_group,
         group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days',
         metrics=metric_set(rmse, mae)
     )
 
@@ -65,6 +75,8 @@ def test_fit_nested_resamples_basic():
 
 def test_fit_nested_resamples_collect_metrics():
     """Test collect_metrics with by_group parameter."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -72,12 +84,20 @@ def test_fit_nested_resamples_collect_metrics():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Collect metrics per group
@@ -100,6 +120,8 @@ def test_fit_nested_resamples_collect_metrics():
 
 def test_fit_nested_resamples_rank_results():
     """Test rank_results method."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -107,12 +129,20 @@ def test_fit_nested_resamples_rank_results():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Rank overall
@@ -134,6 +164,8 @@ def test_fit_nested_resamples_rank_results():
 
 def test_fit_nested_resamples_extract_best():
     """Test extract_best_workflow method."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -141,12 +173,20 @@ def test_fit_nested_resamples_extract_best():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Extract best overall
@@ -167,6 +207,8 @@ def test_fit_nested_resamples_extract_best():
 
 def test_fit_global_resamples_basic():
     """Test basic fit_global_resamples."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -174,13 +216,22 @@ def test_fit_global_resamples_basic():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     # Fit global model with per-group CV
     results = wf_set.fit_global_resamples(
         data=data,
+        resamples=cv_by_group,
         group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days',
         metrics=metric_set(rmse, mae)
     )
 
@@ -197,6 +248,8 @@ def test_fit_global_resamples_basic():
 
 def test_fit_nested_resamples_with_recipe():
     """Test fit_nested_resamples with recipe preprocessing."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     rec = recipe().step_normalize(['x1', 'x2'])
@@ -206,12 +259,20 @@ def test_fit_nested_resamples_with_recipe():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     metrics = results.collect_metrics(by_group=True)
@@ -225,6 +286,8 @@ def test_fit_nested_resamples_with_recipe():
 
 def test_fit_nested_resamples_autoplot():
     """Test autoplot visualization."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -232,12 +295,20 @@ def test_fit_nested_resamples_autoplot():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Test overall plot
@@ -253,6 +324,8 @@ def test_fit_nested_resamples_autoplot():
 
 def test_fit_nested_resamples_multiple_models():
     """Test with multiple models."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -260,12 +333,20 @@ def test_fit_nested_resamples_multiple_models():
         models=[linear_reg(), rand_forest(trees=10).set_mode('regression')]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Should have results for both models
@@ -281,6 +362,8 @@ def test_fit_nested_resamples_multiple_models():
 
 def test_fit_nested_resamples_fold_level_metrics():
     """Test getting fold-level metrics (unsummarized)."""
+    from py_rsample import time_series_cv
+
     data = create_panel_data()
 
     wf_set = WorkflowSet.from_cross(
@@ -288,12 +371,20 @@ def test_fit_nested_resamples_fold_level_metrics():
         models=[linear_reg()]
     )
 
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
     results = wf_set.fit_nested_resamples(
-        data=data,
-        group_col='country',
-        date_var='date',
-        initial='60 days',
-        assess='20 days'
+        resamples=cv_by_group,
+        group_col='country'
     )
 
     # Get fold-level detail
@@ -304,6 +395,60 @@ def test_fit_nested_resamples_fold_level_metrics():
     assert 'fold' in fold_metrics.columns or 'value' in fold_metrics.columns
 
     print("✅ fit_nested_resamples fold-level metrics test passed")
+
+
+def test_fit_nested_resamples_verbose():
+    """Test verbose output parameter."""
+    from py_rsample import time_series_cv
+    import sys
+    from io import StringIO
+
+    data = create_panel_data()
+
+    wf_set = WorkflowSet.from_cross(
+        preproc=["y ~ x1", "y ~ x1 + x2"],
+        models=[linear_reg()]
+    )
+
+    # Create CV splits per group
+    cv_by_group = {}
+    for country in ['USA', 'Germany', 'Japan']:
+        country_data = data[data['country'] == country]
+        cv_by_group[country] = time_series_cv(
+            country_data,
+            date_column='date',
+            initial='60 days',
+            assess='20 days'
+        )
+
+    # Capture stdout to verify verbose output
+    captured_output = StringIO()
+    sys.stdout = captured_output
+
+    # Test with verbose=True
+    results = wf_set.fit_nested_resamples(
+        resamples=cv_by_group,
+        group_col='country',
+        verbose=True
+    )
+
+    # Restore stdout
+    sys.stdout = sys.__stdout__
+    output = captured_output.getvalue()
+
+    # Verify verbose output contains expected elements
+    assert "Total evaluations:" in output
+    assert "Workflow:" in output
+    assert "Group:" in output
+    assert "folds" in output
+    assert "✓" in output
+
+    # Verify results are still correct
+    assert len(results.results) == 2 * 3  # 2 workflows × 3 groups
+    metrics = results.collect_metrics(by_group=True)
+    assert not metrics.empty
+
+    print("✅ fit_nested_resamples verbose test passed")
 
 
 if __name__ == "__main__":
@@ -323,7 +468,8 @@ if __name__ == "__main__":
     test_fit_nested_resamples_autoplot()
     test_fit_nested_resamples_multiple_models()
     test_fit_nested_resamples_fold_level_metrics()
+    test_fit_nested_resamples_verbose()
 
     print("\n" + "="*60)
-    print("✅ ALL NESTED RESAMPLES TESTS PASSED")
+    print("✅ ALL NESTED RESAMPLES TESTS PASSED (10 tests)")
     print("="*60)

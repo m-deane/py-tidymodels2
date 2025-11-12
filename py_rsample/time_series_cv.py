@@ -2,9 +2,10 @@
 Time series cross-validation with rolling and expanding windows
 
 Provides time_series_cv() for creating multiple train/test folds for time series validation.
+Also provides time_series_nested_cv() for group-aware CV splits.
 """
 
-from typing import Union, List
+from typing import Union, List, Dict
 import pandas as pd
 import numpy as np
 
@@ -54,6 +55,7 @@ class TimeSeriesCV:
         skip: Union[str, int, pd.Timedelta] = 0,
         cumulative: bool = True,
         lag: Union[str, int, pd.Timedelta] = 0,
+        slice_limit: int = None,
     ):
         """
         Initialize time series cross-validation.
@@ -69,6 +71,7 @@ class TimeSeriesCV:
             skip: Gap between consecutive folds (default 0 = no gap)
             cumulative: If True, use expanding window; if False, use rolling window
             lag: Gap between train and test (forecast horizon)
+            slice_limit: Maximum number of folds to create (default None = all folds)
 
         Raises:
             ValueError: If parameters are invalid
@@ -76,6 +79,7 @@ class TimeSeriesCV:
         self.data = data
         self.date_column = date_column
         self.cumulative = cumulative
+        self.slice_limit = slice_limit
 
         # Validate date column
         if date_column not in data.columns:
@@ -166,6 +170,10 @@ class TimeSeriesCV:
                 f"have {n} rows"
             )
 
+        # Limit number of splits if requested
+        if self.slice_limit is not None:
+            splits = splits[:self.slice_limit]
+
         return splits
 
     def __iter__(self):
@@ -197,6 +205,7 @@ def time_series_cv(
     skip: Union[str, int, pd.Timedelta] = 0,
     cumulative: bool = True,
     lag: Union[str, int, pd.Timedelta] = 0,
+    slice_limit: int = None,
 ) -> TimeSeriesCV:
     """
     Create time series cross-validation splits.
@@ -216,6 +225,7 @@ def time_series_cv(
         skip: Gap between consecutive folds (default 0)
         cumulative: If True, use expanding window; if False, use rolling window
         lag: Gap between train and test (forecast horizon)
+        slice_limit: Maximum number of folds to create (default None = all folds)
 
     Returns:
         TimeSeriesCV object (iterable of RSplit objects)
@@ -260,4 +270,230 @@ def time_series_cv(
         skip=skip,
         cumulative=cumulative,
         lag=lag,
+        slice_limit=slice_limit,
     )
+
+
+def time_series_nested_cv(
+    data: pd.DataFrame,
+    group_col: str,
+    date_column: str,
+    initial: Union[str, int, pd.Timedelta],
+    assess: Union[str, int, pd.Timedelta],
+    skip: Union[str, int, pd.Timedelta] = 0,
+    cumulative: bool = True,
+    lag: Union[str, int, pd.Timedelta] = 0,
+    slice_limit: int = None,
+) -> Dict[str, TimeSeriesCV]:
+    """
+    Create time series cross-validation splits per group (group-aware CV).
+
+    This is a convenience function that creates separate time series CV splits
+    for each unique value in the group column. Each group gets its own CV splits
+    based on that group's data. Designed to work seamlessly with
+    WorkflowSet.fit_nested_resamples().
+
+    Args:
+        data: DataFrame with time series data
+        group_col: Column name identifying groups (e.g., 'country', 'store_id')
+        date_column: Name of date column
+        initial: Initial training period size
+            - int: Number of rows
+            - str: Period like "2 years", "6 months"
+            - Timedelta: pandas Timedelta
+        assess: Assessment (test) period size
+        skip: Gap between consecutive folds (default 0)
+        cumulative: If True, use expanding window; if False, use rolling window
+        lag: Gap between train and test (forecast horizon)
+        slice_limit: Maximum number of folds per group (default None = all folds)
+
+    Returns:
+        Dictionary mapping group names to TimeSeriesCV objects
+        Example: {'USA': TimeSeriesCV(...), 'Germany': TimeSeriesCV(...), ...}
+
+    Examples:
+        >>> # Create CV splits per country (nested modeling)
+        >>> cv_by_country = time_series_nested_cv(
+        ...     data=sales_data,
+        ...     group_col='country',
+        ...     date_column='date',
+        ...     initial='18 months',
+        ...     assess='3 months',
+        ...     skip='2 months',
+        ...     cumulative=False
+        ... )
+        >>>
+        >>> # Use with WorkflowSet.fit_nested_resamples()
+        >>> from py_workflowsets import WorkflowSet
+        >>> from py_yardstick import metric_set, rmse, mae
+        >>>
+        >>> wf_set = WorkflowSet.from_cross(
+        ...     preproc=["sales ~ price", "sales ~ price + promotion"],
+        ...     models=[linear_reg()]
+        ... )
+        >>>
+        >>> results = wf_set.fit_nested_resamples(
+        ...     resamples=cv_by_country,
+        ...     group_col='country',
+        ...     metrics=metric_set(rmse, mae)
+        ... )
+
+    Notes:
+        - Each group gets its own independent CV splits based on that group's data
+        - Periods (initial, assess, skip, lag) are parsed relative to each group's date range
+        - Groups with insufficient data will raise ValueError from TimeSeriesCV
+        - Use this for per-group modeling (fit_nested_resamples)
+        - For global modeling, use time_series_global_cv() instead
+    """
+    # Validate group column
+    if group_col not in data.columns:
+        raise ValueError(
+            f"Group column '{group_col}' not found in data. "
+            f"Available columns: {list(data.columns)}"
+        )
+
+    # Get unique groups
+    groups = data[group_col].unique()
+
+    # Create CV splits per group
+    cv_by_group = {}
+    failed_groups = []
+
+    for group in groups:
+        group_data = data[data[group_col] == group].copy()
+
+        try:
+            cv_by_group[group] = time_series_cv(
+                data=group_data,
+                date_column=date_column,
+                initial=initial,
+                assess=assess,
+                skip=skip,
+                cumulative=cumulative,
+                lag=lag,
+                slice_limit=slice_limit
+            )
+        except ValueError as e:
+            # Group has insufficient data
+            failed_groups.append((group, str(e)))
+
+    # Raise error if any groups failed
+    if failed_groups:
+        error_msg = f"Failed to create CV splits for {len(failed_groups)} group(s):\n"
+        for group, error in failed_groups:
+            error_msg += f"  - {group}: {error}\n"
+        raise ValueError(error_msg)
+
+    # Report success
+    total_splits = sum(len(cv) for cv in cv_by_group.values())
+    print(f"✓ Created CV splits for {len(cv_by_group)} groups ({total_splits} total folds)")
+
+    return cv_by_group
+
+
+def time_series_global_cv(
+    data: pd.DataFrame,
+    group_col: str,
+    date_column: str,
+    initial: Union[str, int, pd.Timedelta],
+    assess: Union[str, int, pd.Timedelta],
+    skip: Union[str, int, pd.Timedelta] = 0,
+    cumulative: bool = True,
+    lag: Union[str, int, pd.Timedelta] = 0,
+    slice_limit: int = None,
+) -> Dict[str, TimeSeriesCV]:
+    """
+    Create time series cross-validation splits on full dataset for global modeling.
+
+    This function creates CV splits on the FULL dataset (not per-group), then returns
+    a dictionary where each group gets the same CV splits. This is designed to work
+    with WorkflowSet.fit_global_resamples(), which fits a global model with group as
+    a feature and evaluates performance per-group.
+
+    Args:
+        data: DataFrame with time series data
+        group_col: Column name identifying groups (e.g., 'country', 'store_id')
+        date_column: Name of date column
+        initial: Initial training period size
+            - int: Number of rows
+            - str: Period like "2 years", "6 months"
+            - Timedelta: pandas Timedelta
+        assess: Assessment (test) period size
+        skip: Gap between consecutive folds (default 0)
+        cumulative: If True, use expanding window; if False, use rolling window
+        lag: Gap between train and test (forecast horizon)
+        slice_limit: Maximum number of folds (default None = all folds)
+
+    Returns:
+        Dictionary mapping group names to the same TimeSeriesCV object
+        Example: {'USA': cv, 'Germany': cv, 'Japan': cv, ...}
+        (all groups get the same CV splits)
+
+    Examples:
+        >>> # Create CV splits on full dataset (global modeling)
+        >>> cv_by_country = time_series_global_cv(
+        ...     data=sales_data,
+        ...     group_col='country',
+        ...     date_column='date',
+        ...     initial='18 months',
+        ...     assess='3 months',
+        ...     skip='2 months',
+        ...     cumulative=False
+        ... )
+        >>>
+        >>> # Use with WorkflowSet.fit_global_resamples()
+        >>> from py_workflowsets import WorkflowSet
+        >>> from py_yardstick import metric_set, rmse, mae
+        >>>
+        >>> wf_set = WorkflowSet.from_cross(
+        ...     preproc=["sales ~ price", "sales ~ price + promotion"],
+        ...     models=[linear_reg()]
+        ... )
+        >>>
+        >>> results = wf_set.fit_global_resamples(
+        ...     data=sales_data,
+        ...     resamples=cv_by_country,
+        ...     group_col='country',
+        ...     metrics=metric_set(rmse, mae)
+        ... )
+
+    Notes:
+        - Creates CV splits on the FULL dataset (all groups combined)
+        - All groups get the same CV splits (same train/test indices)
+        - fit_global_resamples() fits a global model, then evaluates per-group
+        - Use this for global modeling (fit_global_resamples)
+        - For per-group modeling, use time_series_nested_cv() instead
+
+    Key Difference from time_series_nested_cv():
+        - time_series_nested_cv(): Each group gets its own CV splits
+        - time_series_global_cv(): All groups share the same CV splits
+    """
+    # Validate group column
+    if group_col not in data.columns:
+        raise ValueError(
+            f"Group column '{group_col}' not found in data. "
+            f"Available columns: {list(data.columns)}"
+        )
+
+    # Get unique groups
+    groups = data[group_col].unique()
+
+    # Create CV splits on FULL dataset (not per-group)
+    cv_global = time_series_cv(
+        data=data,
+        date_column=date_column,
+        initial=initial,
+        assess=assess,
+        skip=skip,
+        cumulative=cumulative,
+        lag=lag,
+        slice_limit=slice_limit
+    )
+
+    # Return same CV object for all groups
+    cv_by_group = {group: cv_global for group in groups}
+
+    # Report success
+    print(f"✓ Created global CV splits for {len(cv_by_group)} groups ({len(cv_global)} folds)")
+
+    return cv_by_group
