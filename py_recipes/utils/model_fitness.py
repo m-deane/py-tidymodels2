@@ -303,3 +303,176 @@ def create_model_fitness_evaluator(
         random_state=random_state
     )
     return evaluator.create_fitness_function()
+
+
+def create_importance_based_seeds(
+    data: pd.DataFrame,
+    outcome_col: str,
+    feature_names: List[str],
+    n_seeds: int = 5,
+    top_n: Optional[int] = None
+) -> np.ndarray:
+    """
+    Create seed chromosomes based on univariate feature importance.
+
+    Ranks features by absolute correlation with outcome and creates
+    chromosomes with top K features for different values of K.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Training data
+    outcome_col : str
+        Name of outcome column
+    feature_names : List[str]
+        List of feature names to consider
+    n_seeds : int, default=5
+        Number of seed chromosomes to create
+    top_n : int, optional
+        Maximum features per chromosome (uses n_features//2 if None)
+
+    Returns
+    -------
+    seed_chromosomes : np.ndarray
+        Binary array of shape (n_seeds, n_features)
+
+    Examples
+    --------
+    >>> seeds = create_importance_based_seeds(
+    ...     data=train_data,
+    ...     outcome_col='y',
+    ...     feature_names=['x1', 'x2', 'x3'],
+    ...     n_seeds=3,
+    ...     top_n=2
+    ... )
+    >>> seeds.shape
+    (3, 3)
+    """
+    from scipy.stats import pearsonr
+    
+    # Calculate correlations
+    correlations = {}
+    y = data[outcome_col].values
+    
+    for feature in feature_names:
+        x = data[feature].values
+        if len(np.unique(x)) > 1:  # Skip constant features
+            corr, _ = pearsonr(x, y)
+            correlations[feature] = abs(corr)
+        else:
+            correlations[feature] = 0.0
+    
+    # Rank features by importance
+    ranked_features = sorted(correlations.items(), key=lambda x: x[1], reverse=True)
+    
+    # Create seed chromosomes
+    n_features = len(feature_names)
+    if top_n is None:
+        top_n = max(1, n_features // 2)
+    
+    seeds = []
+    # Create chromosomes with top K features for K in range
+    k_values = np.linspace(1, min(top_n, n_features), n_seeds, dtype=int)
+    
+    for k in k_values:
+        chromosome = np.zeros(n_features, dtype=int)
+        # Select top k features
+        top_k_features = [f for f, _ in ranked_features[:k]]
+        for i, feature in enumerate(feature_names):
+            if feature in top_k_features:
+                chromosome[i] = 1
+        seeds.append(chromosome)
+    
+    return np.array(seeds)
+
+
+def create_low_correlation_seeds(
+    data: pd.DataFrame,
+    feature_names: List[str],
+    n_seeds: int = 5,
+    max_corr_threshold: float = 0.7
+) -> np.ndarray:
+    """
+    Create seed chromosomes with low-correlation feature sets.
+
+    Selects features greedily to minimize inter-feature correlation,
+    reducing multicollinearity.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Training data
+    feature_names : List[str]
+        List of feature names to consider
+    n_seeds : int, default=5
+        Number of seed chromosomes to create
+    max_corr_threshold : float, default=0.7
+        Maximum allowable correlation between selected features
+
+    Returns
+    -------
+    seed_chromosomes : np.ndarray
+        Binary array of shape (n_seeds, n_features)
+
+    Examples
+    --------
+    >>> seeds = create_low_correlation_seeds(
+    ...     data=train_data,
+    ...     feature_names=['x1', 'x2', 'x3'],
+    ...     n_seeds=2,
+    ...     max_corr_threshold=0.5
+    ... )
+    """
+    from scipy.stats import pearsonr
+    
+    n_features = len(feature_names)
+    
+    # Calculate pairwise correlations
+    corr_matrix = np.eye(n_features)
+    for i in range(n_features):
+        for j in range(i + 1, n_features):
+            x1 = data[feature_names[i]].values
+            x2 = data[feature_names[j]].values
+            if len(np.unique(x1)) > 1 and len(np.unique(x2)) > 1:
+                corr, _ = pearsonr(x1, x2)
+                corr_matrix[i, j] = abs(corr)
+                corr_matrix[j, i] = abs(corr)
+    
+    seeds = []
+    # Create multiple seeds with different starting features
+    start_indices = np.linspace(0, n_features - 1, n_seeds, dtype=int)
+    
+    for start_idx in start_indices:
+        chromosome = np.zeros(n_features, dtype=int)
+        selected = []
+        
+        # Start with a random feature
+        selected.append(start_idx)
+        chromosome[start_idx] = 1
+        
+        # Greedily add features with low correlation to selected ones
+        while len(selected) < n_features:
+            best_feature = None
+            min_max_corr = float('inf')
+            
+            for candidate in range(n_features):
+                if candidate in selected:
+                    continue
+                
+                # Check max correlation with already selected features
+                max_corr = max([corr_matrix[candidate, s] for s in selected])
+                
+                if max_corr < min_max_corr:
+                    min_max_corr = max_corr
+                    best_feature = candidate
+            
+            # Add if correlation is below threshold
+            if best_feature is not None and min_max_corr < max_corr_threshold:
+                selected.append(best_feature)
+                chromosome[best_feature] = 1
+            else:
+                break  # No more features meet criteria
+        
+        seeds.append(chromosome)
+    
+    return np.array(seeds)

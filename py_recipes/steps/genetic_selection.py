@@ -117,6 +117,7 @@ class StepSelectGeneticAlgorithm:
     max_total_cost: Optional[float] = None
     cost_weight: float = 0.0
     sparsity_weight: float = 0.0
+    warm_start: Union[None, str, np.ndarray] = None  # None, "importance", "low_correlation", or custom seeds
     population_size: int = 50
     generations: int = 100
     mutation_rate: float = 0.1
@@ -285,6 +286,34 @@ class StepSelectGeneticAlgorithm:
             verbose=self.verbose
         )
 
+        # Generate seed chromosomes if warm start is enabled
+        seed_chromosomes = None
+        if self.warm_start is not None:
+            from py_recipes.utils import create_importance_based_seeds, create_low_correlation_seeds
+
+            if isinstance(self.warm_start, str):
+                if self.warm_start == "importance":
+                    seed_chromosomes = create_importance_based_seeds(
+                        data=data,
+                        outcome_col=self.outcome,
+                        feature_names=numeric_cols,
+                        n_seeds=min(10, self.population_size // 2),
+                        top_n=self.top_n
+                    )
+                elif self.warm_start == "low_correlation":
+                    seed_chromosomes = create_low_correlation_seeds(
+                        data=data,
+                        feature_names=numeric_cols,
+                        n_seeds=min(10, self.population_size // 2)
+                    )
+                else:
+                    raise ValueError(f"Invalid warm_start method: '{self.warm_start}'. "
+                                   "Use 'importance', 'low_correlation', or provide custom seeds.")
+            elif isinstance(self.warm_start, np.ndarray):
+                seed_chromosomes = self.warm_start
+            else:
+                raise ValueError("warm_start must be None, 'importance', 'low_correlation', or np.ndarray")
+
         # Run GA
         ga = GeneticAlgorithm(
             n_features=len(numeric_cols),
@@ -293,7 +322,8 @@ class StepSelectGeneticAlgorithm:
             mandatory_indices=mandatory_indices,
             forbidden_indices=forbidden_indices,
             feature_costs=cost_array,
-            max_cost=self.max_total_cost
+            max_cost=self.max_total_cost,
+            seed_chromosomes=seed_chromosomes
         )
 
         best_chromosome, best_fitness, history = ga.evolve()
@@ -441,6 +471,7 @@ def step_select_genetic_algorithm(
     max_total_cost: Optional[float] = None,
     cost_weight: float = 0.0,
     sparsity_weight: float = 0.0,
+    warm_start: Union[None, str, np.ndarray] = None,
     population_size: int = 50,
     generations: int = 100,
     mutation_rate: float = 0.1,
@@ -546,6 +577,7 @@ def step_select_genetic_algorithm(
         max_total_cost=max_total_cost,
         cost_weight=cost_weight,
         sparsity_weight=sparsity_weight,
+        warm_start=warm_start,
         population_size=population_size,
         generations=generations,
         mutation_rate=mutation_rate,

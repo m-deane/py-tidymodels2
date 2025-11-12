@@ -102,7 +102,8 @@ class GeneticAlgorithm:
         mandatory_indices: Optional[List[int]] = None,
         forbidden_indices: Optional[List[int]] = None,
         feature_costs: Optional[np.ndarray] = None,
-        max_cost: Optional[float] = None
+        max_cost: Optional[float] = None,
+        seed_chromosomes: Optional[np.ndarray] = None
     ):
         if n_features < 1:
             raise ValueError("n_features must be >= 1")
@@ -116,6 +117,17 @@ class GeneticAlgorithm:
         self.forbidden_indices = forbidden_indices if forbidden_indices is not None else []
         self.feature_costs = feature_costs
         self.max_cost = max_cost
+
+        # Warm start chromosomes
+        self.seed_chromosomes = seed_chromosomes
+        if self.seed_chromosomes is not None:
+            # Validate seed chromosomes
+            if len(self.seed_chromosomes.shape) != 2:
+                raise ValueError("seed_chromosomes must be 2D array (n_seeds × n_features)")
+            if self.seed_chromosomes.shape[1] != n_features:
+                raise ValueError(f"seed_chromosomes must have {n_features} features")
+            if not np.all(np.isin(self.seed_chromosomes, [0, 1])):
+                raise ValueError("seed_chromosomes must be binary (0/1 values)")
 
         # Validate constraints
         if set(self.mandatory_indices) & set(self.forbidden_indices):
@@ -136,9 +148,10 @@ class GeneticAlgorithm:
 
     def initialize_population(self) -> np.ndarray:
         """
-        Initialize random binary population.
+        Initialize binary population with optional warm start.
 
         Each chromosome has 50% probability of each bit being 1.
+        If seed_chromosomes are provided, they replace initial individuals.
         Ensures at least one feature is selected per chromosome.
         Respects mandatory and forbidden feature constraints.
 
@@ -147,12 +160,19 @@ class GeneticAlgorithm:
         population : np.ndarray
             Binary population matrix (population_size × n_features)
         """
+        # Start with random population
         population = np.random.randint(
             0, 2,
             size=(self.config.population_size, self.n_features)
         )
 
-        # Apply mandatory and forbidden constraints
+        # Incorporate seed chromosomes if provided (warm start)
+        if self.seed_chromosomes is not None:
+            n_seeds = min(len(self.seed_chromosomes), self.config.population_size)
+            # Replace first n_seeds individuals with seeds
+            population[:n_seeds] = self.seed_chromosomes[:n_seeds].copy()
+
+        # Apply mandatory and forbidden constraints to ALL individuals
         for i in range(self.config.population_size):
             # Set mandatory features to 1
             if self.mandatory_indices:
