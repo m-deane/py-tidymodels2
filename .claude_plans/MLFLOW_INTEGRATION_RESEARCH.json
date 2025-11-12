@@ -1,0 +1,745 @@
+{
+  "research_metadata": {
+    "date": "2025-11-12",
+    "focus": "MLflow integration opportunities for py-tidymodels library",
+    "repositories_analyzed": 15,
+    "docs_reviewed": 35,
+    "code_examples_found": 12
+  },
+
+  "executive_summary": {
+    "top_5_benefits": [
+      {
+        "benefit": "Unified Experiment Tracking Across 23 Model Types",
+        "description": "MLflow provides a single interface to track experiments for all py-tidymodels models (linear_reg, prophet_reg, arima_reg, boost_tree, etc.) with automatic parameter and metric logging via autolog() for sklearn, XGBoost, LightGBM, Prophet, pmdarima/statsmodels",
+        "impact": "Critical for exploratory modeling where data scientists compare 20+ workflows with different preprocessing strategies and models"
+      },
+      {
+        "benefit": "Nested Run Structure for WorkflowSet Multi-Model Comparison",
+        "description": "Parent-child run architecture perfectly aligns with WorkflowSet's multi-workflow evaluation pattern. Parent run = WorkflowSet experiment, child runs = individual workflow evaluations across CV folds or groups",
+        "impact": "Natural fit for py-tidymodels' WorkflowSet.fit_resamples() and WorkflowSet.fit_nested() patterns. Enables tracking 100+ models (e.g., 20 workflows × 5 CV folds) with hierarchical organization"
+      },
+      {
+        "benefit": "Three-DataFrame Output Persistence as Artifacts",
+        "description": "MLflow's log_table(), log_dict(), and log_artifact() functions can persist py-tidymodels' standardized three-DataFrame outputs (outputs, coefficients, stats) as queryable artifacts in CSV, Parquet, or JSON format",
+        "impact": "Preserves the complete model story beyond just metrics. Enables post-hoc analysis of residuals, coefficient stability, per-group performance without re-fitting models"
+      },
+      {
+        "benefit": "Production-Ready Model Registry with Versioning and Aliases",
+        "description": "MLflow Model Registry with aliases (champion, challenger, candidate) enables seamless production deployment. Decouple model versions from serving code - update production by reassigning aliases, not changing code",
+        "impact": "Critical for transitioning from exploration to production. py-tidymodels workflows can be registered, versioned, and deployed via REST API without infrastructure rewrites"
+      },
+      {
+        "benefit": "Custom Visualization Dashboard with Plotly Interactive Plots",
+        "description": "MLflow's log_figure() supports both matplotlib and Plotly. Log interactive HTML dashboards showing forecast comparisons, residual diagnostics, feature importance, per-group performance heatmaps",
+        "impact": "Transforms static plots into explorable visualizations. Critical for time series diagnostics (ACF/PACF), multi-model comparison, and panel data analysis"
+      }
+    ],
+
+    "key_challenges_and_solutions": [
+      {
+        "challenge": "Logging 51 Recipe Preprocessing Steps",
+        "description": "py-recipes has 51 step types (step_normalize, step_pca, step_dummy, etc.). Each step has parameters and learned state (e.g., PCA components, normalization means)",
+        "solution": "Use tags to mark recipe type, log each step's parameters via log_params(), persist PreparedRecipe object as pickle artifact via log_artifact(). For complex steps (PCA, ICA), log component matrices as separate DataFrames via log_table()"
+      },
+      {
+        "challenge": "Panel/Grouped Model Tracking (fit_nested with 10+ groups)",
+        "description": "py-tidymodels' NestedWorkflowFit trains separate models per group (e.g., 10 countries × 5 models = 50 fitted models). MLflow's native UI doesn't support per-group metric aggregation",
+        "solution": "Leverage MLflow Diviner integration pattern: log per-group metrics as DataFrame artifacts via log_dict() or log_table(). Use tags for group identification (country:USA, country:Germany). Create custom dashboards using MLflow Search API to query and aggregate"
+      },
+      {
+        "challenge": "Time Series Cross-Validation with Rolling Windows",
+        "description": "py-rsample's time_series_cv() creates multiple train/test splits with rolling or expanding windows. Need to track performance across all folds while preserving temporal structure",
+        "solution": "Use nested runs: Parent = workflow evaluation, Children = individual CV folds. Log fold metrics with step parameter (e.g., log_metric('rmse', value, step=fold_idx)). Log split boundaries as tags (train_start, train_end, test_start, test_end)"
+      },
+      {
+        "challenge": "Large Output DataFrames (10k+ observations per model)",
+        "description": "Time series models often produce large outputs DataFrames with actuals, fitted, forecast, residuals for thousands of time steps. Logging as artifacts can be slow and consume storage",
+        "solution": "Use Parquet format for efficient compression and columnar storage (5-10x smaller than CSV). Log summary statistics as metrics (RMSE, MAE) and only log full outputs for best N models. For panel data, partition outputs by group and log separately"
+      }
+    ]
+  },
+
+  "architecture_proposal": {
+    "integration_points": [
+      {
+        "layer": "Layer 8: py-workflowsets (Multi-Model Comparison)",
+        "tracking_strategy": "Parent-Child Nested Runs",
+        "implementation": {
+          "WorkflowSet.fit_resamples()": {
+            "parent_run": "WorkflowSet experiment with all 20 workflows",
+            "child_runs": "One child run per workflow evaluation",
+            "logged_artifacts": [
+              "collect_metrics() DataFrame (CV performance)",
+              "rank_results() DataFrame (workflow ranking)",
+              "Per-workflow PreparedRecipe or formula"
+            ]
+          },
+          "WorkflowSet.fit_nested()": {
+            "parent_run": "WorkflowSet grouped experiment",
+            "child_runs_level_1": "Per-workflow runs",
+            "child_runs_level_2": "Per-group runs within workflow",
+            "logged_artifacts": [
+              "Per-group outputs, coefficients, stats DataFrames",
+              "Group comparison metrics",
+              "Best workflow per group identification"
+            ]
+          }
+        }
+      },
+      {
+        "layer": "Layer 4: py-workflows (Single Pipeline)",
+        "tracking_strategy": "Single Run with Detailed Artifacts",
+        "implementation": {
+          "Workflow.fit()": {
+            "logged_parameters": [
+              "Model type and engine (e.g., linear_reg + sklearn)",
+              "Model hyperparameters (penalty, mixture, etc.)",
+              "Formula (if used directly)",
+              "Group column (for fit_nested/fit_global)"
+            ],
+            "logged_metrics": [
+              "Train RMSE, MAE, R², etc.",
+              "Test RMSE, MAE, R² (from evaluate())",
+              "Per-group metrics (for nested models)"
+            ],
+            "logged_artifacts": [
+              "Three-DataFrame outputs (CSV or Parquet)",
+              "Fitted workflow object (pickle)",
+              "Formula string (text file)",
+              "Preprocessed data sample (if extract_preprocessed_data() used)"
+            ]
+          }
+        }
+      },
+      {
+        "layer": "Layer 5: py-recipes (Feature Engineering)",
+        "tracking_strategy": "Parameters + Learned State Artifacts",
+        "implementation": {
+          "Recipe.prep()": {
+            "logged_parameters": [
+              "Step sequence (comma-separated string)",
+              "Each step's parameters (step_normalize: method=standard)",
+              "Selector functions used (all_numeric, all_predictors)"
+            ],
+            "logged_artifacts": [
+              "PreparedRecipe pickle object",
+              "PCA components matrix (if step_pca used)",
+              "Feature correlation matrix (if step_corr used)",
+              "Imputation values (if step_impute_* used)",
+              "Feature names before/after (comparison DataFrame)"
+            ]
+          }
+        }
+      },
+      {
+        "layer": "Layer 7: py-tune (Hyperparameter Tuning)",
+        "tracking_strategy": "Parent + Child Runs for Grid Search",
+        "implementation": {
+          "tune_grid()": {
+            "parent_run": "Hyperparameter tuning experiment",
+            "child_runs": "One per parameter combination tested",
+            "logged_per_child": [
+              "Parameter values for this combination",
+              "CV metrics (mean and std across folds)",
+              "Fitted model for this combination"
+            ],
+            "logged_at_parent": [
+              "TuneResults.show_best() DataFrame",
+              "Grid specification (as JSON)",
+              "Best parameter selection",
+              "Performance contour plots"
+            ]
+          }
+        }
+      }
+    ],
+
+    "recommended_experiment_structure": {
+      "hierarchy": [
+        {
+          "level": "Experiment",
+          "definition": "Corresponds to a specific dataset + modeling objective",
+          "example": "Sales_Forecasting_2024_Q4",
+          "tags": ["dataset:sales_2024", "objective:forecasting", "horizon:3_months"]
+        },
+        {
+          "level": "Parent Run",
+          "definition": "Corresponds to a WorkflowSet evaluation or hyperparameter tuning session",
+          "example": "WorkflowSet_20_Workflows_5_Fold_CV",
+          "tags": ["workflowset:v1", "cv_folds:5", "models:linear_prophet_arima_xgboost"]
+        },
+        {
+          "level": "Child Run (Level 1)",
+          "definition": "Individual workflow evaluation or specific parameter combination",
+          "example": "minimal_linear_reg_1_fold_3",
+          "tags": ["workflow_id:minimal_linear_reg_1", "fold:3", "split:test"]
+        },
+        {
+          "level": "Child Run (Level 2)",
+          "definition": "Per-group model for nested workflows",
+          "example": "minimal_linear_reg_1_country_USA",
+          "tags": ["workflow_id:minimal_linear_reg_1", "group:USA", "group_col:country"]
+        }
+      ],
+
+      "naming_conventions": {
+        "experiments": "Project_Dataset_ModelType_Date",
+        "runs": "WorkflowID_Parameter_Value_Context",
+        "artifacts": "artifact_type_description.extension",
+        "tags": "category:value (e.g., model_type:linear_reg, preprocessing:pca)"
+      }
+    },
+
+    "data_flow_diagram": {
+      "workflow_to_mlflow": [
+        "1. User creates Workflow with recipe/formula + model",
+        "2. Call mlflow.start_run() before fit()",
+        "3. Log recipe parameters via log_params()",
+        "4. Fit workflow → triggers model training",
+        "5. Log training metrics via log_metrics()",
+        "6. Call evaluate() on test data",
+        "7. Log test metrics via log_metrics()",
+        "8. Extract outputs via extract_outputs()",
+        "9. Log three DataFrames via log_table() or save to CSV + log_artifact()",
+        "10. Log fitted workflow via mlflow.pyfunc.log_model()",
+        "11. End run with mlflow.end_run()"
+      ],
+
+      "workflowset_to_mlflow": [
+        "1. User creates WorkflowSet with from_cross() or from_workflows()",
+        "2. Call mlflow.start_run(run_name='WorkflowSet_Experiment') as parent",
+        "3. Call fit_resamples() or fit_nested()",
+        "4. For each workflow:",
+        "   a. Start nested child run with mlflow.start_run(nested=True)",
+        "   b. Log workflow-specific parameters and metrics",
+        "   c. For CV folds, log per-fold metrics with step parameter",
+        "   d. Log best fold's artifacts",
+        "   e. End child run",
+        "5. Aggregate metrics via collect_metrics()",
+        "6. Log aggregated results at parent level",
+        "7. Log rank_results() DataFrame",
+        "8. End parent run"
+      ]
+    }
+  },
+
+  "code_examples": {
+    "example_1_basic_workflow_tracking": {
+      "description": "Track a simple workflow with recipe + linear regression",
+      "source": "Based on MLflow sklearn autolog pattern",
+      "code": "import mlflow\nimport mlflow.sklearn\nfrom py_workflows import workflow\nfrom py_recipes import recipe\nfrom py_parsnip import linear_reg\n\n# Enable sklearn autologging\nmlflow.sklearn.autolog()\n\n# Create workflow\nrec = recipe(train_data).step_normalize(all_numeric()).step_dummy(all_nominal())\nwf = workflow().add_recipe(rec).add_model(linear_reg())\n\n# Track with MLflow\nwith mlflow.start_run(run_name=\"linear_reg_normalized\"):\n    # Log custom tags\n    mlflow.set_tags({\n        \"model_type\": \"linear_reg\",\n        \"preprocessing\": \"normalize_dummy\",\n        \"dataset\": \"sales_2024\"\n    })\n    \n    # Fit workflow (autolog captures sklearn metrics)\n    fit = wf.fit(train_data)\n    \n    # Evaluate on test data\n    fit_eval = fit.evaluate(test_data)\n    \n    # Extract outputs\n    outputs, coeffs, stats = fit.extract_outputs()\n    \n    # Log three-DataFrame outputs\n    mlflow.log_table(stats, \"model_stats.json\")\n    mlflow.log_table(coeffs, \"coefficients.json\")\n    \n    # Log outputs as Parquet (more efficient for large data)\n    outputs.to_parquet(\"/tmp/outputs.parquet\")\n    mlflow.log_artifact(\"/tmp/outputs.parquet\", \"model_outputs\")\n    \n    # Log additional custom metrics\n    test_stats = stats[stats['split'] == 'test']\n    mlflow.log_metrics({\n        \"test_rmse\": test_stats['rmse'].iloc[0],\n        \"test_mae\": test_stats['mae'].iloc[0],\n        \"test_r2\": test_stats['rsq'].iloc[0]\n    })"
+    },
+
+    "example_2_nested_runs_cv": {
+      "description": "Track cross-validation with nested runs (parent = experiment, children = folds)",
+      "source": "Adapted from MLflow nested runs documentation",
+      "code": "import mlflow\nfrom py_workflows import workflow\nfrom py_rsample import vfold_cv\nfrom py_tune import fit_resamples, metric_set\nfrom py_yardstick import rmse, mae, r_squared\n\n# Create workflow\nwf = workflow().add_formula(\"y ~ x1 + x2\").add_model(linear_reg())\n\n# Create CV folds\nfolds = vfold_cv(train_data, v=5)\nmetrics = metric_set(rmse, mae, r_squared)\n\n# Parent run for entire CV experiment\nwith mlflow.start_run(run_name=\"Linear_Reg_5Fold_CV\") as parent_run:\n    # Log experiment-level parameters\n    mlflow.log_params({\n        \"model_type\": \"linear_reg\",\n        \"cv_folds\": 5,\n        \"formula\": \"y ~ x1 + x2\"\n    })\n    \n    # Evaluate with CV\n    results = fit_resamples(wf, resamples=folds, metrics=metrics)\n    \n    # Log each fold as child run\n    for fold_idx in range(5):\n        with mlflow.start_run(run_name=f\"fold_{fold_idx+1}\", nested=True):\n            fold_metrics = results.metrics[results.metrics['id'] == f\"Fold{fold_idx+1}\"]\n            \n            # Log fold-specific metrics\n            for _, row in fold_metrics.iterrows():\n                mlflow.log_metric(row['metric'], row['value'], step=fold_idx)\n    \n    # Aggregate and log summary at parent level\n    summary = results.collect_metrics(summarize=True)\n    mlflow.log_table(summary, \"cv_summary.json\")\n    \n    # Log mean metrics\n    for _, row in summary.iterrows():\n        mlflow.log_metric(f\"{row['metric']}_mean\", row['mean'])\n        mlflow.log_metric(f\"{row['metric']}_std\", row['std'])"
+    },
+
+    "example_3_workflowset_multi_model": {
+      "description": "Track WorkflowSet with 20 workflows comparing preprocessing × models",
+      "source": "Custom implementation based on MLflow patterns",
+      "code": "import mlflow\nfrom py_workflowsets import WorkflowSet\nfrom py_parsnip import linear_reg, rand_forest, prophet_reg\n\n# Define preprocessing strategies\nformulas = [\n    \"y ~ x1 + x2\",\n    \"y ~ x1 + x2 + x3\",\n    \"y ~ x1 + x2 + I(x1*x2)\",\n    \"y ~ x1 + x2 + I(x1**2)\",\n    \"y ~ .\"\n]\n\n# Define models\nmodels = [\n    linear_reg(),\n    linear_reg(penalty=0.1, mixture=1.0),  # Lasso\n    linear_reg(penalty=0.1, mixture=0.5),  # ElasticNet\n    rand_forest().set_mode('regression')\n]\n\n# Create WorkflowSet (5 formulas × 4 models = 20 workflows)\nwf_set = WorkflowSet.from_cross(preproc=formulas, models=models)\n\n# Parent run for entire WorkflowSet experiment\nwith mlflow.start_run(run_name=\"WorkflowSet_20_Workflows\") as parent_run:\n    mlflow.set_tags({\n        \"experiment_type\": \"workflowset\",\n        \"n_workflows\": 20,\n        \"preprocessing_strategies\": 5,\n        \"model_types\": 4\n    })\n    \n    # Evaluate all workflows\n    folds = vfold_cv(train_data, v=5)\n    results = wf_set.fit_resamples(resamples=folds, metrics=metric_set(rmse, mae))\n    \n    # Log each workflow as child run\n    for wf_id in wf_set.workflow_ids:\n        with mlflow.start_run(run_name=wf_id, nested=True):\n            # Log workflow-specific parameters\n            wf = wf_set[wf_id]\n            model_spec = wf.extract_spec_parsnip()\n            mlflow.log_params({\n                \"model_type\": model_spec.model_type,\n                \"formula\": wf.extract_formula()\n            })\n            \n            # Get workflow metrics\n            wf_metrics = results.collect_metrics()\n            wf_metrics = wf_metrics[wf_metrics['wflow_id'] == wf_id]\n            \n            # Log aggregated metrics\n            for _, row in wf_metrics.iterrows():\n                mlflow.log_metric(row['metric'], row['mean'])\n                mlflow.log_metric(f\"{row['metric']}_std\", row['std'])\n    \n    # Log overall results at parent level\n    ranked = results.rank_results('rmse', n=20)\n    mlflow.log_table(ranked, \"workflow_rankings.json\")\n    \n    # Log best workflow details\n    best_wf_id = ranked.iloc[0]['wflow_id']\n    mlflow.log_param(\"best_workflow\", best_wf_id)\n    mlflow.log_metric(\"best_rmse\", ranked.iloc[0]['mean'])"
+    },
+
+    "example_4_time_series_diagnostics": {
+      "description": "Log time series diagnostic plots (residuals, ACF, PACF) with MLflow",
+      "source": "Based on statsmodels + MLflow log_figure pattern",
+      "code": "import mlflow\nimport matplotlib.pyplot as plt\nfrom statsmodels.graphics.tsaplots import plot_acf, plot_pacf\nfrom py_parsnip import prophet_reg\n\n# Fit time series model\nspec = prophet_reg()\nfit = spec.fit(train_data, \"y ~ date\")\n\n# Extract outputs\noutputs, coeffs, stats = fit.extract_outputs()\nresiduals = outputs[outputs['split'] == 'train']['residuals'].dropna()\n\nwith mlflow.start_run(run_name=\"Prophet_Diagnostics\"):\n    # Log model parameters\n    mlflow.log_params({\n        \"model_type\": \"prophet_reg\",\n        \"formula\": \"y ~ date\"\n    })\n    \n    # Create diagnostic plots\n    fig, axes = plt.subplots(2, 2, figsize=(12, 10))\n    \n    # 1. Residual plot\n    axes[0, 0].scatter(range(len(residuals)), residuals, alpha=0.5)\n    axes[0, 0].axhline(y=0, color='r', linestyle='--')\n    axes[0, 0].set_title('Residual Plot')\n    axes[0, 0].set_xlabel('Time Index')\n    axes[0, 0].set_ylabel('Residuals')\n    \n    # 2. ACF plot\n    plot_acf(residuals, ax=axes[0, 1], lags=40)\n    axes[0, 1].set_title('ACF of Residuals')\n    \n    # 3. PACF plot\n    plot_pacf(residuals, ax=axes[1, 0], lags=40, method='ywm')\n    axes[1, 0].set_title('PACF of Residuals')\n    \n    # 4. Residual distribution\n    axes[1, 1].hist(residuals, bins=30, edgecolor='black')\n    axes[1, 1].set_title('Residual Distribution')\n    axes[1, 1].set_xlabel('Residuals')\n    axes[1, 1].set_ylabel('Frequency')\n    \n    plt.tight_layout()\n    \n    # Log the figure\n    mlflow.log_figure(fig, \"time_series_diagnostics.png\")\n    plt.close(fig)\n    \n    # Log residual statistics as metrics\n    mlflow.log_metrics({\n        \"residual_mean\": residuals.mean(),\n        \"residual_std\": residuals.std(),\n        \"residual_skew\": residuals.skew(),\n        \"residual_kurtosis\": residuals.kurtosis()\n    })"
+    },
+
+    "example_5_panel_data_nested_models": {
+      "description": "Track per-group models in panel/nested data scenarios",
+      "source": "Custom implementation using MLflow Diviner pattern",
+      "code": "import mlflow\nimport pandas as pd\nfrom py_workflows import workflow\nfrom py_parsnip import linear_reg\n\n# Create workflow\nwf = workflow().add_formula(\"sales ~ price + promotion\").add_model(linear_reg())\n\n# Fit nested models (one per country)\nwith mlflow.start_run(run_name=\"Nested_Models_By_Country\") as parent_run:\n    mlflow.set_tags({\n        \"model_type\": \"nested_workflow\",\n        \"group_col\": \"country\",\n        \"n_groups\": train_data['country'].nunique()\n    })\n    \n    # Fit nested models\n    nested_fit = wf.fit_nested(train_data, group_col='country')\n    \n    # Extract outputs (includes group column)\n    outputs, coeffs, stats = nested_fit.extract_outputs()\n    \n    # Log per-group metrics as DataFrame artifact\n    per_group_stats = stats[stats['split'] == 'test'].copy()\n    mlflow.log_table(per_group_stats, \"per_group_performance.json\")\n    \n    # Create child run for each group\n    for group in train_data['country'].unique():\n        with mlflow.start_run(run_name=f\"country_{group}\", nested=True):\n            # Get group-specific data\n            group_stats = stats[(stats['group'] == group) & (stats['split'] == 'test')].iloc[0]\n            group_coeffs = coeffs[coeffs['group'] == group]\n            \n            # Log group as tag\n            mlflow.set_tag(\"country\", group)\n            \n            # Log group-specific metrics\n            mlflow.log_metrics({\n                \"rmse\": group_stats['rmse'],\n                \"mae\": group_stats['mae'],\n                \"r2\": group_stats['rsq']\n            })\n            \n            # Log group-specific coefficients\n            coeff_dict = group_coeffs.set_index('term')['estimate'].to_dict()\n            mlflow.log_params(coeff_dict)\n    \n    # Aggregate metrics at parent level\n    avg_metrics = per_group_stats.groupby('metric')[['rmse', 'mae', 'rsq']].mean()\n    for metric_name in ['rmse', 'mae', 'rsq']:\n        mlflow.log_metric(f\"avg_{metric_name}\", avg_metrics.loc[metric_name].mean())"
+    },
+
+    "example_6_recipe_tracking": {
+      "description": "Track complex recipe with multiple preprocessing steps",
+      "source": "Custom implementation",
+      "code": "import mlflow\nfrom py_recipes import recipe\nfrom py_recipes.steps import *\nimport pickle\n\n# Create complex recipe\nrec = (recipe(train_data, \"y ~ .\")\n    .step_impute_median(all_numeric())\n    .step_normalize(all_numeric())\n    .step_pca(all_numeric_predictors(), num_comp=5, prefix=\"PC\")\n    .step_dummy(all_nominal())\n)\n\nwith mlflow.start_run(run_name=\"Complex_Recipe_PCA\"):\n    # Log recipe structure\n    step_names = [step.__class__.__name__ for step in rec.steps]\n    mlflow.log_param(\"recipe_steps\", \",\".join(step_names))\n    mlflow.log_param(\"n_steps\", len(step_names))\n    \n    # Prepare recipe\n    prepped = rec.prep()\n    \n    # Log PCA components (if PCA step exists)\n    for step in prepped.steps:\n        if step.__class__.__name__ == 'StepPCA':\n            # Get PCA transformer\n            pca = step.pca\n            \n            # Log explained variance\n            for i, var in enumerate(pca.explained_variance_ratio_):\n                mlflow.log_metric(f\"pca_explained_var_PC{i+1}\", var)\n            \n            # Log cumulative explained variance\n            cumsum = pca.explained_variance_ratio_.cumsum()\n            mlflow.log_metric(\"pca_cumulative_var\", cumsum[-1])\n            \n            # Log components matrix as artifact\n            components_df = pd.DataFrame(\n                pca.components_,\n                columns=step.columns,\n                index=[f\"PC{i+1}\" for i in range(len(pca.components_))]\n            )\n            mlflow.log_table(components_df, \"pca_components.json\")\n    \n    # Save and log PreparedRecipe\n    with open(\"/tmp/prepared_recipe.pkl\", \"wb\") as f:\n        pickle.dump(prepped, f)\n    mlflow.log_artifact(\"/tmp/prepared_recipe.pkl\", \"recipe\")\n    \n    # Log feature names before/after\n    original_features = train_data.columns.tolist()\n    transformed_data = prepped.bake(train_data)\n    transformed_features = transformed_data.columns.tolist()\n    \n    feature_comparison = pd.DataFrame({\n        \"stage\": [\"original\"] * len(original_features) + [\"transformed\"] * len(transformed_features),\n        \"feature\": original_features + transformed_features\n    })\n    mlflow.log_table(feature_comparison, \"feature_comparison.json\")"
+    },
+
+    "example_7_hyperparameter_tuning": {
+      "description": "Track hyperparameter tuning with grid search and nested runs",
+      "source": "Based on MLflow Optuna integration pattern",
+      "code": "import mlflow\nfrom py_tune import tune, grid_regular, tune_grid, finalize_workflow\nfrom py_workflows import workflow\nfrom py_parsnip import linear_reg\n\n# Create workflow with tunable parameters\nspec = linear_reg(penalty=tune(\"penalty\"), mixture=tune(\"mixture\"))\nwf = workflow().add_formula(\"y ~ x1 + x2 + x3\").add_model(spec)\n\n# Create parameter grid\ngrid = grid_regular(\n    {\"penalty\": {\"range\": (0.001, 1.0), \"trans\": \"log\"},\n     \"mixture\": {\"range\": (0, 1)}},\n    levels=5\n)\n\n# Parent run for tuning experiment\nwith mlflow.start_run(run_name=\"ElasticNet_Grid_Search\") as parent_run:\n    mlflow.log_params({\n        \"model_type\": \"linear_reg\",\n        \"tuning_method\": \"grid_search\",\n        \"n_combinations\": len(grid),\n        \"cv_folds\": 5\n    })\n    \n    # Perform grid search\n    results = tune_grid(\n        wf,\n        resamples=vfold_cv(train_data, v=5),\n        grid=grid,\n        metrics=metric_set(rmse, mae, r_squared)\n    )\n    \n    # Log each parameter combination as child run\n    for idx, row in results.metrics.iterrows():\n        param_combo = f\"penalty_{row['penalty']:.4f}_mixture_{row['mixture']:.2f}\"\n        \n        with mlflow.start_run(run_name=param_combo, nested=True):\n            # Log parameters\n            mlflow.log_params({\n                \"penalty\": row['penalty'],\n                \"mixture\": row['mixture']\n            })\n            \n            # Log metrics\n            if 'metric' in row and 'value' in row:\n                mlflow.log_metric(row['metric'], row['value'])\n            else:\n                # Wide format\n                for metric in ['rmse', 'mae', 'rsq']:\n                    if metric in row:\n                        mlflow.log_metric(metric, row[metric])\n    \n    # Log best parameters at parent level\n    best = results.select_best(\"rmse\", maximize=False)\n    mlflow.log_params({\n        \"best_penalty\": best['penalty'],\n        \"best_mixture\": best['mixture']\n    })\n    mlflow.log_metric(\"best_rmse\", best['rmse'])\n    \n    # Log full results table\n    mlflow.log_table(results.show_best(n=25), \"tuning_results.json\")\n    \n    # Finalize and log best workflow\n    final_wf = finalize_workflow(wf, best)\n    final_fit = final_wf.fit(train_data)\n    mlflow.sklearn.log_model(final_fit.fit_data['model'], \"best_model\")"
+    },
+
+    "example_8_plotly_interactive_forecast": {
+      "description": "Create and log interactive Plotly forecast visualization",
+      "source": "Based on MLflow Plotly integration",
+      "code": "import mlflow\nimport plotly.graph_objects as go\nfrom py_parsnip import prophet_reg\n\n# Fit time series model\nspec = prophet_reg()\nfit = spec.fit(train_data, \"y ~ date\")\n\n# Generate forecasts\nforecast_data = pd.DataFrame({'date': pd.date_range(train_data['date'].max(), periods=30, freq='D')})\npredictions = fit.predict(forecast_data, type='conf_int')\n\nwith mlflow.start_run(run_name=\"Prophet_Interactive_Forecast\"):\n    # Create interactive Plotly figure\n    fig = go.Figure()\n    \n    # Add actual values\n    fig.add_trace(go.Scatter(\n        x=train_data['date'],\n        y=train_data['y'],\n        mode='lines',\n        name='Actuals',\n        line=dict(color='blue')\n    ))\n    \n    # Add forecasts\n    fig.add_trace(go.Scatter(\n        x=predictions.index,\n        y=predictions['.pred'],\n        mode='lines',\n        name='Forecast',\n        line=dict(color='red', dash='dash')\n    ))\n    \n    # Add prediction intervals\n    fig.add_trace(go.Scatter(\n        x=predictions.index,\n        y=predictions['.pred_upper'],\n        mode='lines',\n        name='Upper 95% CI',\n        line=dict(width=0),\n        showlegend=False\n    ))\n    \n    fig.add_trace(go.Scatter(\n        x=predictions.index,\n        y=predictions['.pred_lower'],\n        mode='lines',\n        name='Lower 95% CI',\n        line=dict(width=0),\n        fillcolor='rgba(255, 0, 0, 0.2)',\n        fill='tonexty',\n        showlegend=False\n    ))\n    \n    # Update layout\n    fig.update_layout(\n        title='Sales Forecast with Prediction Intervals',\n        xaxis_title='Date',\n        yaxis_title='Sales',\n        hovermode='x unified'\n    )\n    \n    # Log as HTML artifact (IMPORTANT: use .html extension for Plotly)\n    mlflow.log_figure(fig, \"interactive_forecast.html\")\n    \n    # Log forecast metrics\n    mlflow.log_metrics({\n        \"forecast_horizon_days\": len(predictions),\n        \"last_actual_value\": train_data['y'].iloc[-1],\n        \"first_forecast_value\": predictions['.pred'].iloc[0]\n    })"
+    }
+  },
+
+  "custom_plot_gallery": {
+    "multi_model_comparison": [
+      {
+        "plot_type": "Workflow Performance Bar Chart",
+        "description": "Horizontal bar chart showing RMSE for all 20 workflows, sorted by performance. Color-coded by model type.",
+        "use_case": "Quick identification of best-performing workflows in WorkflowSet evaluation",
+        "implementation": "matplotlib or plotly bar chart, log via mlflow.log_figure()",
+        "priority": "Critical",
+        "code_snippet": "fig, ax = plt.subplots(figsize=(10, 8))\nranked = results.rank_results('rmse', n=20)\nax.barh(ranked['wflow_id'], ranked['mean'], color=['blue' if 'linear' in x else 'green' for x in ranked['wflow_id']])\nax.set_xlabel('RMSE')\nax.set_title('Workflow Performance Comparison')\nmlflow.log_figure(fig, 'workflow_comparison.png')"
+      },
+      {
+        "plot_type": "Parameter Sensitivity Heatmap",
+        "description": "2D heatmap showing how two hyperparameters (e.g., penalty × mixture) affect performance metric (e.g., RMSE)",
+        "use_case": "Understanding hyperparameter interactions in tune_grid() results",
+        "implementation": "seaborn heatmap or plotly heatmap, pivot tuning results DataFrame",
+        "priority": "High",
+        "code_snippet": "pivot = results.metrics.pivot(index='penalty', columns='mixture', values='rmse')\nfig, ax = plt.subplots(figsize=(8, 6))\nsns.heatmap(pivot, annot=True, fmt='.3f', cmap='RdYlGn_r', ax=ax)\nax.set_title('RMSE by Penalty and Mixture')\nmlflow.log_figure(fig, 'parameter_sensitivity.png')"
+      },
+      {
+        "plot_type": "Parallel Coordinates Plot",
+        "description": "Parallel coordinates showing relationship between multiple hyperparameters and performance metrics",
+        "use_case": "Identifying parameter combinations that lead to good performance",
+        "implementation": "plotly express parallel_coordinates, filter to top N models",
+        "priority": "High",
+        "code_snippet": "import plotly.express as px\ntop_models = results.show_best(n=20)\nfig = px.parallel_coordinates(top_models, dimensions=['penalty', 'mixture', 'rmse', 'mae'], color='rmse')\nmlflow.log_figure(fig, 'parallel_coords.html')"
+      },
+      {
+        "plot_type": "CV Stability Plot (Mean ± Std)",
+        "description": "Bar chart with error bars showing mean performance ± standard deviation across CV folds",
+        "use_case": "Assessing model stability and identifying workflows with high variance",
+        "implementation": "matplotlib bar chart with error bars from collect_metrics(summarize=True)",
+        "priority": "Critical",
+        "code_snippet": "summary = results.collect_metrics(summarize=True)\nfig, ax = plt.subplots(figsize=(12, 6))\nax.bar(summary.index, summary['mean'], yerr=summary['std'], capsize=5)\nax.set_xlabel('Workflow')\nax.set_ylabel('RMSE')\nax.set_title('CV Performance (Mean ± Std)')\nmlflow.log_figure(fig, 'cv_stability.png')"
+      }
+    ],
+
+    "time_series_diagnostics": [
+      {
+        "plot_type": "Forecast vs Actuals with Prediction Intervals",
+        "description": "Line plot showing historical actuals, model fit, and future forecasts with 95% confidence intervals",
+        "use_case": "Primary visualization for time series model evaluation",
+        "implementation": "plotly or matplotlib with shaded confidence bands",
+        "priority": "Critical",
+        "code_snippet": "See example_8_plotly_interactive_forecast above"
+      },
+      {
+        "plot_type": "Residual Diagnostic 4-Panel",
+        "description": "2×2 subplot: residual scatter, ACF, PACF, and residual distribution histogram",
+        "use_case": "Comprehensive residual analysis for time series models",
+        "implementation": "matplotlib subplots with statsmodels ACF/PACF functions",
+        "priority": "Critical",
+        "code_snippet": "See example_4_time_series_diagnostics above"
+      },
+      {
+        "plot_type": "Decomposition Plot (Trend + Seasonal + Residual)",
+        "description": "Stacked time series showing original data decomposed into trend, seasonal, and residual components",
+        "use_case": "Understanding seasonal_reg and exp_smoothing models",
+        "implementation": "matplotlib subplots, extract components from fitted model",
+        "priority": "High",
+        "code_snippet": "fig, axes = plt.subplots(4, 1, figsize=(12, 10))\naxes[0].plot(outputs['date'], outputs['actuals'])\naxes[0].set_title('Original')\naxes[1].plot(components['trend'])\naxes[1].set_title('Trend')\naxes[2].plot(components['seasonal'])\naxes[2].set_title('Seasonal')\naxes[3].plot(components['residual'])\naxes[3].set_title('Residual')\nmlflow.log_figure(fig, 'decomposition.png')"
+      },
+      {
+        "plot_type": "Rolling Window Performance",
+        "description": "Line plot showing RMSE over time using rolling/expanding window validation",
+        "use_case": "Detecting model degradation over time or regime changes",
+        "implementation": "Calculate metrics per window, plot as time series",
+        "priority": "Medium",
+        "code_snippet": "rolling_rmse = []\nfor window_end in date_range:\n    window_data = data[data['date'] <= window_end]\n    fit = model.fit(window_data, formula)\n    test_pred = fit.predict(test_data)\n    rmse = calculate_rmse(test_data['y'], test_pred['.pred'])\n    rolling_rmse.append(rmse)\nfig, ax = plt.subplots()\nax.plot(date_range, rolling_rmse)\nax.set_title('Rolling Window RMSE')\nmlflow.log_figure(fig, 'rolling_performance.png')"
+      }
+    ],
+
+    "recipe_preprocessing_visualization": [
+      {
+        "plot_type": "Feature Correlation Matrix Before/After",
+        "description": "Side-by-side heatmaps showing feature correlations before and after preprocessing",
+        "use_case": "Understanding impact of normalization, PCA, or feature selection",
+        "implementation": "seaborn heatmap, compare original vs preprocessed data",
+        "priority": "High",
+        "code_snippet": "fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))\nsns.heatmap(train_data.corr(), ax=ax1, cmap='coolwarm', center=0)\nax1.set_title('Before Preprocessing')\ntransformed = prepped.bake(train_data)\nsns.heatmap(transformed.corr(), ax=ax2, cmap='coolwarm', center=0)\nax2.set_title('After Preprocessing')\nmlflow.log_figure(fig, 'correlation_comparison.png')"
+      },
+      {
+        "plot_type": "PCA Scree Plot (Explained Variance)",
+        "description": "Bar chart showing variance explained by each principal component with cumulative line",
+        "use_case": "Justifying num_comp choice in step_pca()",
+        "implementation": "matplotlib bar + line chart from PCA explained_variance_ratio_",
+        "priority": "Medium",
+        "code_snippet": "explained_var = pca.explained_variance_ratio_\ncumsum = np.cumsum(explained_var)\nfig, ax = plt.subplots()\nax.bar(range(1, len(explained_var)+1), explained_var, alpha=0.6, label='Individual')\nax.plot(range(1, len(cumsum)+1), cumsum, 'r-', marker='o', label='Cumulative')\nax.set_xlabel('Principal Component')\nax.set_ylabel('Explained Variance Ratio')\nax.legend()\nmlflow.log_figure(fig, 'pca_scree.png')"
+      },
+      {
+        "plot_type": "Feature Importance Post-Selection",
+        "description": "Horizontal bar chart showing feature importances after step_select_* steps",
+        "use_case": "Understanding which features survived selection and their relative importance",
+        "implementation": "Extract feature importances from final model, plot as bar chart",
+        "priority": "High",
+        "code_snippet": "importances = model.feature_importances_\nfeatures = transformed.columns\nfig, ax = plt.subplots(figsize=(8, 10))\nax.barh(features, importances)\nax.set_xlabel('Importance')\nax.set_title('Feature Importance After Selection')\nmlflow.log_figure(fig, 'feature_importance.png')"
+      },
+      {
+        "plot_type": "Distribution Shift Plots (Before/After Normalization)",
+        "description": "Overlaid histograms or violin plots showing feature distributions before and after normalization",
+        "use_case": "Verifying that step_normalize() or step_range() worked correctly",
+        "implementation": "matplotlib histograms or seaborn violin plots",
+        "priority": "Low",
+        "code_snippet": "fig, axes = plt.subplots(1, 3, figsize=(15, 5))\nfor i, col in enumerate(['x1', 'x2', 'x3']):\n    axes[i].hist(train_data[col], bins=30, alpha=0.5, label='Original')\n    axes[i].hist(transformed[col], bins=30, alpha=0.5, label='Normalized')\n    axes[i].set_title(col)\n    axes[i].legend()\nmlflow.log_figure(fig, 'distribution_shift.png')"
+      }
+    ],
+
+    "panel_grouped_model_plots": [
+      {
+        "plot_type": "Per-Group Performance Heatmap",
+        "description": "Heatmap showing RMSE for each group (rows) × workflow (columns). Darker = better performance.",
+        "use_case": "Identifying which workflows perform best for each group in nested modeling",
+        "implementation": "seaborn heatmap, pivot stats DataFrame by group and workflow",
+        "priority": "Critical",
+        "code_snippet": "per_group = stats[stats['split'] == 'test'].pivot(index='group', columns='model', values='rmse')\nfig, ax = plt.subplots(figsize=(12, 8))\nsns.heatmap(per_group, annot=True, fmt='.2f', cmap='RdYlGn_r', ax=ax)\nax.set_title('RMSE by Group and Model')\nmlflow.log_figure(fig, 'per_group_heatmap.png')"
+      },
+      {
+        "plot_type": "Coefficient Variation Across Groups",
+        "description": "Box plot or violin plot showing distribution of coefficient estimates across groups",
+        "use_case": "Understanding parameter heterogeneity in nested models",
+        "implementation": "seaborn violin plot from coefficients DataFrame",
+        "priority": "High",
+        "code_snippet": "fig, ax = plt.subplots(figsize=(10, 6))\nsns.violinplot(data=coeffs, x='term', y='estimate', ax=ax)\nax.set_title('Coefficient Variation Across Groups')\nax.set_xticklabels(ax.get_xticklabels(), rotation=45)\nmlflow.log_figure(fig, 'coefficient_variation.png')"
+      },
+      {
+        "plot_type": "Best Workflow Per Group Bar Chart",
+        "description": "Bar chart showing which workflow achieved lowest RMSE for each group",
+        "use_case": "Identifying group-specific best models",
+        "implementation": "matplotlib bar chart, extract best workflow per group from results",
+        "priority": "Medium",
+        "code_snippet": "best_per_group = stats.loc[stats.groupby('group')['rmse'].idxmin()]\nfig, ax = plt.subplots(figsize=(10, 6))\nax.bar(best_per_group['group'], best_per_group['rmse'])\nax.set_xlabel('Group')\nax.set_ylabel('Best RMSE')\nax.set_title('Best Workflow Performance Per Group')\nmlflow.log_figure(fig, 'best_per_group.png')"
+      },
+      {
+        "plot_type": "Nested vs Global Model Comparison",
+        "description": "Side-by-side box plots comparing per-group RMSE for nested approach vs global approach",
+        "use_case": "Justifying nested modeling approach over global",
+        "implementation": "seaborn box plot with two categories (nested, global)",
+        "priority": "High",
+        "code_snippet": "comparison = pd.concat([\n    nested_stats[['group', 'rmse']].assign(approach='nested'),\n    global_stats[['group', 'rmse']].assign(approach='global')\n])\nfig, ax = plt.subplots()\nsns.boxplot(data=comparison, x='approach', y='rmse', ax=ax)\nax.set_title('Nested vs Global Model Performance')\nmlflow.log_figure(fig, 'nested_vs_global.png')"
+      }
+    ]
+  },
+
+  "implementation_roadmap": {
+    "phase_1": {
+      "title": "Basic Workflow Tracking",
+      "duration": "1-2 weeks",
+      "complexity": "Low",
+      "deliverables": [
+        "MLflow integration wrapper for Workflow.fit()",
+        "Automatic parameter logging (model type, hyperparameters, formula)",
+        "Automatic metric logging (RMSE, MAE, R² from stats DataFrame)",
+        "Three-DataFrame artifact logging (outputs, coefficients, stats)",
+        "Basic tags (model_type, dataset, split)"
+      ],
+      "implementation_steps": [
+        "1. Create mlflow_tracking.py module in py_workflows",
+        "2. Implement track_workflow() context manager",
+        "3. Add optional mlflow_tracking parameter to Workflow.fit()",
+        "4. Extract parameters from ModelSpec and log via mlflow.log_params()",
+        "5. Extract metrics from stats DataFrame and log via mlflow.log_metrics()",
+        "6. Save three DataFrames as CSV/Parquet and log via mlflow.log_artifact()",
+        "7. Add basic tags (model_type from spec, dataset from user input)",
+        "8. Write unit tests for tracking integration",
+        "9. Update documentation with tracking examples"
+      ],
+      "testing": [
+        "Test with all 23 model types",
+        "Test with formulas and recipes",
+        "Verify artifacts are logged correctly",
+        "Test MLflow UI displays runs properly"
+      ]
+    },
+
+    "phase_2": {
+      "title": "Recipe Artifact Logging and Visualization",
+      "duration": "2-3 weeks",
+      "complexity": "Medium",
+      "deliverables": [
+        "PreparedRecipe serialization and logging",
+        "Step parameter extraction and logging",
+        "PCA component matrix logging",
+        "Feature correlation before/after plots",
+        "Feature name comparison DataFrame",
+        "Recipe step sequence as parameter"
+      ],
+      "implementation_steps": [
+        "1. Add track_recipe() function to mlflow_tracking.py",
+        "2. Implement recipe step parameter extraction (loop through steps, get params)",
+        "3. Serialize PreparedRecipe with pickle and log as artifact",
+        "4. For step_pca: extract PCA object, log explained variance metrics, save component matrix",
+        "5. For step_normalize: log normalization means/stds as parameters",
+        "6. Create visualization functions: plot_correlation_comparison(), plot_pca_scree()",
+        "7. Integrate track_recipe() into Workflow.fit() when recipe is present",
+        "8. Add recipe_steps tag with comma-separated step names",
+        "9. Write unit tests for recipe tracking",
+        "10. Update documentation with recipe tracking examples"
+      ],
+      "testing": [
+        "Test with all 51 recipe step types",
+        "Test with complex multi-step recipes (10+ steps)",
+        "Verify PCA components are logged correctly",
+        "Test feature comparison DataFrame generation"
+      ]
+    },
+
+    "phase_3": {
+      "title": "WorkflowSet Multi-Model Comparison",
+      "duration": "3-4 weeks",
+      "complexity": "High",
+      "deliverables": [
+        "Nested runs for WorkflowSet.fit_resamples()",
+        "Per-workflow child runs with metrics",
+        "Parent-level aggregation and ranking",
+        "Workflow comparison bar chart",
+        "Parameter sensitivity heatmaps",
+        "CV stability plots (mean ± std)",
+        "Support for fit_nested() with per-group tracking"
+      ],
+      "implementation_steps": [
+        "1. Add track_workflowset() context manager to mlflow_tracking.py",
+        "2. Modify WorkflowSet.fit_resamples() to accept mlflow_tracking parameter",
+        "3. Start parent run with WorkflowSet experiment name",
+        "4. For each workflow, start nested child run with mlflow.start_run(nested=True)",
+        "5. Log workflow-specific parameters (model type, formula, hyperparameters)",
+        "6. Log workflow-specific metrics (from collect_metrics())",
+        "7. At parent level, log aggregated results (rank_results() DataFrame)",
+        "8. Create visualization functions: plot_workflow_comparison(), plot_parameter_sensitivity()",
+        "9. Integrate with fit_nested() for per-group tracking (double-nested runs)",
+        "10. Write unit tests for WorkflowSet tracking",
+        "11. Update documentation with multi-model comparison examples"
+      ],
+      "testing": [
+        "Test with 20+ workflows (5 formulas × 4 models)",
+        "Test with 5-fold CV",
+        "Test with fit_nested() (10 groups × 5 workflows = 50 models)",
+        "Verify nested run hierarchy in MLflow UI",
+        "Test aggregation and ranking at parent level"
+      ]
+    },
+
+    "phase_4": {
+      "title": "Custom Dashboards and Advanced Visualizations",
+      "duration": "4-5 weeks",
+      "complexity": "High",
+      "deliverables": [
+        "Interactive Plotly forecast plots with prediction intervals",
+        "Time series diagnostic 4-panel plots (residuals, ACF, PACF, distribution)",
+        "Decomposition plots (trend + seasonal + residual)",
+        "Per-group performance heatmaps for panel data",
+        "Coefficient variation plots across groups",
+        "Parallel coordinates plots for hyperparameter tuning",
+        "Custom MLflow plugin for py-tidymodels (optional)"
+      ],
+      "implementation_steps": [
+        "1. Create visualizations.py module with plotting functions",
+        "2. Implement plot_forecast_interactive() using Plotly",
+        "3. Implement plot_time_series_diagnostics() with matplotlib subplots",
+        "4. Implement plot_decomposition() for seasonal models",
+        "5. Implement plot_per_group_heatmap() for panel data",
+        "6. Implement plot_coefficient_variation() for nested models",
+        "7. Implement plot_hyperparameter_parallel() using plotly parallel coordinates",
+        "8. Integrate plotting functions into tracking workflow (auto-generate plots)",
+        "9. Add mlflow_plots parameter to control which plots to generate",
+        "10. Test all plots with various model types and data scenarios",
+        "11. (Optional) Create MLflow plugin for custom UI components",
+        "12. Update documentation with visualization gallery"
+      ],
+      "testing": [
+        "Test interactive Plotly plots in MLflow UI",
+        "Test matplotlib plots with various data sizes",
+        "Verify plots render correctly in MLflow artifact viewer",
+        "Test with all time series models (prophet, arima, exp_smoothing, etc.)",
+        "Test with panel data (nested models)",
+        "Performance test with large datasets (10k+ observations)"
+      ]
+    }
+  },
+
+  "technical_insights": {
+    "mlflow_vs_alternatives": {
+      "mlflow": {
+        "pros": [
+          "Open-source and free",
+          "Strong sklearn integration with autolog()",
+          "Built-in model registry for production deployment",
+          "Flexible artifact storage (local, S3, Azure, GCS)",
+          "REST API for serving models",
+          "Nested runs for hierarchical experiments",
+          "Large community and extensive documentation"
+        ],
+        "cons": [
+          "UI is basic compared to W&B (no native metric grouping)",
+          "Requires infrastructure setup for remote tracking server",
+          "Limited support for grouped/panel data metrics out of the box",
+          "No native support for real-time collaboration features"
+        ]
+      },
+      "weights_and_biases": {
+        "pros": [
+          "Superior UI with advanced visualizations",
+          "Real-time collaboration features (shared workspaces)",
+          "Hyperparameter sweep automation",
+          "Native support for grouped metrics and dashboards",
+          "Better for large-scale deep learning"
+        ],
+        "cons": [
+          "Not free (pricing can be high for teams)",
+          "Requires internet connection (cloud-hosted)",
+          "Vendor lock-in concerns",
+          "More complex for simple use cases"
+        ]
+      },
+      "neptune": {
+        "pros": [
+          "Fast performance (100x faster than W&B for some operations)",
+          "Usage-based pricing (more cost-effective)",
+          "Excellent scalability for large experiments",
+          "Good UI and visualization capabilities"
+        ],
+        "cons": [
+          "Smaller community than MLflow or W&B",
+          "Less documentation and examples",
+          "Not open-source (proprietary platform)"
+        ]
+      },
+      "recommendation": "MLflow is the best fit for py-tidymodels due to: (1) Open-source aligns with py-tidymodels philosophy, (2) Strong sklearn integration via autolog() works seamlessly with py-parsnip's sklearn engines, (3) Nested runs architecture matches WorkflowSet pattern, (4) Model registry enables production deployment, (5) Self-hosted option avoids vendor lock-in. For teams with budget, W&B could be used alongside MLflow for enhanced visualizations."
+    },
+
+    "best_practices": [
+      "Use consistent experiment naming: ProjectName_DatasetVersion_Date",
+      "Tag runs with metadata: model_type, dataset, preprocessing, split",
+      "Log three-DataFrame outputs as Parquet for efficiency (5-10x smaller than CSV)",
+      "Use nested runs for hierarchical experiments (WorkflowSet, hyperparameter tuning)",
+      "Log interactive Plotly figures as .html for explorable visualizations",
+      "For panel data, create separate child runs per group with group tags",
+      "Log recipe PreparedRecipe as pickle artifact for reproducibility",
+      "Use MLflow Model Registry aliases (champion, challenger) for production deployment",
+      "Store large artifacts (>10MB) in compressed format (Parquet, pickle)",
+      "Use log_table() for structured data (DataFrames) instead of CSV files"
+    ],
+
+    "common_pitfalls": [
+      "Forgetting to set .html extension when logging Plotly figures (won't render in UI)",
+      "Logging too many artifacts per run (slows down MLflow UI)",
+      "Not using nested runs for hierarchical experiments (poor organization)",
+      "Using CSV for large DataFrames instead of Parquet (storage bloat)",
+      "Not tagging runs with metadata (hard to filter and search later)",
+      "Logging per-fold metrics at parent level instead of child runs (loses granularity)",
+      "Not using MLflow's autolog() for sklearn models (manual logging is error-prone)",
+      "Forgetting to log formula or recipe details (hard to reproduce experiments)",
+      "Not testing MLflow integration with all 23 model types (surprises in production)",
+      "Not considering MLflow server infrastructure for team use (local tracking has limits)"
+    ],
+
+    "emerging_trends": [
+      "MLflow 3.x introduces enhanced model tracking with multiple checkpoints per run",
+      "Growing integration with LLM tools (MLflow AI Gateway, LangChain integration)",
+      "Increased focus on model explainability artifacts (SHAP values, feature importance)",
+      "Databricks-hosted MLflow with enhanced collaboration features",
+      "Integration with modern data stack (dbt, Airflow, Prefect) for end-to-end MLOps",
+      "Container-native deployment patterns with Docker and Kubernetes",
+      "Real-time monitoring and drift detection integrations"
+    ]
+  },
+
+  "reference_links": {
+    "official_documentation": [
+      {
+        "title": "MLflow Tracking - Official Guide",
+        "url": "https://mlflow.org/docs/latest/ml/tracking/",
+        "description": "Comprehensive guide to MLflow's tracking capabilities"
+      },
+      {
+        "title": "MLflow scikit-learn Integration",
+        "url": "https://mlflow.org/docs/latest/ml/traditional-ml/sklearn/guide/",
+        "description": "Detailed documentation on sklearn autologging and integration patterns"
+      },
+      {
+        "title": "MLflow Prophet Integration",
+        "url": "https://mlflow.org/docs/latest/ml/traditional-ml/prophet/guide/",
+        "description": "Guide for tracking Prophet time series models"
+      },
+      {
+        "title": "MLflow pmdarima API",
+        "url": "https://mlflow.org/docs/latest/python_api/mlflow.pmdarima.html",
+        "description": "API reference for pmdarima (auto_arima) integration"
+      },
+      {
+        "title": "MLflow Model Registry",
+        "url": "https://mlflow.org/docs/latest/model-registry/",
+        "description": "Guide to model versioning, aliases, and production deployment"
+      },
+      {
+        "title": "Hyperparameter Tuning with Child Runs",
+        "url": "https://mlflow.org/docs/latest/traditional-ml/hyperparameter-tuning-with-child-runs/",
+        "description": "Tutorial on nested runs for hyperparameter optimization"
+      },
+      {
+        "title": "MLflow Python API Reference",
+        "url": "https://mlflow.org/docs/latest/python_api/index.html",
+        "description": "Complete Python API documentation"
+      }
+    ],
+
+    "tutorials_and_blogs": [
+      {
+        "title": "Machine Learning Model Development and Deployment with MLflow and Scikit-learn Pipelines",
+        "url": "https://towardsdatascience.com/machine-learning-model-development-and-deployment-with-mlflow-and-scikit-learn-pipelines-f658c39e4d58",
+        "description": "End-to-end tutorial on using MLflow with sklearn pipelines"
+      },
+      {
+        "title": "5 Tips for MLflow Experiment Tracking",
+        "url": "https://towardsdatascience.com/5-tips-for-mlflow-experiment-tracking-c70ae117b03f",
+        "description": "Best practices for organizing MLflow experiments"
+      },
+      {
+        "title": "Bayesian Hyperparameter Optimization with MLflow",
+        "url": "https://www.phdata.io/blog/bayesian-hyperparameter-optimization-with-mlflow/",
+        "description": "Advanced hyperparameter tuning patterns with MLflow"
+      },
+      {
+        "title": "Log Sklearn Pipelines with MLflow & Deploy",
+        "url": "https://www.gokhan.io/python/track-sklearn-pipeline-with-mlflow/",
+        "description": "Practical guide to logging sklearn pipelines and deployment"
+      },
+      {
+        "title": "ML Lifecycle with MLflow: Forecasting Retail data with Facebook Prophet",
+        "url": "https://medium.com/@jagdungu/ml-lifecycle-with-mlflow-forecasting-retail-data-with-facebook-prophet-7244dc05c771",
+        "description": "Time series forecasting example with Prophet and MLflow"
+      }
+    ],
+
+    "github_repositories": [
+      {
+        "title": "mlflow/mlflow - Official Repository",
+        "url": "https://github.com/mlflow/mlflow",
+        "description": "Main MLflow repository with examples and source code"
+      },
+      {
+        "title": "amesar/mlflow-examples",
+        "url": "https://github.com/amesar/mlflow-examples",
+        "description": "Comprehensive collection of MLflow examples across multiple frameworks"
+      },
+      {
+        "title": "GridSearchCV with MLflow Gist",
+        "url": "https://gist.github.com/liorshk/9dfcb4a8e744fc15650cbd4c2b0955e5",
+        "description": "Working code example for logging GridSearchCV results to MLflow"
+      }
+    ],
+
+    "comparison_articles": [
+      {
+        "title": "Weights & Biases vs MLflow vs Neptune",
+        "url": "https://neptune.ai/vs/wandb-mlflow",
+        "description": "Detailed comparison of three major experiment tracking platforms (2025)"
+      },
+      {
+        "title": "Best MLflow Alternatives",
+        "url": "https://neptune.ai/blog/best-mlflow-alternatives",
+        "description": "Analysis of MLflow alternatives and their trade-offs"
+      },
+      {
+        "title": "Benchmarking Experiment Tracking Frameworks",
+        "url": "https://mltraq.com/benchmarks/speed/",
+        "description": "Performance benchmarks for MLflow, W&B, Neptune, and others"
+      }
+    ]
+  }
+}
