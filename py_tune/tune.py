@@ -193,12 +193,21 @@ class TuneResults:
     Results from hyperparameter tuning.
 
     Stores metrics, predictions, and parameter configurations from tuning.
+
+    Attributes:
+        metrics: DataFrame with performance metrics
+        predictions: DataFrame with out-of-sample predictions
+        workflow: Original workflow object
+        resamples: Resampling specification
+        grid: Parameter grid
+        method: Tuning method used ('grid', 'race_anova', 'race_wl', 'sim_anneal', 'bayes')
     """
     metrics: pd.DataFrame = field(default_factory=pd.DataFrame)
     predictions: pd.DataFrame = field(default_factory=pd.DataFrame)
     workflow: Any = None
     resamples: Any = None
     grid: pd.DataFrame = field(default_factory=pd.DataFrame)
+    method: str = "grid"
 
     def collect_metrics(self) -> pd.DataFrame:
         """
