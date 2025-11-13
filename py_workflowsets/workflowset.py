@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -221,10 +222,57 @@ class WorkflowSet:
         else:
             raise ValueError(f"Unknown function: {fn}")
 
+    def _fit_single_workflow_resamples(self, wf_id: str, wf: Any, resamples: Any,
+                                        metrics: Any, control: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow across all resamples.
+
+        Helper function for parallel execution in fit_resamples.
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            resamples: Resampling object
+            metrics: Metric set
+            control: Control parameters
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        from py_tune import fit_resamples as fit_resamples_fn
+
+        try:
+            # Fit resamples for this workflow (n_jobs=1 to avoid nested parallelism)
+            tune_results = fit_resamples_fn(
+                wf,
+                resamples,
+                metrics=metrics,
+                control=control,
+                n_jobs=1
+            )
+
+            # Collect metrics
+            metrics_df = tune_results.collect_metrics()
+            metrics_df["wflow_id"] = wf_id
+
+            result = {
+                "wflow_id": wf_id,
+                "tune_results": tune_results,
+                "metrics": metrics_df
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}' failed: {str(e)}"
+            return (None, error_msg)
+
     def fit_resamples(self,
                       resamples: Any,
                       metrics: Any = None,
-                      control: Optional[Dict[str, Any]] = None) -> "WorkflowSetResults":
+                      control: Optional[Dict[str, Any]] = None,
+                      n_jobs: Optional[int] = None,
+                      verbose: bool = False) -> "WorkflowSetResults":
         """
         Fit all workflows to all resamples and evaluate.
 
@@ -232,6 +280,9 @@ class WorkflowSet:
             resamples: Resampling object (VFoldCV, TimeSeriesCV, etc.)
             metrics: Metric set for evaluation
             control: Control parameters (e.g., {'save_pred': True})
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
 
         Returns:
             WorkflowSetResults containing metrics and predictions
@@ -239,34 +290,59 @@ class WorkflowSet:
         Examples:
             >>> folds = vfold_cv(data, v=5)
             >>> metrics = metric_set(rmse, mae, r_squared)
+            >>>
+            >>> # Sequential execution
             >>> results = wf_set.fit_resamples(folds, metrics)
+            >>>
+            >>> # Parallel execution
+            >>> results = wf_set.fit_resamples(folds, metrics, n_jobs=-1, verbose=True)
             >>> results.rank_results("rmse")
         """
-        from py_tune import fit_resamples as fit_resamples_fn
-
         control = control or {}
-        all_results = []
 
-        for wf_id, wf in self.workflows.items():
-            print(f"Fitting {wf_id}...")
+        # Prepare work items
+        work_items = [(wf_id, wf, resamples, metrics, control)
+                      for wf_id, wf in self.workflows.items()]
 
-            # Fit resamples for this workflow
-            tune_results = fit_resamples_fn(
-                wf,
-                resamples,
-                metrics=metrics,
-                control=control
+        # Sequential or parallel execution
+        if n_jobs is None or n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                print(f"Fitting {len(work_items)} workflows (sequential)...")
+
+            results = []
+            for i, (wf_id, wf, resamples, metrics, control) in enumerate(work_items):
+                if verbose:
+                    print(f"  [{i+1}/{len(work_items)}] Fitting {wf_id}...")
+                result = self._fit_single_workflow_resamples(wf_id, wf, resamples, metrics, control)
+                results.append(result)
+        else:
+            # Parallel execution
+            if verbose:
+                print(f"Fitting {len(work_items)} workflows (n_jobs={n_jobs})...")
+
+            joblib_verbose = 10 if verbose else 0
+            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+                delayed(self._fit_single_workflow_resamples)(wf_id, wf, resamples, metrics, control)
+                for wf_id, wf, resamples, metrics, control in work_items
             )
 
-            # Collect metrics
-            metrics_df = tune_results.collect_metrics()
-            metrics_df["wflow_id"] = wf_id
+        # Process results
+        all_results = []
+        errors = []
 
-            all_results.append({
-                "wflow_id": wf_id,
-                "tune_results": tune_results,
-                "metrics": metrics_df
-            })
+        for result_dict, error_msg in results:
+            if error_msg:
+                errors.append(error_msg)
+            else:
+                all_results.append(result_dict)
+
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
+
+        if verbose:
+            print(f"✓ Workflow evaluation complete: {len(all_results)} successful")
 
         return WorkflowSetResults(
             results=all_results,
@@ -334,11 +410,68 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def _fit_single_workflow_nested(self, wf_id: str, wf: Any, data: pd.DataFrame,
+                                     group_col: str, per_group_prep: bool,
+                                     min_group_size: int) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow across all groups.
+
+        Helper function for parallel execution in fit_nested.
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            data: Training data
+            group_col: Group column name
+            per_group_prep: Per-group preprocessing flag
+            min_group_size: Minimum group size
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        try:
+            # Fit nested workflow (n_jobs=1 to avoid nested parallelism)
+            nested_fit = wf.fit_nested(
+                data,
+                group_col=group_col,
+                per_group_prep=per_group_prep,
+                min_group_size=min_group_size,
+                n_jobs=1
+            )
+
+            # Extract outputs with group column
+            outputs, coefs, stats = nested_fit.extract_outputs()
+
+            result = {
+                "wflow_id": wf_id,
+                "nested_fit": nested_fit,
+                "outputs": outputs,
+                "coefs": coefs,
+                "stats": stats
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}' failed: {str(e)}"
+            # Return error result with NaN metrics
+            result = {
+                "wflow_id": wf_id,
+                "nested_fit": None,
+                "outputs": None,
+                "coefs": None,
+                "stats": None,
+                "error": str(e)
+            }
+            return (result, error_msg)
+
     def fit_nested(self,
                    data: pd.DataFrame,
                    group_col: str,
                    per_group_prep: bool = False,
-                   min_group_size: int = 30) -> "WorkflowSetNestedResults":
+                   min_group_size: int = 30,
+                   n_jobs: Optional[int] = None,
+                   verbose: bool = False) -> "WorkflowSetNestedResults":
         """
         Fit all workflows across all groups independently (nested/panel modeling).
 
@@ -351,6 +484,9 @@ class WorkflowSet:
             group_col: Column name identifying groups
             per_group_prep: If True, fit separate recipe for each group (default: False)
             min_group_size: Minimum samples for group-specific prep (default: 30)
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
 
         Returns:
             WorkflowSetNestedResults with group-aware metrics and outputs
@@ -362,8 +498,11 @@ class WorkflowSet:
             ...     models=[linear_reg(), rand_forest()]
             ... )
             >>>
-            >>> # Fit all workflows on all groups
+            >>> # Fit all workflows on all groups (sequential)
             >>> results = wf_set.fit_nested(train_data, group_col='country')
+            >>>
+            >>> # Fit with parallel execution
+            >>> results = wf_set.fit_nested(train_data, group_col='country', n_jobs=-1, verbose=True)
             >>>
             >>> # Get metrics by workflow and group
             >>> metrics = results.collect_metrics(by_group=True)
@@ -374,43 +513,49 @@ class WorkflowSet:
             >>> # Get best workflow per group
             >>> best_by_group = results.extract_best_workflow('rmse', by_group=True)
         """
+        # Prepare work items
+        work_items = [(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                      for wf_id, wf in self.workflows.items()]
+
+        # Sequential or parallel execution
+        if n_jobs is None or n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                print(f"Fitting {len(work_items)} workflows across all groups (sequential)...")
+
+            results = []
+            for i, (wf_id, wf, data, group_col, per_group_prep, min_group_size) in enumerate(work_items):
+                if verbose:
+                    print(f"  [{i+1}/{len(work_items)}] Fitting {wf_id} across all groups...")
+                result = self._fit_single_workflow_nested(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                results.append(result)
+        else:
+            # Parallel execution
+            if verbose:
+                print(f"Fitting {len(work_items)} workflows across all groups (n_jobs={n_jobs})...")
+
+            joblib_verbose = 10 if verbose else 0
+            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+                delayed(self._fit_single_workflow_nested)(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                for wf_id, wf, data, group_col, per_group_prep, min_group_size in work_items
+            )
+
+        # Process results
         all_results = []
+        errors = []
 
-        for wf_id, wf in self.workflows.items():
-            print(f"Fitting {wf_id} across all groups...")
+        for result_dict, error_msg in results:
+            all_results.append(result_dict)
+            if error_msg:
+                errors.append(error_msg)
 
-            try:
-                # Fit nested workflow
-                nested_fit = wf.fit_nested(
-                    data,
-                    group_col=group_col,
-                    per_group_prep=per_group_prep,
-                    min_group_size=min_group_size
-                )
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
 
-                # Extract outputs with group column
-                outputs, coefs, stats = nested_fit.extract_outputs()
-
-                # Store results
-                all_results.append({
-                    "wflow_id": wf_id,
-                    "nested_fit": nested_fit,
-                    "outputs": outputs,
-                    "coefs": coefs,
-                    "stats": stats
-                })
-
-            except Exception as e:
-                print(f"  ⚠ Error fitting {wf_id}: {e}")
-                # Store error result with NaN metrics
-                all_results.append({
-                    "wflow_id": wf_id,
-                    "nested_fit": None,
-                    "outputs": None,
-                    "coefs": None,
-                    "stats": None,
-                    "error": str(e)
-                })
+        if verbose:
+            successful = len([r for r in all_results if r.get("nested_fit") is not None])
+            print(f"✓ Nested fitting complete: {successful}/{len(all_results)} workflows successful")
 
         return WorkflowSetNestedResults(
             results=all_results,
