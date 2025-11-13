@@ -162,6 +162,16 @@ from py_recipes.steps.financial_oscillators import (
     StepOscillators,
     PreparedStepOscillators,
 )
+from py_recipes.steps.financial_ml import (
+    StepFractionalDiff,
+    PreparedStepFractionalDiff,
+    StepVolatilityEWM,
+    PreparedStepVolatilityEWM,
+    StepPermutationEntropy,
+    PreparedStepPermutationEntropy,
+    StepWeightTimeDecay,
+    PreparedStepWeightTimeDecay,
+)
 from py_recipes.steps.feature_engine_steps import (
     StepDtDiscretiser,
     StepWinsorizer,
@@ -335,6 +345,15 @@ __all__ = [
     # Financial indicator steps
     "StepOscillators",
     "PreparedStepOscillators",
+    # Financial ML steps
+    "StepFractionalDiff",
+    "PreparedStepFractionalDiff",
+    "StepVolatilityEWM",
+    "PreparedStepVolatilityEWM",
+    "StepPermutationEntropy",
+    "PreparedStepPermutationEntropy",
+    "StepWeightTimeDecay",
+    "PreparedStepWeightTimeDecay",
     # Feature-engine steps (Phase 1)
     "StepDtDiscretiser",
     "StepWinsorizer",

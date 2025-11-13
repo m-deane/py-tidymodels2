@@ -3413,6 +3413,210 @@ class Recipe:
             id=id
         ))
 
+    # ============================================================
+    # Financial ML Steps (Advances in Financial Machine Learning)
+    # ============================================================
+
+    def step_fractional_diff(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        d: Optional[float] = 0.5,
+        auto_d: bool = False,
+        d_range: Optional[List[float]] = None,
+        stationarity_test: str = 'adf',
+        alpha: float = 0.05,
+        threshold: float = 1e-5,
+        window: Optional[int] = None,
+        date_col: Optional[str] = None,
+        group_col: Optional[str] = None,
+        prefix: str = "frac_diff_",
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Apply fractional differentiation to achieve stationarity while preserving memory.
+
+        Uses Fixed-Width Window Fractional Differentiation (FFD) method to transform
+        time series to be stationary while preserving long-term memory.
+
+        Args:
+            columns: Columns to differentiate (None = all numeric)
+            d: Fractional differentiation order (0-1, default: 0.5). If None and auto_d=True, auto-calculates optimal d.
+            auto_d: If True, automatically finds optimal d using stationarity tests (default: False)
+            d_range: Range of d values to test when auto_d=True (default: [0.1, 0.2, ..., 0.9])
+            stationarity_test: Test to use for stationarity ('adf' or 'kpss', default: 'adf')
+            alpha: Significance level for stationarity test (default: 0.05)
+            threshold: Threshold for determining optimal window (default: 1e-5)
+            window: Window size for FFD (None = auto-determined)
+            date_col: Optional date/time column for ordering
+            group_col: Optional grouping column for panel data
+            prefix: Prefix for created columns (default: 'frac_diff_')
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> # Manual d value
+            >>> rec = recipe().step_fractional_diff(['price'], d=0.5, date_col='date')
+            >>> 
+            >>> # Auto-calculate optimal d
+            >>> rec = recipe().step_fractional_diff(['price'], auto_d=True, date_col='date')
+            >>> 
+            >>> # Custom d range for testing
+            >>> rec = recipe().step_fractional_diff(['price'], auto_d=True, d_range=[0.3, 0.4, 0.5, 0.6], date_col='date')
+        """
+        from py_recipes.steps.financial_ml import StepFractionalDiff
+        return self.add_step(StepFractionalDiff(
+            columns=columns,
+            d=d,
+            auto_d=auto_d,
+            d_range=d_range,
+            stationarity_test=stationarity_test,
+            alpha=alpha,
+            threshold=threshold,
+            window=window,
+            date_col=date_col,
+            group_col=group_col,
+            prefix=prefix
+        ))
+
+    def step_volatility_ewm(
+        self,
+        return_col: str,
+        span: int = 20,
+        use_returns: bool = True,
+        date_col: Optional[str] = None,
+        group_col: Optional[str] = None,
+        prefix: str = "vol_ewm_",
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Calculate exponentially weighted moving volatility.
+
+        Computes volatility using exponentially weighted moving average of squared returns,
+        giving more weight to recent observations.
+
+        Args:
+            return_col: Column containing returns (or prices if use_returns=False)
+            span: Span for exponential weighting (default: 20)
+            use_returns: Whether input column is returns (True) or prices (False)
+            date_col: Optional date/time column for ordering
+            group_col: Optional grouping column for panel data
+            prefix: Prefix for created columns (default: 'vol_ewm_')
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_volatility_ewm('returns', span=20, date_col='date')
+            >>> rec = recipe().step_volatility_ewm('price', use_returns=False, span=30)
+        """
+        from py_recipes.steps.financial_ml import StepVolatilityEWM
+        return self.add_step(StepVolatilityEWM(
+            return_col=return_col,
+            span=span,
+            use_returns=use_returns,
+            date_col=date_col,
+            group_col=group_col,
+            prefix=prefix
+        ))
+
+    def step_permutation_entropy(
+        self,
+        columns: Union[None, str, List[str], Callable] = None,
+        window: Optional[int] = None,
+        order: int = 3,
+        normalize: bool = True,
+        date_col: Optional[str] = None,
+        group_col: Optional[str] = None,
+        prefix: str = "perm_entropy_",
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Calculate permutation entropy for time series.
+
+        Measures complexity and predictability of time series by analyzing ordinal patterns.
+        More robust to noise than Shannon entropy.
+
+        Args:
+            columns: Columns to calculate entropy for (None = all numeric)
+            window: Rolling window (None = full series)
+            order: Order of permutations (default: 3)
+            normalize: Whether to normalize entropy (default: True)
+            date_col: Optional date/time column for ordering
+            group_col: Optional grouping column for panel data
+            prefix: Prefix for created columns (default: 'perm_entropy_')
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_permutation_entropy(['returns'], window=60, order=3)
+            >>> rec = recipe().step_permutation_entropy(order=4, normalize=False)
+        """
+        from py_recipes.steps.financial_ml import StepPermutationEntropy
+        return self.add_step(StepPermutationEntropy(
+            columns=columns,
+            window=window,
+            order=order,
+            normalize=normalize,
+            date_col=date_col,
+            group_col=group_col,
+            prefix=prefix
+        ))
+
+    def step_weight_time_decay(
+        self,
+        date_col: str,
+        decay_rate: float = 0.1,
+        method: Literal["linear", "exponential", "piecewise"] = "exponential",
+        base_weight: float = 1.0,
+        weight_col_name: str = "weight",
+        group_col: Optional[str] = None,
+        skip: bool = False,
+        id: Optional[str] = None
+    ) -> "Recipe":
+        """
+        Apply time decay weighting to observations.
+
+        Assigns higher weights to more recent observations, reflecting the adaptive
+        nature of financial markets.
+
+        Args:
+            date_col: Date/time column for determining observation age
+            decay_rate: Decay rate (higher = faster decay, default: 0.1)
+            method: Decay method - 'linear', 'exponential', or 'piecewise' (default: 'exponential')
+            base_weight: Base weight for oldest observations (default: 1.0)
+            weight_col_name: Name for the weight column (default: 'weight')
+            group_col: Optional grouping column for panel data
+            skip: Skip this step
+            id: Unique identifier
+
+        Returns:
+            Recipe with step added
+
+        Examples:
+            >>> rec = recipe().step_weight_time_decay('date', decay_rate=0.1, method='exponential')
+            >>> rec = recipe().step_weight_time_decay('date', decay_rate=0.2, method='linear')
+        """
+        from py_recipes.steps.financial_ml import StepWeightTimeDecay
+        return self.add_step(StepWeightTimeDecay(
+            date_col=date_col,
+            decay_rate=decay_rate,
+            method=method,
+            base_weight=base_weight,
+            weight_col_name=weight_col_name,
+            group_col=group_col
+        ))
+
     def prep(self, data: pd.DataFrame, training: bool = True) -> "PreparedRecipe":
         """
         Fit recipe to training data.
