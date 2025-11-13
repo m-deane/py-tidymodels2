@@ -132,6 +132,9 @@ class StepSelectGeneticAlgorithm:
     relax_constraints_after: Optional[int] = None
     relaxation_rate: float = 0.05
     n_jobs: int = 1
+    n_ensemble: int = 1
+    ensemble_strategy: str = "voting"
+    ensemble_threshold: float = 0.5
     random_state: Optional[int] = None
     verbose: bool = False
     skip: bool = False
@@ -146,6 +149,8 @@ class StepSelectGeneticAlgorithm:
     _converged: bool = field(default=False, init=False, repr=False)
     _n_generations: int = field(default=0, init=False, repr=False)
     _is_prepared: bool = field(default=False, init=False, repr=False)
+    _ensemble_results: List[Dict[str, Any]] = field(default_factory=list, init=False, repr=False)
+    _feature_frequencies: Dict[str, int] = field(default_factory=dict, init=False, repr=False)
 
     def __post_init__(self):
         """Validate parameters."""
@@ -163,6 +168,16 @@ class StepSelectGeneticAlgorithm:
 
         if self.top_n is not None and self.top_n < 1:
             raise ValueError("top_n must be >= 1")
+
+        if self.n_ensemble < 1:
+            raise ValueError("n_ensemble must be >= 1")
+
+        valid_strategies = ["voting", "frequency", "union", "intersection"]
+        if self.ensemble_strategy not in valid_strategies:
+            raise ValueError(f"ensemble_strategy must be one of {valid_strategies}")
+
+        if not (0 < self.ensemble_threshold <= 1.0):
+            raise ValueError("ensemble_threshold must be in (0, 1]")
 
     def prep(self, data: pd.DataFrame, training: bool = True):
         """
@@ -350,24 +365,120 @@ class StepSelectGeneticAlgorithm:
             if self._current_generation is not None:
                 self._current_generation[0] = gen
 
-        # Run GA
-        ga = GeneticAlgorithm(
-            n_features=len(numeric_cols),
-            fitness_function=fitness_fn,
-            config=ga_config,
-            mandatory_indices=mandatory_indices,
-            forbidden_indices=forbidden_indices,
-            feature_costs=cost_array,
-            max_cost=self.max_total_cost,
-            seed_chromosomes=seed_chromosomes,
-            generation_callback=update_generation
-        )
+        # Check if ensemble mode
+        ensemble_results = []
+        feature_frequency = {}
 
-        best_chromosome, best_fitness, history = ga.evolve()
+        if self.n_ensemble == 1:
+            # Single GA run
+            ga = GeneticAlgorithm(
+                n_features=len(numeric_cols),
+                fitness_function=fitness_fn,
+                config=ga_config,
+                mandatory_indices=mandatory_indices,
+                forbidden_indices=forbidden_indices,
+                feature_costs=cost_array,
+                max_cost=self.max_total_cost,
+                seed_chromosomes=seed_chromosomes,
+                generation_callback=update_generation
+            )
 
-        # Extract selected features
-        selected_indices = np.where(best_chromosome == 1)[0]
-        selected_features = [numeric_cols[i] for i in selected_indices]
+            best_chromosome, best_fitness, history = ga.evolve()
+
+            # Extract selected features
+            selected_indices = np.where(best_chromosome == 1)[0]
+            selected_features = [numeric_cols[i] for i in selected_indices]
+        else:
+            # Ensemble mode: run GA multiple times with different seeds
+            if self.verbose:
+                print(f"\nRunning ensemble with {self.n_ensemble} GA instances...")
+
+            all_selected_features = []
+            feature_frequency = {feat: 0 for feat in numeric_cols}
+
+            base_seed = self.random_state if self.random_state is not None else 42
+
+            for run_idx in range(self.n_ensemble):
+                # Use different random seed for each run
+                run_seed = base_seed + run_idx
+                run_config = replace(ga_config, random_state=run_seed)
+
+                if self.verbose:
+                    print(f"  [{run_idx + 1}/{self.n_ensemble}] Running GA with seed={run_seed}...")
+
+                ga = GeneticAlgorithm(
+                    n_features=len(numeric_cols),
+                    fitness_function=fitness_fn,
+                    config=run_config,
+                    mandatory_indices=mandatory_indices,
+                    forbidden_indices=forbidden_indices,
+                    feature_costs=cost_array,
+                    max_cost=self.max_total_cost,
+                    seed_chromosomes=seed_chromosomes,
+                    generation_callback=update_generation
+                )
+
+                run_chromosome, run_fitness, run_history = ga.evolve()
+                run_indices = np.where(run_chromosome == 1)[0]
+                run_features = [numeric_cols[i] for i in run_indices]
+
+                # Store run results
+                ensemble_results.append({
+                    'run_idx': run_idx,
+                    'seed': run_seed,
+                    'chromosome': run_chromosome,
+                    'fitness': run_fitness,
+                    'history': run_history,
+                    'features': run_features,
+                    'converged': ga.converged_,
+                    'n_generations': ga.n_generations_
+                })
+
+                all_selected_features.append(set(run_features))
+
+                # Update feature frequencies
+                for feat in run_features:
+                    feature_frequency[feat] += 1
+
+                if self.verbose:
+                    print(f"      Fitness: {run_fitness:.6f}, Features: {len(run_features)}")
+
+            # Aggregate results based on strategy
+            if self.ensemble_strategy == "voting":
+                # Select features that appear in majority of runs
+                threshold_count = int(np.ceil(self.n_ensemble * self.ensemble_threshold))
+                selected_features = [feat for feat, count in feature_frequency.items()
+                                   if count >= threshold_count]
+
+            elif self.ensemble_strategy == "frequency":
+                # Select features based on frequency threshold
+                threshold_count = int(np.ceil(self.n_ensemble * self.ensemble_threshold))
+                selected_features = [feat for feat, count in feature_frequency.items()
+                                   if count >= threshold_count]
+
+            elif self.ensemble_strategy == "union":
+                # Select all features that appear in at least one run
+                selected_features = [feat for feat, count in feature_frequency.items()
+                                   if count > 0]
+
+            elif self.ensemble_strategy == "intersection":
+                # Select only features that appear in ALL runs
+                selected_features = [feat for feat, count in feature_frequency.items()
+                                   if count == self.n_ensemble]
+
+            # Use best run's fitness and chromosome for reporting
+            best_run = max(ensemble_results, key=lambda x: x['fitness'])
+            best_chromosome = best_run['chromosome']
+            best_fitness = best_run['fitness']
+            history = best_run['history']
+
+            if self.verbose:
+                print(f"\nEnsemble aggregation ({self.ensemble_strategy}):")
+                print(f"  Threshold: {self.ensemble_threshold}")
+                print(f"  Selected features: {len(selected_features)}")
+                print(f"  Feature frequencies: {sorted(feature_frequency.items(), key=lambda x: x[1], reverse=True)[:10]}")
+
+        # Extract selected features (either single run or ensemble)
 
         # If top_n is specified, take top N features
         if self.top_n is not None and len(selected_features) > self.top_n:
@@ -399,9 +510,11 @@ class StepSelectGeneticAlgorithm:
         prepared._ga_history = history
         prepared._final_fitness = best_fitness
         prepared._best_chromosome = best_chromosome
-        prepared._converged = ga.converged_
-        prepared._n_generations = ga.n_generations_
+        prepared._converged = ga.converged_ if self.n_ensemble == 1 else best_run['converged']
+        prepared._n_generations = ga.n_generations_ if self.n_ensemble == 1 else best_run['n_generations']
         prepared._is_prepared = True
+        prepared._ensemble_results = ensemble_results
+        prepared._feature_frequencies = feature_frequency
 
         return prepared
 
@@ -523,6 +636,9 @@ def step_select_genetic_algorithm(
     relax_constraints_after: Optional[int] = None,
     relaxation_rate: float = 0.05,
     n_jobs: int = 1,
+    n_ensemble: int = 1,
+    ensemble_strategy: str = "voting",
+    ensemble_threshold: float = 0.5,
     random_state: Optional[int] = None,
     verbose: bool = False,
     skip: bool = False,
@@ -577,6 +693,12 @@ def step_select_genetic_algorithm(
         Rate of constraint relaxation per generation
     n_jobs : int, default=1
         Number of parallel jobs for fitness evaluation (-1 = all cores)
+    n_ensemble : int, default=1
+        Number of GA runs with different seeds for ensemble mode
+    ensemble_strategy : str, default='voting'
+        Strategy for aggregating ensemble results: 'voting', 'frequency', 'union', 'intersection'
+    ensemble_threshold : float, default=0.5
+        Threshold for voting/frequency strategies (proportion of runs)
     random_state : int, optional
         Random seed
     verbose : bool, default=False
@@ -644,6 +766,9 @@ def step_select_genetic_algorithm(
         relax_constraints_after=relax_constraints_after,
         relaxation_rate=relaxation_rate,
         n_jobs=n_jobs,
+        n_ensemble=n_ensemble,
+        ensemble_strategy=ensemble_strategy,
+        ensemble_threshold=ensemble_threshold,
         random_state=random_state,
         verbose=verbose,
         skip=skip,
