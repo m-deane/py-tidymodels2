@@ -418,6 +418,56 @@ Iteration stops when:
 - **Performance Guarantees**: Stops when target performance reached
 - **Time Efficient**: Avoids manual trial-and-error (hours → minutes)
 
+## Tutorial Notebooks 📚
+
+We provide **4 comprehensive Jupyter notebook tutorials** covering beginner to advanced topics. All tutorials are executable and include visualizations, performance metrics, and detailed explanations.
+
+### Quick Reference
+
+| # | Tutorial | Level | Time | Topics |
+|---|----------|-------|------|--------|
+| **22** | [**Complete Overview**](../examples/22_agent_complete_tutorial.ipynb) ⭐ | Beginner | 30-45 min | All phases (1, 2, 3.1-3.5), basic workflow, multi-model comparison, RAG, autonomous iteration |
+| **23** | [**LLM-Enhanced Mode**](../examples/23_agent_llm_mode_tutorial.ipynb) | Intermediate | 45-60 min | Claude Sonnet 4.5 integration, explainable reasoning, budget management, constraints |
+| **24** | [**Domain Examples**](../examples/24_agent_domain_specific_examples.ipynb) | Intermediate | 60-90 min | Retail, finance, energy forecasting; domain-adapted preprocessing; industry best practices |
+| **25** | [**Advanced Features**](../examples/25_agent_advanced_features.ipynb) | Advanced | 90-120 min | Performance debugging, ensembles, grouped modeling, production best practices |
+
+**Total Learning Time**: 3.5-5 hours for complete mastery
+
+### Which Tutorial Should I Start With?
+
+- **🆕 New to py_agent?** → Start with [Notebook 22 (Complete Overview)](../examples/22_agent_complete_tutorial.ipynb)
+- **💡 Want explainable forecasts?** → See [Notebook 23 (LLM Mode)](../examples/23_agent_llm_mode_tutorial.ipynb)
+- **🏢 Have industry-specific needs?** → Check [Notebook 24 (Domain Examples)](../examples/24_agent_domain_specific_examples.ipynb)
+- **🚀 Deploying to production?** → Read [Notebook 25 (Advanced Features)](../examples/25_agent_advanced_features.ipynb)
+
+### Tutorial Highlights
+
+**Notebook 22: Complete Overview** ⭐ *Start Here*
+- Comprehensive introduction to all features
+- Sample data: Daily sales with trend, seasonality, promotions
+- Demonstrates: Basic workflow, multi-model comparison (5 models), RAG knowledge base, autonomous iteration
+- Perfect for beginners - no prerequisites
+
+**Notebook 23: LLM-Enhanced Mode**
+- Compare rule-based ($0) vs LLM-enhanced ($4-10) approaches
+- Sample data: E-commerce sales with complex patterns
+- Demonstrates: Explainable model selection, budget management, natural language constraints
+- Prerequisites: Complete Notebook 22, ANTHROPIC_API_KEY required
+
+**Notebook 24: Domain-Specific Examples**
+- Industry applications: Retail, finance, energy
+- Sample data: Store sales, stock prices, electricity demand
+- Demonstrates: Domain-adapted preprocessing, industry best practices
+- Prerequisites: Notebook 22 recommended
+
+**Notebook 25: Advanced Features & Production**
+- Production deployment best practices
+- Sample data: Complex scenario with non-linear relationships, structural breaks
+- Demonstrates: Performance debugging, ensembles, grouped modeling, monitoring
+- Prerequisites: Complete Notebooks 22-24
+
+📖 **Full Tutorial Guide**: See [examples/TUTORIALS_INDEX.md](../examples/TUTORIALS_INDEX.md) for detailed descriptions, learning paths, and setup instructions.
+
 ## Architecture
 
 ### Core Components
@@ -815,7 +865,7 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
 - ✅ 50+ Phase 2 tests passing
 - ✅ Dual-mode support (switch between rule-based and LLM)
 
-### Phase 3: Advanced Features (In Progress)
+### Phase 3: Advanced Features ✅ COMPLETE
 - ✅ **Phase 3.1 Complete**: Model Expansion - All 23 model types!
   - Baseline, Linear/GLM, Tree-based, SVM, Neural nets, Time series, Hybrid models
 - ✅ **Phase 3.2 Complete**: Enhanced Recipe Generation - Intelligent 51-step selection!
@@ -829,8 +879,26 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
   - Ensemble recommendations with diversity scoring
   - Selection strategies: best, within_1se, threshold
   - Time savings: 1-2 hours → 5 minutes
-- ⏳ Phase 3.4: RAG knowledge base with 500+ forecasting examples
-- ⏳ Phase 3.5: Autonomous iteration and self-improvement
+- ✅ **Phase 3.4 Complete**: RAG Knowledge Base with 8 foundational examples!
+  - Example-driven recommendations from similar forecasting scenarios
+  - Vector similarity search (cosine similarity with embeddings)
+  - Confidence boosting for RAG-recommended models (up to +10%)
+  - Key lessons extraction from past successes
+  - Sub-100ms retrieval with caching
+- ✅ **Phase 3.5 Complete**: Autonomous Iteration with try-evaluate-improve loops!
+  - Self-debugging (overfitting, underfitting detection)
+  - 7 iteration strategies (regularization, complex models, tree-based, time series, ensemble, preprocessing)
+  - Performance-based stopping criteria (target value, no improvement, max iterations)
+  - Automatic approach selection based on previous issues
+
+### Documentation & Tutorials ✅ COMPLETE
+- ✅ **4 Comprehensive Tutorial Notebooks** (Notebooks 22-25)
+  - Complete overview (beginner, 30-45 min)
+  - LLM-enhanced mode (intermediate, 45-60 min)
+  - Domain-specific examples (intermediate, 60-90 min)
+  - Advanced features & production (advanced, 90-120 min)
+- ✅ **Tutorial Index** with navigation guide and learning paths
+- ✅ **Complete API Documentation** in README
 
 ## Performance Targets
 
