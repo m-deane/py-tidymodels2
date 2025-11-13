@@ -56,10 +56,12 @@ class TestWorkflowSetNested:
         # 4 workflows × 3 countries = 12 models
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        # Collect metrics
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
-        # Should have 4 workflows × 3 groups = 12 rows
-        assert len(metrics_by_group) == 12
+        # Collect metrics (don't filter by split since fit_nested doesn't create test split)
+        metrics_by_group = results.collect_metrics(by_group=True, split='all')
+        # Should have 4 workflows × 3 groups = 12 workflow-group combinations
+        # Each with multiple metrics (rmse, mae, r_squared)
+        unique_combos = metrics_by_group[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == 12  # 4 workflows × 3 groups
 
     def test_fit_nested_with_recipes(self, refinery_data_small_groups):
         """Test fit_nested with recipe preprocessing."""

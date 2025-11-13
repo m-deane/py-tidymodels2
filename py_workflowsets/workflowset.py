@@ -188,6 +188,11 @@ class WorkflowSet:
         """Get workflow by ID"""
         return self.workflows[key]
 
+    @property
+    def workflow_ids(self):
+        """Get list of workflow IDs"""
+        return list(self.workflows.keys())
+
     def workflow_map(self,
                      fn: str,
                      resamples: Any = None,

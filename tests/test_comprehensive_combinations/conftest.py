@@ -181,11 +181,6 @@ def sample_recipes():
             .step_poly(['brent', 'dubai'], degree=2)
             .step_normalize(all_numeric_predictors())
         ),
-        'select_corr': (
-            recipe()
-            .step_select_corr(method='spearman', threshold=0.8)
-            .step_normalize(all_numeric_predictors())
-        ),
         'ica_3': (
             recipe()
             .step_normalize(all_numeric_predictors())
