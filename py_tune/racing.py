@@ -6,7 +6,7 @@ early during cross-validation.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Union
 import pandas as pd
 import numpy as np
 from statsmodels.regression.mixed_linear_model import MixedLM
@@ -421,16 +421,16 @@ def test_parameters_bt(
     return result
 
 
-def restore_rset(resamples: Any, indices: List[int]) -> Any:
+def restore_rset(resamples: Any, indices: Union[int, List[int]]) -> Any:
     """
     Extract subset of resamples by index.
 
     Args:
-        resamples: Original resamples object (DataFrame-like with splits)
+        resamples: Original resamples object (VFoldCV, DataFrame, or list-like)
         indices: List or range of indices to extract
 
     Returns:
-        Subset of resamples
+        Subset of resamples (list of RSplit objects for VFoldCV)
 
     Examples:
         >>> from py_rsample import vfold_cv
@@ -442,12 +442,17 @@ def restore_rset(resamples: Any, indices: List[int]) -> Any:
     else:
         indices = [indices]
 
-    # Handle different resample formats
-    if isinstance(resamples, pd.DataFrame):
+    # Handle VFoldCV and similar rsample objects
+    if hasattr(resamples, 'splits'):
+        # Return list of RSplit objects
+        return [resamples[i] for i in indices]
+    elif isinstance(resamples, pd.DataFrame):
         return resamples.iloc[indices].reset_index(drop=True)
+    elif hasattr(resamples, '__getitem__'):
+        # List-like object
+        return [resamples[i] for i in indices]
     else:
-        # Assume it has an iloc or similar interface
-        return resamples.iloc[indices]
+        raise TypeError(f"Unsupported resamples type: {type(resamples)}")
 
 
 def randomize_resamples(resamples: Any) -> Any:
@@ -455,18 +460,21 @@ def randomize_resamples(resamples: Any) -> Any:
     Randomize the order of resamples.
 
     Args:
-        resamples: Resamples object
+        resamples: Resamples object (VFoldCV, DataFrame, or list-like)
 
     Returns:
-        Resamples in random order
+        Resamples in random order (list for VFoldCV)
 
     Examples:
         >>> folds_random = randomize_resamples(folds)
     """
+    n = len(resamples)
+    indices = np.random.permutation(n).tolist()
+
     if isinstance(resamples, pd.DataFrame):
-        return resamples.sample(frac=1.0).reset_index(drop=True)
-    else:
-        # Assume DataFrame-like
-        n = len(resamples)
-        indices = np.random.permutation(n)
         return resamples.iloc[indices].reset_index(drop=True)
+    elif hasattr(resamples, 'splits') or hasattr(resamples, '__getitem__'):
+        # VFoldCV or list-like - return randomized list
+        return [resamples[i] for i in indices]
+    else:
+        raise TypeError(f"Unsupported resamples type: {type(resamples)}")

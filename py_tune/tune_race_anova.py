@@ -99,11 +99,6 @@ def tune_race_anova(
     if control.randomize:
         resamples = randomize_resamples(resamples)
 
-    # Add order column
-    if isinstance(resamples, pd.DataFrame):
-        resamples = resamples.copy()
-        resamples['.order'] = range(len(resamples))
-
     # Initialize with burn-in resamples
     burn_in_resamples = restore_rset(resamples, list(range(control.burn_in)))
 
