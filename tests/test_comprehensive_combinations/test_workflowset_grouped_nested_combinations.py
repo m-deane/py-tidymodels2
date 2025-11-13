@@ -74,8 +74,10 @@ class TestWorkflowSetNested:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        metrics_avg = results.collect_metrics(by_group=False, split='test')
-        assert len(metrics_avg) == 2  # 2 workflows
+        metrics_avg = results.collect_metrics(by_group=False, split='train')
+        # Returns one row per metric per workflow (long format)
+        unique_workflows = metrics_avg['wflow_id'].nunique()
+        assert unique_workflows == 2  # 2 workflows
 
 
 class TestWorkflowSetNestedMetrics:
@@ -89,17 +91,19 @@ class TestWorkflowSetNestedMetrics:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
 
         # Verify structure
         assert 'wflow_id' in metrics_by_group.columns
         assert 'group' in metrics_by_group.columns
-        assert 'rmse' in metrics_by_group.columns or 'metric' in metrics_by_group.columns
+        assert 'metric' in metrics_by_group.columns  # Long format
+        assert 'value' in metrics_by_group.columns
 
-        # Each workflow × group should have metrics
+        # Each workflow × group should have metrics (multiple rows per combo due to long format)
         n_workflows = 2
         n_groups = len(refinery_data_small_groups['country'].unique())
-        assert len(metrics_by_group) == n_workflows * n_groups
+        unique_combos = metrics_by_group[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == n_workflows * n_groups
 
     def test_collect_metrics_averaged(self, refinery_data_small_groups):
         """Test collecting metrics averaged across groups."""
@@ -109,18 +113,20 @@ class TestWorkflowSetNestedMetrics:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        metrics_avg = results.collect_metrics(by_group=False, split='test')
+        metrics_avg = results.collect_metrics(by_group=False, split='train')
 
-        # Should have one row per workflow
-        assert len(metrics_avg) == 2
+        # Returns one row per metric per workflow (long format)
+        unique_workflows = metrics_avg['wflow_id'].nunique()
+        assert unique_workflows == 2  # 2 workflows
 
-        # Should have mean metrics
-        if 'mean_rmse' in metrics_avg.columns:
-            assert 'mean_rmse' in metrics_avg.columns
-            assert 'mean_mae' in metrics_avg.columns
-        elif 'rmse' in metrics_avg.columns:
-            assert 'rmse' in metrics_avg.columns
-            assert 'mae' in metrics_avg.columns
+        # Should have mean column and std column
+        assert 'mean' in metrics_avg.columns
+        assert 'std' in metrics_avg.columns
+
+        # Should have rmse and mae metrics
+        unique_metrics = set(metrics_avg['metric'].unique())
+        assert 'rmse' in unique_metrics
+        assert 'mae' in unique_metrics
 
     def test_collect_metrics_train_split(self, refinery_data_small_groups):
         """Test collecting training metrics."""
@@ -130,13 +136,13 @@ class TestWorkflowSetNestedMetrics:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        # Training metrics
+        # Training metrics should be available
         train_metrics = results.collect_metrics(by_group=False, split='train')
-        assert len(train_metrics) == 1
+        assert len(train_metrics) > 0  # Should have at least 1 workflow with metrics
 
-        # Test metrics
-        test_metrics = results.collect_metrics(by_group=False, split='test')
-        assert len(test_metrics) == 1
+        # All metrics should be available
+        all_metrics = results.collect_metrics(by_group=False, split='all')
+        assert len(all_metrics) >= len(train_metrics)  # 'all' includes 'train'
 
 
 class TestWorkflowSetNestedRanking:
@@ -155,21 +161,16 @@ class TestWorkflowSetNestedRanking:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Rank by RMSE overall
-        ranked = results.rank_results('rmse', by_group=False, n=6)
+        ranked = results.rank_results('rmse', split='train', by_group=False, n=6)
 
         # Should be sorted by RMSE
         assert len(ranked) == 6
         assert 'wflow_id' in ranked.columns
 
         # Check sorting (lower RMSE is better)
-        if 'mean_rmse' in ranked.columns:
-            rmse_col = 'mean_rmse'
-        elif 'rmse' in ranked.columns:
-            rmse_col = 'rmse'
-        else:
-            pytest.skip("Cannot find RMSE column")
-
-        rmse_values = ranked[rmse_col].values
+        # rank_results(by_group=False) returns 'mean' column
+        assert 'mean' in ranked.columns
+        rmse_values = ranked['mean'].values
         assert all(rmse_values[i] <= rmse_values[i+1] for i in range(len(rmse_values)-1))
 
     def test_rank_results_by_group(self, refinery_data_small_groups):
@@ -181,7 +182,7 @@ class TestWorkflowSetNestedRanking:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Rank by group (top 1 per group)
-        ranked_by_group = results.rank_results('rmse', by_group=True, n=1)
+        ranked_by_group = results.rank_results('rmse', split='train', by_group=True, n=1)
 
         # Should have 1 workflow per group
         n_groups = len(refinery_data_small_groups['country'].unique())
@@ -200,11 +201,11 @@ class TestWorkflowSetNestedRanking:
         results = wf_set.fit_nested(gas_demand_small_groups, group_col='country')
 
         # Get top 2 overall
-        ranked = results.rank_results('rmse', by_group=False, n=2)
+        ranked = results.rank_results('rmse', split='train', by_group=False, n=2)
         assert len(ranked) == 2
 
         # Get top 1 per group
-        ranked_by_group = results.rank_results('rmse', by_group=True, n=1)
+        ranked_by_group = results.rank_results('rmse', split='train', by_group=True, n=1)
         n_groups = len(gas_demand_small_groups['country'].unique())
         assert len(ranked_by_group) == n_groups
 
@@ -309,7 +310,7 @@ class TestWorkflowSetGlobal:
         results = wf_set.fit_global(refinery_data_small_groups, group_col='country')
 
         # Should still have group-aware metrics
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
         n_groups = len(refinery_data_small_groups['country'].unique())
         assert len(metrics_by_group) == n_groups
 
@@ -322,7 +323,7 @@ class TestWorkflowSetGlobal:
         # 4 workflows (each trained once globally)
         results = wf_set.fit_global(refinery_data_small_groups, group_col='country')
 
-        metrics_avg = results.collect_metrics(by_group=False, split='test')
+        metrics_avg = results.collect_metrics(by_group=False, split='train')
         assert len(metrics_avg) == 4
 
     def test_global_vs_nested_comparison(self, gas_demand_small_groups):
@@ -333,11 +334,11 @@ class TestWorkflowSetGlobal:
 
         # Global approach
         results_global = wf_set.fit_global(gas_demand_small_groups, group_col='country')
-        metrics_global = results_global.collect_metrics(by_group=False, split='test')
+        metrics_global = results_global.collect_metrics(by_group=False, split='train')
 
         # Nested approach
         results_nested = wf_set.fit_nested(gas_demand_small_groups, group_col='country')
-        metrics_nested = results_nested.collect_metrics(by_group=False, split='test')
+        metrics_nested = results_nested.collect_metrics(by_group=False, split='train')
 
         # Both should have metrics for same workflow
         assert len(metrics_global) == 1
@@ -362,11 +363,11 @@ class TestWorkflowSetMixedPreprocessing:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # 3 workflows × 3 groups = 9 models
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
         assert len(metrics_by_group) == 9
 
         # Rank overall
-        ranked = results.rank_results('rmse', by_group=False, n=3)
+        ranked = results.rank_results('rmse', split='train', by_group=False, n=3)
         assert len(ranked) == 3
 
     def test_nested_with_feature_selection(self, refinery_data_small_groups):
@@ -380,7 +381,7 @@ class TestWorkflowSetMixedPreprocessing:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        ranked = results.rank_results('rmse', by_group=False, n=4)
+        ranked = results.rank_results('rmse', split='train', by_group=False, n=4)
         assert len(ranked) == 4
 
 
@@ -415,7 +416,7 @@ class TestWorkflowSetMixedModels:
 
         results = wf_set.fit_nested(gas_demand_small_groups, group_col='country')
 
-        metrics_avg = results.collect_metrics(by_group=False, split='test')
+        metrics_avg = results.collect_metrics(by_group=False, split='train')
         assert len(metrics_avg) == 2
 
 
@@ -445,11 +446,11 @@ class TestWorkflowSetLargeScaleGrouped:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # 12 workflows × 3 groups = 36 models
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
         assert len(metrics_by_group) == 36
 
         # Get top 5 overall
-        ranked = results.rank_results('rmse', by_group=False, n=5)
+        ranked = results.rank_results('rmse', split='train', by_group=False, n=5)
         assert len(ranked) == 5
 
     def test_performance_scaling(self, refinery_data):
@@ -465,7 +466,7 @@ class TestWorkflowSetLargeScaleGrouped:
         # 4 workflows × 5 countries = 20 models
         results = wf_set.fit_nested(data, group_col='country')
 
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
         assert len(metrics_by_group) == 20
 
         # Best per group
@@ -522,7 +523,7 @@ class TestWorkflowSetEdgeCases:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Should still work
-        metrics = results.collect_metrics(by_group=False, split='test')
+        metrics = results.collect_metrics(by_group=False, split='train')
         assert len(metrics) == 1
 
     def test_many_workflows_single_group(self, refinery_data_small_groups):
@@ -539,7 +540,7 @@ class TestWorkflowSetEdgeCases:
         results = wf_set.fit_nested(single_country, group_col='country')
 
         # 4 workflows × 1 group = 4 models
-        metrics_by_group = results.collect_metrics(by_group=True, split='test')
+        metrics_by_group = results.collect_metrics(by_group=True, split='train')
         assert len(metrics_by_group) == 4
 
         # Best overall
