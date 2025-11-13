@@ -1,0 +1,40 @@
+# Include documentation files
+include README.md
+include LICENSE
+include INSTALLATION.md
+include DOCUMENTATION_QUICK_START.md
+include CHANGELOG.md
+
+# Include configuration files
+include pyproject.toml
+include setup.py
+include requirements.txt
+include pytest.ini
+
+# Include py_agent knowledge base
+recursive-include py_agent/knowledge *.json
+
+# Include example notebooks (users can run tutorials locally)
+recursive-include examples *.ipynb
+include examples/TUTORIALS_INDEX.md
+include examples/VALIDATION_SUMMARY.md
+include examples/REAL_WORLD_DATA_TUTORIAL_SUMMARY.md
+
+# Exclude development and testing files
+recursive-exclude tests *
+recursive-exclude .claude* *
+recursive-exclude reference *
+recursive-exclude _md *
+recursive-exclude _guides *
+recursive-exclude docs *
+recursive-exclude my-docs *
+recursive-exclude .github *
+recursive-exclude catboost_info *
+recursive-exclude model_outputs *
+
+# Exclude compiled Python files
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude *.dylib

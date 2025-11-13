@@ -1,0 +1,201 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "py-tidymodels"
+version = "1.0.0"
+description = "Python port of R's tidymodels ecosystem for time series forecasting and machine learning"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "Matthew Deane", email = "matthew.deane@example.com"}
+]
+maintainers = [
+    {name = "Matthew Deane", email = "matthew.deane@example.com"}
+]
+keywords = [
+    "tidymodels",
+    "time-series",
+    "forecasting",
+    "machine-learning",
+    "arima",
+    "prophet",
+    "xgboost",
+    "modeling",
+    "workflow",
+    "sklearn",
+    "statsmodels"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "pandas>=2.3.0",
+    "numpy>=2.2.0",
+    "patsy>=1.0.0",
+    "scikit-learn>=1.7.0",
+    "prophet>=1.2.0",
+    "statsmodels>=0.14.0",
+    "scipy>=1.14.0",
+    "matplotlib>=3.10.0",
+    "plotly>=6.3.0",
+    "skforecast>=0.18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
+    "pytest-cov>=7.0.0",
+    "jupyter>=1.1.0",
+    "notebook>=7.3.0",
+    "ipykernel>=7.0.0",
+    "black>=25.0.0",
+    "flake8>=7.3.0",
+    "mypy>=1.18.0",
+]
+boosting = [
+    "xgboost>=2.0.0",
+    "lightgbm>=4.0.0",
+    "catboost>=1.2.0",
+]
+advanced = [
+    "pygam>=0.9.0",
+    "pmdarima>=2.0.0",
+]
+agent = [
+    "anthropic>=0.40.0",
+    "chromadb>=0.5.0",
+]
+all = [
+    "py-tidymodels[dev,boosting,advanced,agent]",
+]
+
+[project.urls]
+Homepage = "https://github.com/m-deane/py-tidymodels2"
+Repository = "https://github.com/m-deane/py-tidymodels2"
+Documentation = "https://github.com/m-deane/py-tidymodels2/tree/main/docs"
+"Bug Tracker" = "https://github.com/m-deane/py-tidymodels2/issues"
+Changelog = "https://github.com/m-deane/py-tidymodels2/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+packages = [
+    "py_hardhat",
+    "py_parsnip",
+    "py_parsnip.models",
+    "py_parsnip.engines",
+    "py_parsnip.utils",
+    "py_recipes",
+    "py_recipes.steps",
+    "py_rsample",
+    "py_workflows",
+    "py_yardstick",
+    "py_tune",
+    "py_workflowsets",
+    "py_stacks",
+    "py_visualize",
+    "py_agent",
+    "py_agent.llm",
+    "py_agent.knowledge",
+    "py_agent.agents",
+    "py_agent.tools",
+]
+
+[tool.setuptools.package-data]
+py_agent = ["knowledge/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | reference
+)/
+'''
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "patsy.*",
+    "prophet.*",
+    "skforecast.*",
+    "statsmodels.*",
+    "plotly.*",
+    "pygam.*",
+    "pmdarima.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = [
+    "py_hardhat",
+    "py_parsnip",
+    "py_recipes",
+    "py_rsample",
+    "py_workflows",
+    "py_yardstick",
+    "py_tune",
+    "py_workflowsets",
+    "py_stacks",
+    "py_visualize",
+    "py_agent",
+]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
