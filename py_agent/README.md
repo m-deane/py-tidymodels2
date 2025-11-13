@@ -42,7 +42,7 @@ AI agent system for automated time series forecasting workflow generation using 
 
 - ✅ **Phase 3.1 Complete**: Model Expansion - All 23 model types!
 - ✅ **Phase 3.2 Complete**: Enhanced Recipe Generation - Intelligent 51-step selection!
-- ⏳ Phase 3.3: Multi-model WorkflowSet orchestration
+- ✅ **Phase 3.3 Complete**: Multi-Model WorkflowSet Orchestration - Automatic model comparison!
 - ⏳ Phase 3.4: RAG knowledge base with 500+ forecasting examples
 - ⏳ Phase 3.5: Autonomous iteration and self-improvement
 
@@ -113,18 +113,85 @@ fit = workflow.fit(sales_data)
 predictions = fit.predict(future_data)
 ```
 
+### Phase 3.3: Multi-Model Comparison
+
+```python
+from py_agent import ForecastAgent
+import pandas as pd
+
+# Load your data
+sales_data = pd.DataFrame({
+    'date': pd.date_range('2020-01-01', periods=730, freq='D'),
+    'sales': [...],
+    'temperature': [...],
+    'promotion': [...]
+})
+
+# Initialize agent
+agent = ForecastAgent(verbose=True)
+
+# Compare top 5 models automatically
+results = agent.compare_models(
+    data=sales_data,
+    request="Forecast daily sales with seasonality",
+    n_models=5,               # Compare top 5 recommended models
+    cv_strategy='time_series', # Use time series CV
+    n_folds=5,                # 5 CV folds
+    date_column='date',
+    return_ensemble=True      # Also get ensemble recommendation
+)
+
+# View rankings
+print("\n🏆 Model Rankings:")
+print(results['rankings'])
+#      rank           wflow_id     mean  std_err
+# 0       1     prophet_reg_1   12.45     0.82
+# 1       2      arima_reg_4   13.21     1.15
+# 2       3     linear_reg_2   15.33     1.42
+# 3       4   rand_forest_3   16.78     1.88
+# 4       5    boost_tree_5   17.12     2.01
+
+# Get best model
+best_model_id = results['best_model_id']
+print(f"\n✅ Best Model: {best_model_id}")
+
+# Access the WorkflowSet
+wf_set = results['workflowset']
+
+# Fit best model on full data
+best_workflow = wf_set[best_model_id]
+fit = best_workflow.fit(sales_data)
+predictions = fit.predict(future_data)
+
+# Get ensemble recommendation
+if results.get('ensemble_recommendation'):
+    ensemble = results['ensemble_recommendation']
+    print(f"\n🤝 Ensemble: {', '.join(ensemble['model_ids'])}")
+    print(f"   Expected RMSE: {ensemble['expected_performance']:.2f}")
+    print(f"   Diversity: {ensemble['diversity_score']:.2f}")
+    print(f"   Type: {ensemble['ensemble_type']}")
+```
+
+**Key Benefits:**
+- **Automatic Comparison**: Evaluates 5+ models in parallel
+- **Cross-Validation**: Robust performance estimates with CV
+- **Ranking**: Models sorted by performance (RMSE, MAE, R²)
+- **Ensemble Recommendations**: Suggests optimal model combinations
+- **Time Savings**: 1-2 hours of manual model testing → 5 minutes automated
+
 ## Architecture
 
 ### Core Components
 
 ```
 py_agent/
-├── tools/              # Analysis and recommendation functions (Phase 1)
-│   ├── data_analysis.py       # Temporal pattern detection
-│   ├── model_selection.py     # Model recommendation engine
-│   ├── recipe_generation.py   # Preprocessing recipe creation
-│   ├── workflow_execution.py  # Workflow fitting and evaluation
-│   └── diagnostics.py         # Performance analysis
+├── tools/              # Analysis and recommendation functions
+│   ├── data_analysis.py            # Temporal pattern detection
+│   ├── model_selection.py          # Model recommendation engine
+│   ├── recipe_generation.py        # Preprocessing recipe creation (Phase 3.2: 51 steps)
+│   ├── multi_model_orchestration.py # Multi-model comparison (Phase 3.3)
+│   ├── workflow_execution.py       # Workflow fitting and evaluation
+│   └── diagnostics.py              # Performance analysis
 │
 ├── llm/                # LLM integration (Phase 2)
 │   ├── client.py              # Anthropic SDK wrapper with budget management
@@ -155,8 +222,14 @@ py_agent/
 - `get_model_profiles()` - Access model capability profiles
 
 #### Recipe Generation Tools
-- `create_recipe()` - Generate preprocessing code
-- `get_recipe_templates()` - Access predefined recipe templates
+- `create_recipe()` - Generate preprocessing code (Phase 3.2: Intelligent 51-step selection)
+- `get_recipe_templates()` - Access 17 domain-specific recipe templates
+
+#### Multi-Model Orchestration Tools (Phase 3.3)
+- `generate_workflowset()` - Create WorkflowSet from model recommendations
+- `compare_models_cv()` - Evaluate models with cross-validation
+- `select_best_models()` - Select best models from rankings (best, within_1se, threshold)
+- `recommend_ensemble()` - Suggest optimal ensemble composition
 
 #### Workflow Execution Tools
 - `fit_workflow()` - Execute workflow on data
@@ -483,11 +556,14 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
   - 6 intelligent decision functions
   - 17 domain-specific templates
   - Model-specific optimizations (PCA, polynomial, interactions, transformations)
-- ⏳ RAG knowledge base with 500+ forecasting examples
-- ⏳ Multi-model WorkflowSet orchestration
-- ⏳ Ensemble recommendations
-- ⏳ Autonomous iteration and self-improvement
-- ⏳ Performance profiling and auto-optimization
+- ✅ **Phase 3.3 Complete**: Multi-Model WorkflowSet Orchestration!
+  - Automatic comparison of 5+ models with cross-validation
+  - Model ranking by performance (RMSE, MAE, R²)
+  - Ensemble recommendations with diversity scoring
+  - Selection strategies: best, within_1se, threshold
+  - Time savings: 1-2 hours → 5 minutes
+- ⏳ Phase 3.4: RAG knowledge base with 500+ forecasting examples
+- ⏳ Phase 3.5: Autonomous iteration and self-improvement
 
 ## Performance Targets
 

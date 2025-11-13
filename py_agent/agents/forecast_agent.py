@@ -25,6 +25,9 @@ from py_agent.tools.model_selection import suggest_model, get_model_profiles
 from py_agent.tools.recipe_generation import create_recipe, get_recipe_templates
 from py_agent.tools.workflow_execution import fit_workflow, evaluate_workflow
 from py_agent.tools.diagnostics import diagnose_performance
+from py_agent.tools.multi_model_orchestration import (
+    generate_workflowset, compare_models_cv, select_best_models, recommend_ensemble
+)
 
 # Phase 2 imports (optional)
 try:
@@ -277,6 +280,167 @@ class ForecastAgent:
         diagnostics['recommendations'] = recommendations
 
         return diagnostics
+
+    def compare_models(
+        self,
+        data: pd.DataFrame,
+        request: str,
+        n_models: int = 5,
+        cv_strategy: str = 'time_series',
+        n_folds: int = 5,
+        date_column: Optional[str] = None,
+        formula: Optional[str] = None,
+        constraints: Optional[Dict] = None,
+        return_ensemble: bool = False
+    ) -> Dict:
+        """
+        Compare multiple models and select the best.
+
+        This is Phase 3.3: Multi-Model WorkflowSet Orchestration.
+        Automatically generates, evaluates, and compares multiple models
+        using cross-validation, then returns the best model(s).
+
+        Args:
+            data: DataFrame containing your data
+            request: Natural language description of forecasting task
+            n_models: Number of models to compare (default: 5)
+            cv_strategy: 'time_series' or 'vfold' (default: 'time_series')
+            n_folds: Number of CV folds (default: 5)
+            date_column: Date column name (required for time_series CV)
+            formula: Optional explicit formula
+            constraints: Optional constraints dict
+            return_ensemble: Whether to return ensemble recommendation (default: False)
+
+        Returns:
+            Dictionary with:
+                - best_model_id: ID of best performing model
+                - rankings: DataFrame with all model rankings
+                - workflowset: WorkflowSet object with all models
+                - cv_results: Cross-validation results
+                - ensemble_recommendation: Optional ensemble recommendation
+
+        Example:
+            >>> agent = ForecastAgent()
+            >>> results = agent.compare_models(
+            ...     data=sales_data,
+            ...     request="Forecast daily sales with seasonality",
+            ...     n_models=5,
+            ...     date_column='date'
+            ... )
+            >>> print(results['best_model_id'])
+            'prophet_reg_1'
+            >>> print(results['rankings'].head())
+        """
+        self._log("🚀 Starting multi-model comparison (Phase 3.3)...")
+
+        # Parse request
+        task_info = self._parse_request(request, data)
+
+        # Analyze data
+        self._log("\n🔍 Analyzing data characteristics...")
+        if date_column is None:
+            date_column, value_col = self._detect_columns(data, task_info)
+        else:
+            _, value_col = self._detect_columns(data, task_info)
+
+        data_chars = analyze_temporal_patterns(data, date_column, value_col)
+
+        self._log(f"✓ Detected {data_chars['frequency']} data")
+        if data_chars['seasonality']['detected']:
+            self._log(f"✓ Found seasonality (strength={data_chars['seasonality']['strength']:.2f})")
+
+        # Get model recommendations
+        self._log(f"\n📊 Recommending top {n_models} models...")
+        model_recommendations = suggest_model(data_chars, constraints)
+
+        if len(model_recommendations) == 0:
+            raise ValueError("No suitable models found for your data and constraints")
+
+        # Limit to n_models
+        models_to_compare = model_recommendations[:n_models]
+
+        for i, rec in enumerate(models_to_compare, 1):
+            self._log(f"  {i}. {rec['model_type']} (confidence: {rec['confidence']:.0%})")
+
+        # Generate recipe (use recipe for best model)
+        self._log("\n🔧 Creating preprocessing recipe...")
+        recipe_code = create_recipe(
+            data_chars,
+            models_to_compare[0]['model_type'],
+            domain=task_info.get('domain')
+        )
+        self._log("✓ Recipe generated")
+
+        # Generate WorkflowSet
+        self._log("\n⚙️  Building WorkflowSet...")
+        inferred_formula = formula or self._infer_formula(data, value_col, date_column)
+
+        wf_set = generate_workflowset(
+            model_recommendations=models_to_compare,
+            recipe_code=recipe_code,
+            formula=inferred_formula,
+            max_models=n_models
+        )
+        self._log(f"✓ Created {len(wf_set.workflows)} workflows")
+
+        # Run cross-validation
+        self._log(f"\n🔄 Running {cv_strategy} cross-validation ({n_folds} folds)...")
+        self._log("   This may take a few minutes...")
+
+        cv_results, rankings = compare_models_cv(
+            wf_set=wf_set,
+            data=data,
+            cv_strategy=cv_strategy,
+            n_folds=n_folds,
+            date_column=date_column
+        )
+
+        self._log("✓ Cross-validation complete!")
+
+        # Display rankings
+        self._log("\n🏆 Model Rankings:")
+        self._log("-" * 60)
+        for i, row in rankings.head(n_models).iterrows():
+            self._log(f"  {i+1}. {row['wflow_id']}")
+            self._log(f"     RMSE: {row['mean']:.4f} (±{row['std_err']:.4f})")
+
+        # Select best model
+        best_model_ids = select_best_models(
+            rankings,
+            selection_strategy='best',
+            n_models=1
+        )
+        best_model_id = best_model_ids[0]
+
+        self._log(f"\n✅ Best Model: {best_model_id}")
+
+        # Prepare results
+        results = {
+            'best_model_id': best_model_id,
+            'rankings': rankings,
+            'workflowset': wf_set,
+            'cv_results': cv_results,
+            'data_characteristics': data_chars,
+            'formula': inferred_formula,
+            'models_compared': [rec['model_type'] for rec in models_to_compare]
+        }
+
+        # Generate ensemble recommendation if requested
+        if return_ensemble:
+            self._log("\n🤝 Generating ensemble recommendation...")
+            ensemble_rec = recommend_ensemble(
+                wf_set=wf_set,
+                ranked_results=rankings,
+                ensemble_size=min(3, len(models_to_compare))
+            )
+            results['ensemble_recommendation'] = ensemble_rec
+
+            self._log(f"✓ Ensemble: {', '.join(ensemble_rec['model_ids'])}")
+            self._log(f"  Expected RMSE: {ensemble_rec['expected_performance']:.4f}")
+            self._log(f"  Diversity: {ensemble_rec['diversity_score']:.2f}")
+            self._log(f"  Type: {ensemble_rec['ensemble_type']}")
+
+        return results
 
     def start_session(self) -> 'ConversationalSession':
         """
