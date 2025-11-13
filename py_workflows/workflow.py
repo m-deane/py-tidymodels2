@@ -13,6 +13,12 @@ from joblib import Parallel, delayed
 
 from py_parsnip import ModelSpec, ModelFit
 from py_recipes import Recipe, PreparedRecipe
+from .parallel_utils import (
+    validate_n_jobs,
+    get_joblib_backend,
+    check_windows_compatibility,
+    format_parallel_info
+)
 
 
 @dataclass(frozen=True)
@@ -819,11 +825,19 @@ class Workflow:
         # Prepare list of group data
         group_data_list = [(group, data[data[group_col] == group].copy()) for group in groups]
 
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(groups), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
         # Decide between sequential and parallel execution
-        if n_jobs is None or n_jobs == 1:
+        if effective_n_jobs == 1:
             # Sequential execution
             if verbose:
-                print(f"Fitting {len(groups)} groups (sequential)...")
+                info = format_parallel_info(1, len(groups), "groups")
+                print(f"{info}...")
 
             results = []
             for i, (group, group_data) in enumerate(group_data_list):
@@ -837,10 +851,12 @@ class Workflow:
         else:
             # Parallel execution
             if verbose:
-                print(f"Fitting {len(groups)} groups (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(groups), "groups")
+                print(f"{info}...")
 
             joblib_verbose = 10 if verbose else 0
-            parallel_results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            backend = get_joblib_backend()
+            parallel_results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
                 delayed(self._fit_single_group)(
                     group, group_data, group_col, per_group_prep,
                     min_group_size, global_recipe, outcome_col_global

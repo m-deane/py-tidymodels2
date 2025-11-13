@@ -13,6 +13,13 @@ import itertools
 from datetime import datetime
 from joblib import Parallel, delayed
 
+from .parallel_utils import (
+    validate_n_jobs,
+    get_joblib_backend,
+    check_windows_compatibility,
+    format_parallel_info
+)
+
 
 # ============================================================================
 # Parameter Marker
@@ -367,11 +374,19 @@ def fit_resamples(
     # Convert resamples to list for iteration
     resample_splits = list(enumerate(resamples))
 
+    # Validate and resolve n_jobs with warnings
+    effective_n_jobs = validate_n_jobs(n_jobs, len(resample_splits), verbose=verbose)
+
+    # Windows compatibility check
+    if effective_n_jobs > 1:
+        check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
     # Decide between sequential and parallel execution
-    if n_jobs is None or n_jobs == 1:
+    if effective_n_jobs == 1:
         # Sequential execution
         if verbose:
-            print(f"Fitting workflow across {len(resample_splits)} folds (sequential)...")
+            info = format_parallel_info(1, len(resample_splits), "CV folds")
+            print(f"{info}...")
 
         results = []
         for fold_idx, split in resample_splits:
@@ -382,10 +397,12 @@ def fit_resamples(
     else:
         # Parallel execution
         if verbose:
-            print(f"Fitting workflow across {len(resample_splits)} folds (n_jobs={n_jobs})...")
+            info = format_parallel_info(effective_n_jobs, len(resample_splits), "CV folds")
+            print(f"{info}...")
 
         joblib_verbose = 10 if verbose else 0
-        results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+        backend = get_joblib_backend()
+        results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
             delayed(_fit_single_fold)(workflow, split, fold_idx, metrics, save_pred)
             for fold_idx, split in resample_splits
         )
@@ -504,8 +521,15 @@ def tune_grid(
         for fold_idx, split in enumerate(resamples):
             config_fold_combinations.append((params, config_name, split, fold_idx))
 
+    # Validate and resolve n_jobs with warnings
+    effective_n_jobs = validate_n_jobs(n_jobs, len(config_fold_combinations), verbose=verbose)
+
+    # Windows compatibility check
+    if effective_n_jobs > 1:
+        check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
     # Decide between sequential and parallel execution
-    if n_jobs is None or n_jobs == 1:
+    if effective_n_jobs == 1:
         # Sequential execution
         if verbose:
             print(f"Tuning grid: {len(grid_df)} configs × {len(list(resamples))} folds = {len(config_fold_combinations)} fits (sequential)...")
@@ -520,10 +544,12 @@ def tune_grid(
     else:
         # Parallel execution
         if verbose:
-            print(f"Tuning grid: {len(grid_df)} configs × {len(list(resamples))} folds = {len(config_fold_combinations)} fits (n_jobs={n_jobs})...")
+            info = format_parallel_info(effective_n_jobs, len(config_fold_combinations), "grid fits")
+            print(f"Tuning grid: {len(grid_df)} configs × {len(list(resamples))} folds = {info}...")
 
         joblib_verbose = 10 if verbose else 0
-        results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+        backend = get_joblib_backend()
+        results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
             delayed(_fit_single_config_fold)(workflow, params, config_name, split, fold_idx, metrics, save_pred)
             for params, config_name, split, fold_idx in config_fold_combinations
         )
