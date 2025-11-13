@@ -66,6 +66,7 @@ class ForecastAgent:
         model: str = "claude-sonnet-4.5",
         verbose: bool = True,
         use_llm: bool = False,
+        use_rag: bool = False,
         budget_per_day: float = 100.0
     ):
         """
@@ -76,17 +77,45 @@ class ForecastAgent:
             model: LLM model to use (Phase 2)
             verbose: Whether to print progress messages
             use_llm: Whether to use LLM-enhanced reasoning (Phase 2) or rule-based (Phase 1)
+            use_rag: Whether to use RAG knowledge base for example-driven recommendations (Phase 3.4)
             budget_per_day: Daily budget for LLM API calls in USD (Phase 2)
         """
         self.api_key = api_key
         self.model = model
         self.verbose = verbose
         self.use_llm = use_llm
+        self.use_rag = use_rag
         self.session_history = []
 
         # Initialize Phase 2 components if LLM mode requested
         self.llm_client = None
         self.orchestrator = None
+
+        # Initialize Phase 3.4 RAG components if requested
+        self.example_library = None
+        self.rag_retriever = None
+
+        if use_rag:
+            try:
+                from py_agent.knowledge import (
+                    ExampleLibrary,
+                    RAGRetriever,
+                    DEFAULT_LIBRARY_PATH
+                )
+
+                self.example_library = ExampleLibrary(DEFAULT_LIBRARY_PATH)
+                self.rag_retriever = RAGRetriever(
+                    self.example_library,
+                    cache_embeddings=True
+                )
+
+                if self.verbose:
+                    print(f"✅ RAG knowledge base initialized with {len(self.example_library)} examples")
+            except Exception as e:
+                if self.verbose:
+                    print(f"⚠️  Failed to initialize RAG: {e}")
+                    print("   Continuing without RAG enhancement...")
+                self.use_rag = False
 
         if use_llm:
             if not LLM_AVAILABLE:
@@ -180,9 +209,63 @@ class ForecastAgent:
         if data_chars['trend']['significant']:
             self._log(f"✓ Detected {data_chars['trend']['direction']} trend")
 
+        # RAG: Retrieve similar examples (Phase 3.4)
+        rag_models = []
+        rag_insights = []
+        if self.use_rag and self.rag_retriever:
+            self._log("\n📚 Searching knowledge base for similar examples...")
+            try:
+                similar_examples = self.rag_retriever.retrieve_by_data_characteristics(
+                    data_chars, top_k=3
+                )
+
+                if similar_examples:
+                    self._log(f"✓ Found {len(similar_examples)} similar examples:")
+                    for i, result in enumerate(similar_examples, 1):
+                        self._log(f"  {i}. {result.example.title} (similarity: {result.similarity_score:.2f})")
+                        self._log(f"     {result.example.description[:80]}...")
+                        self._log(f"     Domain: {result.example.domain}, Difficulty: {result.example.difficulty}")
+
+                    # Extract model recommendations from examples
+                    rag_models = self.rag_retriever.get_model_recommendations_from_examples(
+                        similar_examples, top_n=3
+                    )
+
+                    # Extract preprocessing insights
+                    rag_insights = self.rag_retriever.get_preprocessing_insights(similar_examples)
+
+                    # Extract key lessons
+                    rag_lessons = self.rag_retriever.get_key_lessons(similar_examples)
+
+                    if rag_models:
+                        self._log("\n💡 RAG-recommended models:")
+                        for model, score in rag_models:
+                            self._log(f"  • {model} (confidence: {score:.2f})")
+
+                    if rag_lessons:
+                        self._log("\n💭 Key Lessons from Similar Cases:")
+                        for lesson in rag_lessons[:3]:  # Show top 3 lessons
+                            self._log(f"  • {lesson}")
+                else:
+                    self._log("  No similar examples found in knowledge base")
+            except Exception as e:
+                self._log(f"⚠️  RAG retrieval failed: {e}")
+
         # Suggest models
         self._log("\n📊 Recommending models...")
         model_suggestions = suggest_model(data_chars, constraints)
+
+        # Boost confidence for models recommended by RAG
+        if rag_models:
+            rag_model_names = {model for model, _ in rag_models}
+            for suggestion in model_suggestions:
+                if suggestion['model_type'] in rag_model_names:
+                    # Boost confidence by up to 10% for RAG-recommended models
+                    rag_score = next((score for model, score in rag_models
+                                     if model == suggestion['model_type']), 0.0)
+                    boost = 0.1 * rag_score  # Max boost of 0.1 for perfect RAG match
+                    suggestion['confidence'] = min(1.0, suggestion['confidence'] + boost)
+                    suggestion['rag_boosted'] = True
 
         if len(model_suggestions) == 0:
             raise ValueError("No suitable models found for your data and constraints")
@@ -349,9 +432,42 @@ class ForecastAgent:
         if data_chars['seasonality']['detected']:
             self._log(f"✓ Found seasonality (strength={data_chars['seasonality']['strength']:.2f})")
 
+        # RAG: Retrieve similar examples (Phase 3.4)
+        rag_models = []
+        if self.use_rag and self.rag_retriever:
+            self._log("\n📚 Searching knowledge base for similar examples...")
+            try:
+                similar_examples = self.rag_retriever.retrieve_by_data_characteristics(
+                    data_chars, top_k=3
+                )
+
+                if similar_examples:
+                    self._log(f"✓ Found {len(similar_examples)} similar examples")
+                    # Extract model recommendations
+                    rag_models = self.rag_retriever.get_model_recommendations_from_examples(
+                        similar_examples, top_n=5
+                    )
+                    if rag_models:
+                        self._log("💡 RAG-recommended models:")
+                        for model, score in rag_models[:3]:
+                            self._log(f"  • {model} (confidence: {score:.2f})")
+            except Exception as e:
+                self._log(f"⚠️  RAG retrieval failed: {e}")
+
         # Get model recommendations
         self._log(f"\n📊 Recommending top {n_models} models...")
         model_recommendations = suggest_model(data_chars, constraints)
+
+        # Boost confidence for models recommended by RAG
+        if rag_models:
+            rag_model_names = {model for model, _ in rag_models}
+            for suggestion in model_recommendations:
+                if suggestion['model_type'] in rag_model_names:
+                    rag_score = next((score for model, score in rag_models
+                                     if model == suggestion['model_type']), 0.0)
+                    boost = 0.1 * rag_score
+                    suggestion['confidence'] = min(1.0, suggestion['confidence'] + boost)
+                    suggestion['rag_boosted'] = True
 
         if len(model_recommendations) == 0:
             raise ValueError("No suitable models found for your data and constraints")

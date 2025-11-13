@@ -1,0 +1,246 @@
+{
+  "version": "1.0",
+  "count": 8,
+  "description": "Foundational set of forecasting examples for RAG",
+  "examples": [
+    {
+      "id": "retail_001",
+      "title": "Retail Daily Sales - Strong Weekly Seasonality",
+      "description": "E-commerce platform with 2 years of daily sales data. Strong weekly patterns (weekend spikes), holiday effects, and promotional impacts. 500+ daily observations.",
+      "domain": "retail",
+      "data_characteristics": {
+        "frequency": "daily",
+        "seasonality": "strong (weekly pattern, strength=0.85)",
+        "trend": "increasing (moderate, 15% growth/year)",
+        "n_observations": 730,
+        "n_features": 5,
+        "missing_rate": 0.02,
+        "outliers": "promotional spikes"
+      },
+      "recommended_models": ["prophet_reg", "arima_reg", "linear_reg"],
+      "preprocessing_strategy": "Date features (dow, month, is_holiday), median imputation, normalization. Prophet worked best due to strong seasonality and holiday effects.",
+      "performance_metrics": {
+        "prophet_reg": {"rmse": 142.5, "mae": 98.3, "r_squared": 0.87},
+        "arima_reg": {"rmse": 165.2, "mae": 112.7, "r_squared": 0.82},
+        "linear_reg": {"rmse": 188.9, "mae": 135.4, "r_squared": 0.75}
+      },
+      "key_lessons": [
+        "Prophet excels with weekly seasonality and holiday effects",
+        "Add is_holiday feature for better promotional handling",
+        "Log transformation helped stabilize variance during promotions"
+      ],
+      "difficulty": "easy",
+      "tags": ["seasonality", "weekly_pattern", "holidays", "promotions", "e-commerce"]
+    },
+    {
+      "id": "finance_001",
+      "title": "Stock Price Prediction - High Volatility",
+      "description": "Daily stock prices for tech company over 5 years. High volatility, trending behavior, and market regime changes. 1,250 observations.",
+      "domain": "finance",
+      "data_characteristics": {
+        "frequency": "daily",
+        "seasonality": "none",
+        "trend": "non-stationary (regime changes)",
+        "n_observations": 1250,
+        "n_features": 8,
+        "missing_rate": 0.0,
+        "outliers": "market crashes, earnings announcements"
+      },
+      "recommended_models": ["arima_reg", "rand_forest", "boost_tree"],
+      "preprocessing_strategy": "No imputation (no missing data), YeoJohnson for skewness, rolling window features. ARIMA with differencing for non-stationarity.",
+      "performance_metrics": {
+        "arima_reg": {"rmse": 2.45, "mae": 1.87, "r_squared": 0.72},
+        "rand_forest": {"rmse": 2.89, "mae": 2.13, "r_squared": 0.65},
+        "boost_tree": {"rmse": 2.71, "mae": 2.01, "r_squared": 0.68}
+      },
+      "key_lessons": [
+        "ARIMA with differencing handles non-stationarity well",
+        "Avoid imputation for financial data - missing = invalid",
+        "Rolling window features capture momentum patterns",
+        "Consider regime-switching models for structural breaks"
+      ],
+      "difficulty": "hard",
+      "tags": ["finance", "volatility", "non-stationary", "no_seasonality", "regime_change"]
+    },
+    {
+      "id": "energy_001",
+      "title": "Energy Load Forecasting - Hourly Demand",
+      "description": "Electricity demand forecasting for utility company. Hourly data over 2 years with strong daily and weekly patterns. Weather dependency.",
+      "domain": "energy",
+      "data_characteristics": {
+        "frequency": "hourly",
+        "seasonality": "strong (daily + weekly patterns)",
+        "trend": "increasing (2-3% annually)",
+        "n_observations": 17520,
+        "n_features": 6,
+        "missing_rate": 0.01,
+        "outliers": "extreme weather events"
+      },
+      "recommended_models": ["prophet_reg", "boost_tree", "mlp"],
+      "preprocessing_strategy": "Linear imputation for missing hours, date features (hour, dow, is_weekend), temperature interaction terms. Normalization essential.",
+      "performance_metrics": {
+        "prophet_reg": {"rmse": 245.8, "mae": 178.2, "r_squared": 0.92},
+        "boost_tree": {"rmse": 198.5, "mae": 142.7, "r_squared": 0.94},
+        "mlp": {"rmse": 212.3, "mae": 155.1, "r_squared": 0.93}
+      },
+      "key_lessons": [
+        "XGBoost (boost_tree) best for complex hourly patterns",
+        "Temperature interaction with hour-of-day crucial",
+        "Neural networks (MLP) handle non-linear weather effects well",
+        "Separate models for weekday vs weekend can improve accuracy"
+      ],
+      "difficulty": "medium",
+      "tags": ["energy", "hourly", "multiple_seasonality", "weather_dependent", "high_frequency"]
+    },
+    {
+      "id": "manufacturing_001",
+      "title": "Manufacturing Production - Monthly Output",
+      "description": "Monthly production volumes for automotive plant. 10 years of data with economic cycle effects and capacity constraints.",
+      "domain": "manufacturing",
+      "data_characteristics": {
+        "frequency": "monthly",
+        "seasonality": "moderate (annual pattern, strength=0.45)",
+        "trend": "stable with cycles",
+        "n_observations": 120,
+        "n_features": 4,
+        "missing_rate": 0.0,
+        "outliers": "plant shutdowns, retooling"
+      },
+      "recommended_models": ["arima_reg", "linear_reg", "prophet_reg"],
+      "preprocessing_strategy": "Date features (month, quarter), polynomial features (degree=2) for cycles. Capacity constraint as upper bound.",
+      "performance_metrics": {
+        "arima_reg": {"rmse": 1250.0, "mae": 980.0, "r_squared": 0.78},
+        "linear_reg": {"rmse": 1450.0, "mae": 1120.0, "r_squared": 0.71},
+        "prophet_reg": {"rmse": 1320.0, "mae": 1020.0, "r_squared": 0.75}
+      },
+      "key_lessons": [
+        "ARIMA captures economic cycles well",
+        "Polynomial features help model production ramp-up/down",
+        "Capacity constraints should be incorporated as upper bounds",
+        "Limited data (120 points) - simpler models better than complex"
+      ],
+      "difficulty": "medium",
+      "tags": ["manufacturing", "monthly", "cycles", "capacity_constraints", "limited_data"]
+    },
+    {
+      "id": "iot_001",
+      "title": "IoT Sensor Monitoring - Minute-Level Temperature",
+      "description": "Industrial IoT temperature sensor data at 1-minute intervals. 6 months of data with equipment patterns and anomalies.",
+      "domain": "iot",
+      "data_characteristics": {
+        "frequency": "minute",
+        "seasonality": "weak (equipment cycles)",
+        "trend": "none",
+        "n_observations": 262800,
+        "n_features": 1,
+        "missing_rate": 0.05,
+        "outliers": "sensor failures, anomalies"
+      },
+      "recommended_models": ["arima_reg", "linear_reg", "nearest_neighbor"],
+      "preprocessing_strategy": "Linear imputation for sensor gaps, rolling window features (10-min, 1-hour averages). Outlier removal critical.",
+      "performance_metrics": {
+        "arima_reg": {"rmse": 0.85, "mae": 0.62, "r_squared": 0.88},
+        "linear_reg": {"rmse": 1.12, "mae": 0.89, "r_squared": 0.79},
+        "nearest_neighbor": {"rmse": 0.95, "mae": 0.71, "r_squared": 0.84}
+      },
+      "key_lessons": [
+        "High-frequency data benefits from aggregation (downsample to 5-10 min)",
+        "ARIMA effective for short-term predictions (next 10-30 mins)",
+        "Outlier removal essential before modeling",
+        "Consider anomaly detection separately from forecasting"
+      ],
+      "difficulty": "hard",
+      "tags": ["iot", "high_frequency", "anomalies", "sensor_data", "aggregation"]
+    },
+    {
+      "id": "healthcare_001",
+      "title": "Hospital Patient Volume - Daily Admissions",
+      "description": "Daily patient admissions for regional hospital. 3 years of data with seasonal flu patterns and day-of-week effects.",
+      "domain": "healthcare",
+      "data_characteristics": {
+        "frequency": "daily",
+        "seasonality": "strong (flu season, dow effects)",
+        "trend": "stable",
+        "n_observations": 1095,
+        "n_features": 7,
+        "missing_rate": 0.0,
+        "outliers": "pandemic spikes"
+      },
+      "recommended_models": ["prophet_reg", "boost_tree", "poisson_reg"],
+      "preprocessing_strategy": "Date features (dow, month, is_holiday), Poisson regression for count data. Holiday calendar important.",
+      "performance_metrics": {
+        "prophet_reg": {"rmse": 15.2, "mae": 11.8, "r_squared": 0.81},
+        "boost_tree": {"rmse": 14.5, "mae": 11.2, "r_squared": 0.83},
+        "poisson_reg": {"rmse": 16.8, "mae": 13.1, "r_squared": 0.77}
+      },
+      "key_lessons": [
+        "Poisson regression appropriate for count data",
+        "Prophet handles flu season (winter peaks) well",
+        "Weekend effects significant - add dow feature",
+        "Holiday calendar reduces errors around major holidays"
+      ],
+      "difficulty": "easy",
+      "tags": ["healthcare", "count_data", "seasonality", "poisson", "flu_season"]
+    },
+    {
+      "id": "transportation_001",
+      "title": "Highway Traffic Volume - Hourly Counts",
+      "description": "Hourly vehicle counts on major highway. 1 year of data with strong commute patterns and weather effects.",
+      "domain": "transportation",
+      "data_characteristics": {
+        "frequency": "hourly",
+        "seasonality": "very strong (daily commute, weekly pattern)",
+        "trend": "increasing (urban growth)",
+        "n_observations": 8760,
+        "n_features": 5,
+        "missing_rate": 0.03,
+        "outliers": "accidents, road closures"
+      },
+      "recommended_models": ["prophet_reg", "boost_tree", "rand_forest"],
+      "preprocessing_strategy": "Date features (hour, dow, is_rush_hour), weather interaction. Linear imputation for sensor downtime.",
+      "performance_metrics": {
+        "prophet_reg": {"rmse": 125.0, "mae": 95.0, "r_squared": 0.89},
+        "boost_tree": {"rmse": 98.5, "mae": 72.3, "r_squared": 0.93},
+        "rand_forest": {"rmse": 105.2, "mae": 78.9, "r_squared": 0.91}
+      },
+      "key_lessons": [
+        "Gradient boosting excels with complex hourly patterns",
+        "Rush hour indicator (7-9am, 5-7pm) highly predictive",
+        "Weather (rain, snow) significantly impacts volume",
+        "Separate models for weekday vs weekend recommended"
+      ],
+      "difficulty": "medium",
+      "tags": ["transportation", "hourly", "commute_patterns", "weather", "rush_hour"]
+    },
+    {
+      "id": "agriculture_001",
+      "title": "Crop Yield Prediction - Annual Harvest",
+      "description": "Annual wheat yield per acre over 20 years. Weather, soil quality, and farming practice variables.",
+      "domain": "agriculture",
+      "data_characteristics": {
+        "frequency": "yearly",
+        "seasonality": "none (annual data)",
+        "trend": "increasing (farming improvements)",
+        "n_observations": 20,
+        "n_features": 12,
+        "missing_rate": 0.0,
+        "outliers": "drought years"
+      },
+      "recommended_models": ["linear_reg", "rand_forest", "gen_additive_mod"],
+      "preprocessing_strategy": "Weather aggregations (growing season avg temp, rainfall). Polynomial for soil nutrients. Very limited data - avoid overfitting.",
+      "performance_metrics": {
+        "linear_reg": {"rmse": 3.2, "mae": 2.5, "r_squared": 0.71},
+        "rand_forest": {"rmse": 4.1, "mae": 3.2, "r_squared": 0.58},
+        "gen_additive_mod": {"rmse": 3.5, "mae": 2.7, "r_squared": 0.68}
+      },
+      "key_lessons": [
+        "Very limited data (20 years) - linear regression best",
+        "Random forest overfits with <30 observations",
+        "Weather during growing season most predictive",
+        "Cross-validation essential with limited data"
+      ],
+      "difficulty": "hard",
+      "tags": ["agriculture", "limited_data", "yearly", "overfitting_risk", "weather"]
+    }
+  ]
+}
