@@ -1,0 +1,480 @@
+"""
+ForecastAgent: AI-powered forecasting workflow generator.
+
+This agent analyzes data, recommends models, generates preprocessing recipes,
+and creates complete py-tidymodels workflows through natural language interaction.
+
+MVP Implementation (v0.1.0):
+- Rule-based workflow generation
+- Supports 3 model types: linear_reg, prophet_reg, rand_forest
+- Basic recipe generation
+- Conversational debugging
+- Success rate target: 70%+
+
+Future versions will integrate LLM-based reasoning for improved recommendations.
+"""
+
+import pandas as pd
+import numpy as np
+from typing import Dict, Optional, List
+import json
+
+from py_agent.tools.data_analysis import analyze_temporal_patterns
+from py_agent.tools.model_selection import suggest_model, get_model_profiles
+from py_agent.tools.recipe_generation import create_recipe, get_recipe_templates
+from py_agent.tools.workflow_execution import fit_workflow, evaluate_workflow
+from py_agent.tools.diagnostics import diagnose_performance
+
+
+class ForecastAgent:
+    """
+    AI-powered agent for automated forecasting workflow generation.
+
+    This agent can:
+    - Analyze temporal patterns in your data
+    - Recommend appropriate models
+    - Generate preprocessing recipes
+    - Create and execute complete workflows
+    - Diagnose performance issues
+
+    Example:
+        >>> agent = ForecastAgent()
+        >>> workflow = agent.generate_workflow(
+        ...     data=sales_data,
+        ...     request="Forecast next quarter sales for each store"
+        ... )
+        >>> fit = workflow.fit(train_data)
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "claude-sonnet-4.5",
+        verbose: bool = True
+    ):
+        """
+        Initialize ForecastAgent.
+
+        Args:
+            api_key: Optional API key for LLM provider (future use)
+            model: LLM model to use (future use)
+            verbose: Whether to print progress messages
+        """
+        self.api_key = api_key
+        self.model = model
+        self.verbose = verbose
+        self.session_history = []
+
+    def generate_workflow(
+        self,
+        data: pd.DataFrame,
+        request: str,
+        formula: Optional[str] = None,
+        constraints: Optional[Dict] = None
+    ) -> object:
+        """
+        Generate complete workflow from natural language request.
+
+        This is the primary method for single-shot workflow generation.
+
+        Args:
+            data: DataFrame containing your data
+            request: Natural language description of forecasting task
+            formula: Optional explicit formula (if not provided, will infer)
+            constraints: Optional constraints dict with:
+                - max_train_time: Maximum training time in seconds
+                - interpretability: 'low', 'medium', or 'high'
+                - max_memory: Maximum memory in MB
+
+        Returns:
+            Workflow object ready to fit
+
+        Example:
+            >>> agent = ForecastAgent()
+            >>> workflow = agent.generate_workflow(
+            ...     data=sales_data,
+            ...     request="Forecast sales for 50 stores with seasonality"
+            ... )
+            >>> fit = workflow.fit(train_data)
+        """
+        self._log("🔍 Analyzing your data...")
+
+        # Parse request to extract key information
+        task_info = self._parse_request(request, data)
+
+        # Analyze data characteristics
+        date_col, value_col = self._detect_columns(data, task_info)
+        data_chars = analyze_temporal_patterns(data, date_col, value_col)
+
+        self._log(f"✓ Detected {data_chars['frequency']} data")
+        if data_chars['seasonality']['detected']:
+            self._log(f"✓ Found seasonality (strength={data_chars['seasonality']['strength']:.2f})")
+        if data_chars['trend']['significant']:
+            self._log(f"✓ Detected {data_chars['trend']['direction']} trend")
+
+        # Suggest models
+        self._log("\n📊 Recommending models...")
+        model_suggestions = suggest_model(data_chars, constraints)
+
+        if len(model_suggestions) == 0:
+            raise ValueError("No suitable models found for your data and constraints")
+
+        # Select best model
+        best_model = model_suggestions[0]
+        self._log(f"✓ Recommended: {best_model['model_type']}")
+        self._log(f"  Reason: {best_model['reasoning']}")
+        self._log(f"  Confidence: {best_model['confidence']:.0%}")
+
+        # Generate recipe
+        self._log("\n🔧 Creating preprocessing recipe...")
+        recipe_code = create_recipe(
+            data_chars,
+            best_model['model_type'],
+            domain=task_info.get('domain')
+        )
+        self._log("✓ Recipe generated")
+
+        # Generate complete workflow code
+        self._log("\n⚙️  Building workflow...")
+        workflow_code = self._generate_workflow_code(
+            model_type=best_model['model_type'],
+            recipe_code=recipe_code,
+            formula=formula or self._infer_formula(data, value_col, date_col),
+            group_col=task_info.get('group_col')
+        )
+
+        # Execute workflow creation
+        namespace = {'pd': pd}
+        exec(workflow_code, namespace)
+
+        if 'wf' not in namespace:
+            raise ValueError("Failed to create workflow")
+
+        workflow = namespace['wf']
+        self._log("✓ Workflow ready!")
+
+        # Store workflow info for later reference
+        self.last_workflow_info = {
+            'model_type': best_model['model_type'],
+            'data_characteristics': data_chars,
+            'recipe_code': recipe_code,
+            'workflow_code': workflow_code,
+            'task_info': task_info
+        }
+
+        return workflow
+
+    def debug_session(
+        self,
+        model_fit: object,
+        test_data: Optional[pd.DataFrame] = None
+    ) -> Dict:
+        """
+        Start interactive debugging session for a fitted model.
+
+        Analyzes model performance and provides recommendations for improvement.
+
+        Args:
+            model_fit: Fitted workflow object
+            test_data: Optional test data for overfitting detection
+
+        Returns:
+            Dictionary with diagnostics and recommendations
+
+        Example:
+            >>> fit = workflow.fit(train_data)
+            >>> diagnostics = agent.debug_session(fit, test_data)
+            >>> print(diagnostics['recommendations'])
+        """
+        self._log("🔍 Diagnosing model performance...")
+
+        # Run diagnostics
+        diagnostics = diagnose_performance(model_fit, test_data)
+
+        # Format results
+        self._log("\n📊 Performance Metrics:")
+        for metric, value in diagnostics['metrics'].items():
+            self._log(f"  {metric}: {value:.4f}")
+
+        # Report issues
+        if len(diagnostics['issues_detected']) > 0:
+            self._log("\n⚠️  Issues Detected:")
+            for issue in diagnostics['issues_detected']:
+                severity_emoji = '🔴' if issue['severity'] == 'high' else '🟡'
+                self._log(f"\n{severity_emoji} {issue['type'].upper()}")
+                self._log(f"  Evidence: {issue['evidence']}")
+                self._log(f"  💡 Recommendation: {issue['recommendation']}")
+        else:
+            self._log("\n✅ No major issues detected!")
+
+        # Generate recommendations
+        recommendations = self._generate_recommendations(diagnostics)
+        diagnostics['recommendations'] = recommendations
+
+        return diagnostics
+
+    def start_session(self) -> 'ConversationalSession':
+        """
+        Start conversational session for iterative workflow building.
+
+        Returns:
+            ConversationalSession object for multi-turn interaction
+
+        Example:
+            >>> agent = ForecastAgent()
+            >>> session = agent.start_session()
+            >>> session.send("I need to forecast sales")
+            >>> session.send("Monthly data, 3 years history")
+            >>> workflow = session.get_workflow()
+        """
+        return ConversationalSession(self)
+
+    # Helper methods
+
+    def _parse_request(self, request: str, data: pd.DataFrame) -> Dict:
+        """
+        Parse natural language request to extract task information.
+
+        Extracts:
+        - Whether it's grouped/panel data
+        - Domain hints (retail, finance, etc.)
+        - Forecasting horizon
+        - Special requirements (seasonality, etc.)
+        """
+        request_lower = request.lower()
+
+        task_info = {}
+
+        # Detect grouped data
+        group_keywords = ['store', 'stores', 'product', 'products', 'region', 'regions',
+                          'country', 'countries', 'entity', 'entities']
+        for keyword in group_keywords:
+            if keyword in request_lower:
+                task_info['is_grouped'] = True
+                task_info['group_keyword'] = keyword
+                # Try to find group column
+                for col in data.columns:
+                    if keyword in col.lower():
+                        task_info['group_col'] = col
+                        break
+                break
+
+        # Detect domain
+        if any(word in request_lower for word in ['retail', 'sales', 'store']):
+            task_info['domain'] = 'retail'
+        elif any(word in request_lower for word in ['finance', 'stock', 'price']):
+            task_info['domain'] = 'finance'
+        elif any(word in request_lower for word in ['energy', 'load', 'consumption']):
+            task_info['domain'] = 'energy'
+
+        # Detect forecasting horizon
+        if 'quarter' in request_lower:
+            task_info['horizon'] = 'quarterly'
+        elif 'month' in request_lower:
+            task_info['horizon'] = 'monthly'
+        elif 'week' in request_lower:
+            task_info['horizon'] = 'weekly'
+        elif 'day' in request_lower:
+            task_info['horizon'] = 'daily'
+
+        return task_info
+
+    def _detect_columns(
+        self,
+        data: pd.DataFrame,
+        task_info: Dict
+    ) -> tuple:
+        """
+        Detect date and value columns from data.
+
+        Returns:
+            (date_col, value_col) tuple
+        """
+        # Find date column
+        date_col = None
+        for col in data.columns:
+            if pd.api.types.is_datetime64_any_dtype(data[col]):
+                date_col = col
+                break
+            elif any(word in col.lower() for word in ['date', 'time', 'timestamp']):
+                date_col = col
+                break
+
+        if date_col is None:
+            raise ValueError("Could not find date column. Please specify date_col.")
+
+        # Find value column (outcome)
+        value_col = None
+        numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
+
+        # Remove date-related columns
+        numeric_cols = [col for col in numeric_cols if col != date_col]
+
+        # Look for common target names
+        for col in numeric_cols:
+            if any(word in col.lower() for word in ['target', 'y', 'outcome', 'sales', 'value']):
+                value_col = col
+                break
+
+        # If not found, use first numeric column
+        if value_col is None and len(numeric_cols) > 0:
+            value_col = numeric_cols[0]
+
+        if value_col is None:
+            raise ValueError("Could not find value column. Please specify value_col.")
+
+        return date_col, value_col
+
+    def _infer_formula(
+        self,
+        data: pd.DataFrame,
+        value_col: str,
+        date_col: str
+    ) -> str:
+        """
+        Infer model formula from data columns.
+
+        Returns formula string like "sales ~ ."
+        """
+        # Use dot notation to include all predictors
+        return f"{value_col} ~ ."
+
+    def _generate_workflow_code(
+        self,
+        model_type: str,
+        recipe_code: str,
+        formula: str,
+        group_col: Optional[str]
+    ) -> str:
+        """Generate complete workflow code."""
+        lines = [
+            "from py_workflows import workflow",
+            f"from py_parsnip import {model_type}",
+            "",
+            "# Preprocessing recipe",
+            recipe_code,
+            "",
+            "# Model specification",
+            f"spec = {model_type}()",
+            "",
+            "# Create workflow",
+            "wf = workflow().add_recipe(rec).add_model(spec)"
+        ]
+
+        return "\n".join(lines)
+
+    def _generate_recommendations(self, diagnostics: Dict) -> List[str]:
+        """Generate actionable recommendations from diagnostics."""
+        recommendations = []
+
+        for issue in diagnostics['issues_detected']:
+            recommendations.append(issue['recommendation'])
+
+        if len(recommendations) == 0:
+            recommendations.append("Model looks good! Consider validating on holdout data.")
+
+        return recommendations
+
+    def _log(self, message: str):
+        """Log message if verbose mode enabled."""
+        if self.verbose:
+            print(message)
+
+
+class ConversationalSession:
+    """
+    Multi-turn conversational session for iterative workflow building.
+
+    Allows users to provide information incrementally through conversation.
+    """
+
+    def __init__(self, agent: ForecastAgent):
+        """Initialize session with parent agent."""
+        self.agent = agent
+        self.context = {}
+        self.messages = []
+
+    def send(self, message: str):
+        """
+        Send message to agent and update context.
+
+        Args:
+            message: User message
+
+        Example:
+            >>> session = agent.start_session()
+            >>> session.send("I have sales data")
+            >>> session.send("Daily frequency")
+        """
+        self.messages.append({'role': 'user', 'content': message})
+
+        # Extract information from message
+        self._update_context(message)
+
+        # Generate response
+        response = self._generate_response(message)
+        self.messages.append({'role': 'assistant', 'content': response})
+
+        if self.agent.verbose:
+            print(f"Agent: {response}")
+
+    def get_workflow(self) -> object:
+        """
+        Generate workflow from collected context.
+
+        Returns:
+            Workflow object ready to fit
+
+        Example:
+            >>> session = agent.start_session()
+            >>> session.send("Forecast monthly sales")
+            >>> workflow = session.get_workflow()
+        """
+        if 'data' not in self.context:
+            raise ValueError("Please provide data before generating workflow")
+
+        # Generate workflow from context
+        workflow = self.agent.generate_workflow(
+            data=self.context['data'],
+            request=" ".join([m['content'] for m in self.messages if m['role'] == 'user']),
+            constraints=self.context.get('constraints')
+        )
+
+        return workflow
+
+    def _update_context(self, message: str):
+        """Extract information from message and update context."""
+        message_lower = message.lower()
+
+        # Extract frequency
+        if 'daily' in message_lower:
+            self.context['frequency'] = 'daily'
+        elif 'weekly' in message_lower:
+            self.context['frequency'] = 'weekly'
+        elif 'monthly' in message_lower:
+            self.context['frequency'] = 'monthly'
+
+        # Extract horizon
+        if 'next' in message_lower:
+            # Extract number
+            words = message.split()
+            for i, word in enumerate(words):
+                if word.lower() == 'next' and i + 1 < len(words):
+                    try:
+                        self.context['horizon_steps'] = int(words[i + 1])
+                    except:
+                        pass
+
+    def _generate_response(self, message: str) -> str:
+        """Generate agent response based on context."""
+        # Simple rule-based responses for MVP
+        if len(self.messages) == 1:
+            return "I'll help you build a forecasting workflow. Can you tell me about your data frequency (daily/weekly/monthly)?"
+
+        if 'frequency' in self.context and 'horizon_steps' not in self.context:
+            return "How far ahead do you need to forecast?"
+
+        if 'data' not in self.context:
+            return "Please provide your data using context['data'] = your_dataframe"
+
+        return "I have enough information. Call get_workflow() to generate your workflow."
