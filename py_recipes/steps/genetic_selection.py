@@ -16,6 +16,7 @@ from py_recipes.utils import (
     create_model_fitness_evaluator,
     create_constrained_fitness_function
 )
+from py_recipes.utils.nsga2 import NSGAII, NSGA2Config
 
 
 @dataclass
@@ -135,6 +136,10 @@ class StepSelectGeneticAlgorithm:
     n_ensemble: int = 1
     ensemble_strategy: str = "voting"
     ensemble_threshold: float = 0.5
+    use_nsga2: bool = False
+    nsga2_objectives: List[str] = field(default_factory=lambda: ["performance", "sparsity"])
+    nsga2_selection_method: str = "knee_point"  # "knee_point", "min_features", "best_performance", "index"
+    nsga2_selection_index: int = 0  # Used when method="index"
     random_state: Optional[int] = None
     verbose: bool = False
     skip: bool = False
@@ -151,6 +156,9 @@ class StepSelectGeneticAlgorithm:
     _is_prepared: bool = field(default=False, init=False, repr=False)
     _ensemble_results: List[Dict[str, Any]] = field(default_factory=list, init=False, repr=False)
     _feature_frequencies: Dict[str, int] = field(default_factory=dict, init=False, repr=False)
+    _pareto_front: np.ndarray = field(default=None, init=False, repr=False)
+    _pareto_objectives: np.ndarray = field(default=None, init=False, repr=False)
+    _pareto_indices: List[int] = field(default_factory=list, init=False, repr=False)
 
     def __post_init__(self):
         """Validate parameters."""
@@ -178,6 +186,28 @@ class StepSelectGeneticAlgorithm:
 
         if not (0 < self.ensemble_threshold <= 1.0):
             raise ValueError("ensemble_threshold must be in (0, 1]")
+
+        if self.use_nsga2:
+            if len(self.nsga2_objectives) < 2:
+                raise ValueError("NSGA-II requires at least 2 objectives")
+
+            valid_objectives = ["performance", "sparsity", "cost"]
+            for obj in self.nsga2_objectives:
+                if obj not in valid_objectives:
+                    raise ValueError(f"nsga2_objectives must be from {valid_objectives}, got '{obj}'")
+
+            if "cost" in self.nsga2_objectives and not self.feature_costs:
+                raise ValueError("nsga2_objectives includes 'cost' but feature_costs is not provided")
+
+            valid_methods = ["knee_point", "min_features", "best_performance", "index"]
+            if self.nsga2_selection_method not in valid_methods:
+                raise ValueError(f"nsga2_selection_method must be one of {valid_methods}")
+
+            if self.nsga2_selection_method == "index" and self.nsga2_selection_index < 0:
+                raise ValueError("nsga2_selection_index must be >= 0")
+
+            if self.n_ensemble > 1:
+                raise ValueError("Ensemble mode (n_ensemble > 1) is not compatible with NSGA-II (use_nsga2=True)")
 
     def prep(self, data: pd.DataFrame, training: bool = True):
         """
@@ -365,12 +395,116 @@ class StepSelectGeneticAlgorithm:
             if self._current_generation is not None:
                 self._current_generation[0] = gen
 
-        # Check if ensemble mode
-        ensemble_results = []
-        feature_frequency = {}
+        # Check if NSGA-II mode
+        if self.use_nsga2:
+            # NSGA-II multi-objective optimization
+            if self.verbose:
+                print(f"\nRunning NSGA-II with objectives: {self.nsga2_objectives}")
 
-        if self.n_ensemble == 1:
+            # Create objective functions (using factory functions to avoid closure issues)
+            objective_functions = []
+
+            def create_performance_objective(fitness_func, should_maximize):
+                """Factory for performance objective."""
+                if should_maximize:
+                    return lambda chromosome: -fitness_func(chromosome)
+                else:
+                    return fitness_func
+
+            def create_sparsity_objective():
+                """Factory for sparsity objective."""
+                def sparsity_obj(chromosome):
+                    n_features = np.sum(chromosome)
+                    if n_features == 0:
+                        return 1000.0  # Large penalty for no features
+                    return float(n_features)
+                return sparsity_obj
+
+            def create_cost_objective(costs):
+                """Factory for cost objective."""
+                def cost_obj(chromosome):
+                    if costs is not None:
+                        total = np.sum(chromosome * costs)
+                        if np.sum(chromosome) == 0:
+                            return 1000.0  # Penalty for no features
+                        return float(total)
+                    return 0.0
+                return cost_obj
+
+            for obj_name in self.nsga2_objectives:
+                if obj_name == "performance":
+                    objective_functions.append(create_performance_objective(fitness_fn, self.maximize))
+                elif obj_name == "sparsity":
+                    objective_functions.append(create_sparsity_objective())
+                elif obj_name == "cost":
+                    objective_functions.append(create_cost_objective(cost_array))
+
+            # Configure NSGA-II
+            nsga2_config = NSGA2Config(
+                population_size=self.population_size if self.population_size % 2 == 0 else self.population_size + 1,
+                generations=self.generations,
+                mutation_rate=self.mutation_rate,
+                crossover_rate=self.crossover_rate,
+                tournament_size=self.tournament_size,
+                random_state=self.random_state,
+                verbose=self.verbose
+            )
+
+            # Run NSGA-II
+            nsga2 = NSGAII(
+                n_features=len(numeric_cols),
+                objective_functions=objective_functions,
+                config=nsga2_config
+            )
+
+            pareto_population, pareto_objectives, pareto_indices = nsga2.evolve()
+
+            # Select solution from Pareto front
+            if self.nsga2_selection_method == "knee_point":
+                # Find knee point (best trade-off)
+                selected_idx = self._find_knee_point(pareto_objectives)
+            elif self.nsga2_selection_method == "min_features":
+                # Select solution with fewest features
+                feature_counts = np.sum(pareto_population, axis=1)
+                selected_idx = np.argmin(feature_counts)
+            elif self.nsga2_selection_method == "best_performance":
+                # Select solution with best performance (first objective)
+                selected_idx = np.argmin(pareto_objectives[:, 0])
+            elif self.nsga2_selection_method == "index":
+                # Select by index
+                selected_idx = min(self.nsga2_selection_index, len(pareto_population) - 1)
+            else:
+                selected_idx = 0
+
+            best_chromosome = pareto_population[selected_idx]
+            selected_indices = np.where(best_chromosome == 1)[0]
+            selected_features = [numeric_cols[i] for i in selected_indices]
+
+            # Store Pareto front results
+            best_fitness = -pareto_objectives[selected_idx, 0] if self.maximize else pareto_objectives[selected_idx, 0]
+            history = []  # NSGA-II doesn't have single fitness history
+
+            # Store for prepared instance
+            ensemble_results = []
+            feature_frequency = {}
+            pareto_front_storage = pareto_population
+            pareto_objectives_storage = pareto_objectives
+            pareto_indices_storage = pareto_indices
+
+            if self.verbose:
+                print(f"\nNSGA-II Complete:")
+                print(f"  Pareto front size: {len(pareto_population)}")
+                print(f"  Selected solution index: {selected_idx}")
+                print(f"  Selected features: {len(selected_features)}/{len(numeric_cols)}")
+                print(f"  Objective values: {pareto_objectives[selected_idx]}")
+                print(f"  Features: {selected_features}")
+
+        # Standard GA mode (single run)
+        elif self.n_ensemble == 1:
             # Single GA run
+            ensemble_results = []
+            feature_frequency = {}
+
             ga = GeneticAlgorithm(
                 n_features=len(numeric_cols),
                 fitness_function=fitness_fn,
@@ -388,8 +522,13 @@ class StepSelectGeneticAlgorithm:
             # Extract selected features
             selected_indices = np.where(best_chromosome == 1)[0]
             selected_features = [numeric_cols[i] for i in selected_indices]
+
+            # Initialize for consistency with other modes
+            pareto_front_storage = None
+            pareto_objectives_storage = None
+            pareto_indices_storage = []
         else:
-            # Ensemble mode: run GA multiple times with different seeds
+            # Ensemble mode: run GA multiple times with different seeds (n_ensemble > 1)
             if self.verbose:
                 print(f"\nRunning ensemble with {self.n_ensemble} GA instances...")
 
@@ -472,6 +611,11 @@ class StepSelectGeneticAlgorithm:
             best_fitness = best_run['fitness']
             history = best_run['history']
 
+            # Initialize for consistency with other modes
+            pareto_front_storage = None
+            pareto_objectives_storage = None
+            pareto_indices_storage = []
+
             if self.verbose:
                 print(f"\nEnsemble aggregation ({self.ensemble_strategy}):")
                 print(f"  Threshold: {self.ensemble_threshold}")
@@ -495,10 +639,16 @@ class StepSelectGeneticAlgorithm:
             sorted_features = sorted(feature_scores.items(), key=lambda x: x[1], reverse=True)
             selected_features = [f for f, s in sorted_features[:self.top_n]]
 
-        if self.verbose:
-            print(f"\nGA Complete:")
-            print(f"  Converged: {ga.converged_}")
-            print(f"  Generations: {ga.n_generations_}")
+        if self.verbose and not self.use_nsga2:
+            if self.n_ensemble == 1:
+                print(f"\nGA Complete:")
+                print(f"  Converged: {ga.converged_}")
+                print(f"  Generations: {ga.n_generations_}")
+            else:
+                print(f"\nGA Ensemble Complete:")
+                print(f"  Converged: {best_run['converged']}")
+                print(f"  Generations: {best_run['n_generations']}")
+
             print(f"  Final fitness: {best_fitness:.6f}")
             print(f"  Selected features: {len(selected_features)}/{len(numeric_cols)}")
             print(f"  Features: {selected_features}")
@@ -510,13 +660,78 @@ class StepSelectGeneticAlgorithm:
         prepared._ga_history = history
         prepared._final_fitness = best_fitness
         prepared._best_chromosome = best_chromosome
-        prepared._converged = ga.converged_ if self.n_ensemble == 1 else best_run['converged']
-        prepared._n_generations = ga.n_generations_ if self.n_ensemble == 1 else best_run['n_generations']
+
+        if self.use_nsga2:
+            prepared._converged = False  # NSGA-II doesn't have convergence
+            prepared._n_generations = nsga2.n_generations_
+        elif self.n_ensemble == 1:
+            prepared._converged = ga.converged_
+            prepared._n_generations = ga.n_generations_
+        else:
+            prepared._converged = best_run['converged']
+            prepared._n_generations = best_run['n_generations']
+
         prepared._is_prepared = True
         prepared._ensemble_results = ensemble_results
         prepared._feature_frequencies = feature_frequency
+        prepared._pareto_front = pareto_front_storage
+        prepared._pareto_objectives = pareto_objectives_storage
+        prepared._pareto_indices = pareto_indices_storage
 
         return prepared
+
+    def _find_knee_point(self, pareto_objectives: np.ndarray) -> int:
+        """
+        Find knee point in Pareto front (best trade-off solution).
+
+        Uses the maximum distance method: finds the point with maximum
+        perpendicular distance from the line connecting the extreme points.
+
+        Parameters
+        ----------
+        pareto_objectives : np.ndarray
+            Objective values for Pareto front solutions (n_solutions × n_objectives)
+
+        Returns
+        -------
+        knee_idx : int
+            Index of knee point solution
+        """
+        if len(pareto_objectives) == 1:
+            return 0
+
+        # Normalize objectives to [0, 1] range
+        obj_min = np.min(pareto_objectives, axis=0)
+        obj_max = np.max(pareto_objectives, axis=0)
+        obj_range = obj_max - obj_min
+        obj_range[obj_range == 0] = 1.0  # Avoid division by zero
+
+        normalized_obj = (pareto_objectives - obj_min) / obj_range
+
+        # For 2 objectives: find point with max distance from line
+        if pareto_objectives.shape[1] == 2:
+            # Sort by first objective
+            sorted_indices = np.argsort(normalized_obj[:, 0])
+            sorted_obj = normalized_obj[sorted_indices]
+
+            # Line from first to last point
+            p1 = sorted_obj[0]
+            p2 = sorted_obj[-1]
+
+            # Calculate perpendicular distance for each point
+            distances = []
+            for point in sorted_obj:
+                # Distance from point to line
+                dist = np.abs(np.cross(p2 - p1, point - p1)) / np.linalg.norm(p2 - p1)
+                distances.append(dist)
+
+            # Return original index of point with max distance
+            max_dist_idx = np.argmax(distances)
+            return sorted_indices[max_dist_idx]
+        else:
+            # For 3+ objectives: use distance from origin in normalized space
+            distances = np.linalg.norm(normalized_obj, axis=1)
+            return np.argmin(distances)  # Closest to origin (best trade-off)
 
     def bake(self, data: pd.DataFrame) -> pd.DataFrame:
         """
@@ -639,6 +854,10 @@ def step_select_genetic_algorithm(
     n_ensemble: int = 1,
     ensemble_strategy: str = "voting",
     ensemble_threshold: float = 0.5,
+    use_nsga2: bool = False,
+    nsga2_objectives: List[str] = None,
+    nsga2_selection_method: str = "knee_point",
+    nsga2_selection_index: int = 0,
     random_state: Optional[int] = None,
     verbose: bool = False,
     skip: bool = False,
@@ -736,6 +955,8 @@ def step_select_genetic_algorithm(
         forbidden_features = []
     if feature_costs is None:
         feature_costs = {}
+    if nsga2_objectives is None:
+        nsga2_objectives = ["performance", "sparsity"]
 
     step = StepSelectGeneticAlgorithm(
         outcome=outcome,
@@ -769,6 +990,10 @@ def step_select_genetic_algorithm(
         n_ensemble=n_ensemble,
         ensemble_strategy=ensemble_strategy,
         ensemble_threshold=ensemble_threshold,
+        use_nsga2=use_nsga2,
+        nsga2_objectives=nsga2_objectives,
+        nsga2_selection_method=nsga2_selection_method,
+        nsga2_selection_index=nsga2_selection_index,
         random_state=random_state,
         verbose=verbose,
         skip=skip,
