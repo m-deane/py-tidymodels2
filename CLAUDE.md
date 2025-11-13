@@ -1544,8 +1544,8 @@ This ensures consistency across engines and proper date alignment in visualizati
 
 ## Conformal Prediction Intervals
 
-**Status:** Production-ready (41 tests passing, 2,133 lines of code)
-**Added:** 2025-11-13 (Phases 1-4 complete)
+**Status:** Production-ready (50 tests passing, 2,341 lines of code)
+**Added:** 2025-11-13 (Phases 1-5 complete)
 
 ### Overview
 
@@ -1785,11 +1785,12 @@ preds = fit.conformal_predict(invalid_data, alpha=0.05)
 
 ### Testing and Validation
 
-**Test Coverage: 41/41 tests passing (100%)**
+**Test Coverage: 50/50 tests passing (100%)**
 - Phase 1 (Basic): 8 tests - Split, CV+, Jackknife+, multiple alphas
 - Phase 2 (Time Series): 11 tests - EnbPI, temporal splitting, seasonal detection
 - Phase 3 (Grouped): 10 tests - Per-group calibration, NestedModelFit, NestedWorkflowFit
 - Phase 4 (extract_outputs): 12 tests - Integration, backward compatibility, grouped models
+- Phase 5 (WorkflowSet): 9 tests - Multi-workflow comparison, ranking, interval analysis
 
 **Empirical Coverage:**
 - Achieves 85-100% coverage on test sets (target: 95% for α=0.05)
@@ -1818,11 +1819,18 @@ preds = fit.conformal_predict(invalid_data, alpha=0.05)
 - `py_workflows/workflow.py` - NestedWorkflowFit conformal methods
   - Lines 1606-1748: `conformal_predict()` for workflow-based grouped models (144 lines)
 
+- `py_workflows/workflow.py` - WorkflowFit conformal methods
+  - Lines 953-1029: `conformal_predict()` method (77 lines)
+
+- `py_workflowsets/workflowset.py` - WorkflowSet conformal methods
+  - Lines 745-875: `compare_conformal()` method (131 lines)
+
 **Tests:**
 - `tests/test_parsnip/test_conformal_basic.py` - 8 basic tests (202 lines)
 - `tests/test_parsnip/test_conformal_timeseries.py` - 11 time series tests (297 lines)
 - `tests/test_parsnip/test_conformal_grouped.py` - 10 grouped tests (347 lines)
 - `tests/test_parsnip/test_conformal_extract_outputs.py` - 12 integration tests (383 lines)
+- `tests/test_workflowsets/test_workflowset_conformal.py` - 9 WorkflowSet tests (200 lines)
 
 **Documentation:**
 - `examples/22_conformal_prediction_demo.ipynb` - Comprehensive demo notebook
@@ -1830,6 +1838,8 @@ preds = fit.conformal_predict(invalid_data, alpha=0.05)
 - `.claude_plans/CONFORMAL_PREDICTION_PHASE2_SUMMARY.md` - Phase 2 documentation
 - `.claude_plans/CONFORMAL_PREDICTION_PHASE3_SUMMARY.md` - Phase 3 documentation
 - `.claude_plans/CONFORMAL_PREDICTION_PHASE4_SUMMARY.md` - Phase 4 documentation
+- `.claude_plans/CONFORMAL_PREDICTION_PHASE5_SUMMARY.md` - Phase 5 documentation
+- `.claude_plans/CONFORMAL_PREDICTION_COMPLETE_SUMMARY.md` - Complete implementation summary
 
 ### Dependencies
 
@@ -1837,19 +1847,93 @@ preds = fit.conformal_predict(invalid_data, alpha=0.05)
 - Already included in `requirements.txt`
 - Provides: MapieRegressor for all conformal methods
 
+### WorkflowSet Integration (Phase 5)
+
+**Purpose:** Compare conformal prediction intervals across multiple workflows to identify which preprocessing strategy or model provides the tightest or best-calibrated intervals.
+
+**Key Methods:**
+
+1. **WorkflowSet.compare_conformal()**
+   - Fits all workflows in a WorkflowSet
+   - Generates conformal predictions for each workflow
+   - Returns comparison DataFrame sorted by interval width
+   - Graceful per-workflow error handling
+
+2. **WorkflowFit.conformal_predict()**
+   - Applies preprocessing before conformal prediction
+   - Supports both formulas and recipes
+   - Handles calibration data preprocessing
+
+**Example Usage:**
+```python
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg
+
+# Create workflow set with different preprocessing strategies
+wf_set = WorkflowSet.from_cross(
+    preproc=[
+        "y ~ x1",
+        "y ~ x1 + x2",
+        "y ~ x1 + x2 + x3",
+        "y ~ x1 + x2 + I(x1*x2)"  # With interaction
+    ],
+    models=[linear_reg()]
+)
+
+# Compare conformal intervals across all workflows
+comparison = wf_set.compare_conformal(
+    data=train_data,
+    alpha=0.05,
+    method='split'
+)
+
+# View results (sorted by tightest intervals)
+print(comparison)
+#   wflow_id          model preprocessor conf_method  avg_interval_width  coverage  n_predictions
+#   prep_3_linear_1   linear_reg  formula   split       1.92              0.94      300
+#   prep_2_linear_1   linear_reg  formula   split       2.01              0.95      300
+#   prep_1_linear_1   linear_reg  formula   split       2.15              0.93      300
+
+# Select best workflow (tightest intervals with good coverage)
+best_wf_id = comparison.iloc[0]['wflow_id']
+best_wf = wf_set[best_wf_id]
+```
+
+**Output DataFrame Columns:**
+- `wflow_id`: Workflow identifier
+- `model`: Model type
+- `preprocessor`: Preprocessor type
+- `conf_method`: Conformal method used
+- `avg_interval_width`: Average width of prediction intervals
+- `median_interval_width`: Median width of prediction intervals
+- `coverage`: Empirical coverage (if actuals available)
+- `n_predictions`: Number of predictions
+
+**Use Cases:**
+- Find best preprocessing strategy for prediction intervals
+- Compare different model types for uncertainty quantification
+- Identify which features provide tightest intervals
+- Evaluate trade-off between interval width and coverage
+
+**Implementation Details:**
+- Per-workflow try/except for graceful error handling
+- Failed workflows get 'failed' as conf_method with NaN metrics
+- Automatic preprocessing application (formulas or recipes)
+- Supports all conformal methods (split, cv+, jackknife+, enbpi)
+
 ### Limitations and Future Work
 
 **Current Limitations:**
 - Conformal prediction only implemented for regression (not classification yet)
 - EnbPI requires NumPy 1.x (mapie 0.9.2 not yet compatible with NumPy 2.x)
-- No WorkflowSet integration yet (planned for Phase 5)
 - Not yet tested with actual time series models (prophet_reg, arima_reg)
+- No visualization methods in autoplot() yet
 
 **Future Enhancements (Optional):**
-- Phase 5: WorkflowSet integration (conformal across multiple workflows)
 - Classification support (conformal prediction sets)
 - Conformalized Quantile Regression (CQR) for asymmetric intervals
 - Adaptive conformal prediction (dynamic α adjustment)
+- Visualization methods for interval comparison
 
 ### When to Use Conformal Prediction
 
@@ -1896,6 +1980,16 @@ ts_preds = ts_fit.conformal_predict(ts_data, alpha=0.05, method='auto')
 outputs, _, _ = fit.extract_outputs(conformal_alpha=[0.05, 0.1, 0.2])
 plt.fill_between(x, outputs['.pred_lower_95'], outputs['.pred_upper_95'], alpha=0.2)
 plt.fill_between(x, outputs['.pred_lower_80'], outputs['.pred_upper_80'], alpha=0.4)
+
+# Pattern 6: WorkflowSet comparison (find best preprocessing strategy)
+from py_workflowsets import WorkflowSet
+wf_set = WorkflowSet.from_cross(
+    preproc=["y ~ x1", "y ~ x1 + x2", "y ~ x1 + x2 + x3"],
+    models=[linear_reg()]
+)
+comparison = wf_set.compare_conformal(train, alpha=0.05, method='split')
+best_wf_id = comparison.iloc[0]['wflow_id']  # Tightest intervals
+best_wf = wf_set[best_wf_id]
 ```
 
 ## Common Patterns
