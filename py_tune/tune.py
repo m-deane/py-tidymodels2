@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import itertools
 from datetime import datetime
+from joblib import Parallel, delayed
 
 
 # ============================================================================
@@ -322,7 +323,9 @@ def fit_resamples(
     workflow,
     resamples,
     metrics=None,
-    control: Optional[Dict[str, Any]] = None
+    control: Optional[Dict[str, Any]] = None,
+    n_jobs: Optional[int] = None,
+    verbose: bool = False
 ) -> TuneResults:
     """
     Fit a workflow to resamples without tuning.
@@ -335,6 +338,9 @@ def fit_resamples(
         resamples: Resampling object (from py_rsample)
         metrics: Metric set or list of metrics (from py_yardstick)
         control: Optional control parameters
+        n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                -1 for all CPU cores, or positive integer for specific number of cores.
+        verbose: If True, display progress messages
 
     Returns:
         TuneResults object with metrics and predictions
@@ -349,100 +355,64 @@ def fit_resamples(
         >>> folds = vfold_cv(data, v=5)
         >>> my_metrics = metric_set(rmse, mae)
         >>>
+        >>> # Sequential execution
         >>> results = fit_resamples(wf, folds, metrics=my_metrics)
+        >>>
+        >>> # Parallel execution with all cores
+        >>> results = fit_resamples(wf, folds, metrics=my_metrics, n_jobs=-1, verbose=True)
     """
     control = control or {}
     save_pred = control.get('save_pred', False)
 
+    # Convert resamples to list for iteration
+    resample_splits = list(enumerate(resamples))
+
+    # Decide between sequential and parallel execution
+    if n_jobs is None or n_jobs == 1:
+        # Sequential execution
+        if verbose:
+            print(f"Fitting workflow across {len(resample_splits)} folds (sequential)...")
+
+        results = []
+        for fold_idx, split in resample_splits:
+            result = _fit_single_fold(workflow, split, fold_idx, metrics, save_pred)
+            results.append(result)
+            if verbose:
+                print(f"  Fold {fold_idx+1}/{len(resample_splits)} complete")
+    else:
+        # Parallel execution
+        if verbose:
+            print(f"Fitting workflow across {len(resample_splits)} folds (n_jobs={n_jobs})...")
+
+        joblib_verbose = 10 if verbose else 0
+        results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            delayed(_fit_single_fold)(workflow, split, fold_idx, metrics, save_pred)
+            for fold_idx, split in resample_splits
+        )
+
+    # Process results
     all_metrics = []
     all_predictions = []
+    errors = []
 
-    # Iterate over resamples
-    for fold_idx, split in enumerate(resamples):
-        # Get train and test data
-        from py_rsample import training, testing
-        train_data = training(split)
-        test_data = testing(split)
+    for metrics_df, predictions_df, error_msg in results:
+        if error_msg:
+            errors.append(error_msg)
 
-        # Fit workflow
-        try:
-            wf_fit = workflow.fit(train_data)
+        if not metrics_df.empty:
+            all_metrics.append(metrics_df)
 
-            # Predict on test set
-            predictions = wf_fit.predict(test_data)
+        if not predictions_df.empty:
+            all_predictions.append(predictions_df)
 
-            # Calculate metrics
-            # Get outcome column from either formula or fitted workflow's blueprint
-            outcome = None
-
-            if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, str):
-                # Formula-based workflow
-                outcome = workflow.preprocessor.split('~')[0].strip()
-            else:
-                # Recipe-based or other workflow
-                # The outcome is stored in the model's blueprint after fitting
-                from py_recipes import Recipe
-                if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, Recipe):
-                    # For recipes, workflow.fit() auto-detects outcome and builds a formula
-                    # The ModelFit stores the blueprint with outcome info
-                    blueprint = wf_fit.fit.blueprint
-
-                    # Try multiple ways to extract outcome from blueprint
-                    if hasattr(blueprint, 'outcome_name'):
-                        outcome = blueprint.outcome_name
-                    elif hasattr(blueprint, 'roles') and 'outcome' in blueprint.roles:
-                        outcome = blueprint.roles['outcome'][0] if blueprint.roles['outcome'] else None
-                    elif isinstance(blueprint, dict):
-                        outcome = blueprint.get('outcome_name') or blueprint.get('y_name')
-                        # If dict blueprint has formula_data, extract from formula
-                        if outcome is None and 'formula_data' in blueprint:
-                            formula_str = str(blueprint.get('formula', ''))
-                            if '~' in formula_str:
-                                outcome = formula_str.split('~')[0].strip()
-
-            if outcome and outcome in test_data.columns:
-                truth = test_data[outcome]
-                estimate = predictions['.pred']
-
-                # Compute metrics
-                if metrics is None:
-                    # Use default regression metrics
-                    from py_yardstick import metric_set, rmse, mae, r_squared
-                    metric_fn = metric_set(rmse, mae, r_squared)
-                    metric_results = metric_fn(truth, estimate)
-                elif callable(metrics):
-                    metric_results = metrics(truth, estimate)
-                else:
-                    # List of metric functions
-                    from py_yardstick import metric_set
-                    metric_fn = metric_set(*metrics)
-                    metric_results = metric_fn(truth, estimate)
-
-                # Add fold identifier
-                metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
-                metric_results['.config'] = "config_001"
-                all_metrics.append(metric_results)
-            else:
-                # Could not determine outcome - log warning
-                print(f"Warning: Fold {fold_idx+1} could not determine outcome column from workflow")
-
-            # Save predictions if requested
-            if save_pred:
-                predictions['.resample'] = f"Fold{fold_idx+1:02d}"
-                predictions['.config'] = "config_001"
-                predictions['.row'] = test_data.index.tolist()
-                all_predictions.append(predictions)
-
-        except Exception as e:
-            # Log error and continue
-            print(f"Warning: Fold {fold_idx+1} failed with error: {str(e)}")
-            continue
+    # Print errors
+    for error in errors:
+        print(f"Warning: {error}")
 
     # Combine results
     if all_metrics:
         metrics_df = pd.concat(all_metrics, ignore_index=True)
     else:
-        # Return empty DataFrame with expected schema
         metrics_df = pd.DataFrame(columns=['metric', 'value', '.resample', '.config'])
 
     if all_predictions:
@@ -452,6 +422,9 @@ def fit_resamples(
 
     # Create grid with single configuration
     grid = pd.DataFrame({'.config': ['config_001']})
+
+    if verbose:
+        print(f"✓ Evaluation complete: {len(all_metrics)} successful folds")
 
     return TuneResults(
         metrics=metrics_df,
@@ -468,7 +441,9 @@ def tune_grid(
     grid: Optional[Union[int, pd.DataFrame]] = None,
     metrics=None,
     param_info: Optional[Dict[str, Dict[str, Any]]] = None,
-    control: Optional[Dict[str, Any]] = None
+    control: Optional[Dict[str, Any]] = None,
+    n_jobs: Optional[int] = None,
+    verbose: bool = False
 ) -> TuneResults:
     """
     Tune workflow hyperparameters via grid search.
@@ -480,6 +455,9 @@ def tune_grid(
         metrics: Metric set or list of metrics
         param_info: Parameter information for grid generation (required if grid is int)
         control: Optional control parameters
+        n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                -1 for all CPU cores, or positive integer for specific number of cores.
+        verbose: If True, display progress messages
 
     Returns:
         TuneResults object with metrics across all configurations
@@ -497,8 +475,11 @@ def tune_grid(
         ...     'mixture': {'range': (0, 1)}
         ... }
         >>>
-        >>> # Run grid search
+        >>> # Run grid search (sequential)
         >>> results = tune_grid(wf, folds, param_info=param_info, grid=5)
+        >>>
+        >>> # Run grid search (parallel)
+        >>> results = tune_grid(wf, folds, param_info=param_info, grid=5, n_jobs=-1, verbose=True)
     """
     control = control or {}
     save_pred = control.get('save_pred', False)
@@ -514,74 +495,71 @@ def tune_grid(
         if '.config' not in grid_df.columns:
             grid_df['.config'] = [f"config_{i+1:03d}" for i in range(len(grid_df))]
 
-    all_metrics = []
-    all_predictions = []
-
-    # Iterate over parameter combinations
+    # Create list of all config × fold combinations
+    config_fold_combinations = []
     for config_idx, row in grid_df.iterrows():
         config_name = row['.config']
         params = {k: v for k, v in row.items() if k != '.config'}
 
-        # Update workflow with current parameters
-        # (This requires workflow to support parameter updates)
-        current_wf = _update_workflow_params(workflow, params)
-
-        # Fit to each resample
         for fold_idx, split in enumerate(resamples):
-            from py_rsample import training, testing
-            train_data = training(split)
-            test_data = testing(split)
+            config_fold_combinations.append((params, config_name, split, fold_idx))
 
-            try:
-                # Fit and predict
-                wf_fit = current_wf.fit(train_data)
-                predictions = wf_fit.predict(test_data)
+    # Decide between sequential and parallel execution
+    if n_jobs is None or n_jobs == 1:
+        # Sequential execution
+        if verbose:
+            print(f"Tuning grid: {len(grid_df)} configs × {len(list(resamples))} folds = {len(config_fold_combinations)} fits (sequential)...")
 
-                # Calculate metrics
-                if hasattr(current_wf, 'preprocessor') and isinstance(current_wf.preprocessor, str):
-                    outcome = current_wf.preprocessor.split('~')[0].strip()
-                    truth = test_data[outcome]
-                    estimate = predictions['.pred']
+        results = []
+        for i, (params, config_name, split, fold_idx) in enumerate(config_fold_combinations):
+            result = _fit_single_config_fold(workflow, params, config_name, split, fold_idx, metrics, save_pred)
+            results.append(result)
+            if verbose and (i + 1) % len(list(resamples)) == 0:
+                completed_configs = (i + 1) // len(list(resamples))
+                print(f"  Config {completed_configs}/{len(grid_df)} complete")
+    else:
+        # Parallel execution
+        if verbose:
+            print(f"Tuning grid: {len(grid_df)} configs × {len(list(resamples))} folds = {len(config_fold_combinations)} fits (n_jobs={n_jobs})...")
 
-                    # Compute metrics
-                    if metrics is None:
-                        # Use default regression metrics
-                        from py_yardstick import metric_set, rmse, mae, r_squared
-                        metric_fn = metric_set(rmse, mae, r_squared)
-                        metric_results = metric_fn(truth, estimate)
-                    elif callable(metrics):
-                        metric_results = metrics(truth, estimate)
-                    else:
-                        from py_yardstick import metric_set
-                        metric_fn = metric_set(*metrics)
-                        metric_results = metric_fn(truth, estimate)
+        joblib_verbose = 10 if verbose else 0
+        results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            delayed(_fit_single_config_fold)(workflow, params, config_name, split, fold_idx, metrics, save_pred)
+            for params, config_name, split, fold_idx in config_fold_combinations
+        )
 
-                    metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
-                    metric_results['.config'] = config_name
-                    all_metrics.append(metric_results)
+    # Process results
+    all_metrics = []
+    all_predictions = []
+    errors = []
 
-                # Save predictions
-                if save_pred:
-                    predictions['.resample'] = f"Fold{fold_idx+1:02d}"
-                    predictions['.config'] = config_name
-                    predictions['.row'] = test_data.index.tolist()
-                    all_predictions.append(predictions)
+    for metrics_df, predictions_df, error_msg in results:
+        if error_msg:
+            errors.append(error_msg)
 
-            except Exception as e:
-                print(f"Warning: Config {config_name}, Fold {fold_idx+1} failed: {str(e)}")
-                continue
+        if not metrics_df.empty:
+            all_metrics.append(metrics_df)
+
+        if not predictions_df.empty:
+            all_predictions.append(predictions_df)
+
+    # Print errors
+    for error in errors:
+        print(f"Warning: {error}")
 
     # Combine results
     if all_metrics:
         metrics_df = pd.concat(all_metrics, ignore_index=True)
     else:
-        # Return empty DataFrame with expected schema
         metrics_df = pd.DataFrame(columns=['metric', 'value', '.resample', '.config'])
 
     if all_predictions:
         predictions_df = pd.concat(all_predictions, ignore_index=True)
     else:
         predictions_df = pd.DataFrame()
+
+    if verbose:
+        print(f"✓ Grid search complete: {len(all_metrics)} successful fits")
 
     return TuneResults(
         metrics=metrics_df,
@@ -595,6 +573,165 @@ def tune_grid(
 # ============================================================================
 # Helper Functions
 # ============================================================================
+
+def _fit_single_fold(workflow, split, fold_idx, metrics, save_pred):
+    """
+    Fit workflow on a single fold.
+
+    Helper function for parallel execution in fit_resamples.
+
+    Args:
+        workflow: Workflow to fit
+        split: Train/test split
+        fold_idx: Fold index
+        metrics: Metric function or list
+        save_pred: Whether to save predictions
+
+    Returns:
+        Tuple of (metrics_df, predictions_df, error_msg)
+    """
+    from py_rsample import training, testing
+
+    try:
+        train_data = training(split)
+        test_data = testing(split)
+
+        # Fit workflow
+        wf_fit = workflow.fit(train_data)
+
+        # Predict on test set
+        predictions = wf_fit.predict(test_data)
+
+        # Calculate metrics
+        outcome = None
+
+        if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, str):
+            # Formula-based workflow
+            outcome = workflow.preprocessor.split('~')[0].strip()
+        else:
+            # Recipe-based or other workflow
+            from py_recipes import Recipe
+            if hasattr(workflow, 'preprocessor') and isinstance(workflow.preprocessor, Recipe):
+                blueprint = wf_fit.fit.blueprint
+
+                if hasattr(blueprint, 'outcome_name'):
+                    outcome = blueprint.outcome_name
+                elif hasattr(blueprint, 'roles') and 'outcome' in blueprint.roles:
+                    outcome = blueprint.roles['outcome'][0] if blueprint.roles['outcome'] else None
+                elif isinstance(blueprint, dict):
+                    outcome = blueprint.get('outcome_name') or blueprint.get('y_name')
+                    if outcome is None and 'formula_data' in blueprint:
+                        formula_str = str(blueprint.get('formula', ''))
+                        if '~' in formula_str:
+                            outcome = formula_str.split('~')[0].strip()
+
+        metrics_df = pd.DataFrame()
+        predictions_df = pd.DataFrame()
+
+        if outcome and outcome in test_data.columns:
+            truth = test_data[outcome]
+            estimate = predictions['.pred']
+
+            # Compute metrics
+            if metrics is None:
+                from py_yardstick import metric_set, rmse, mae, r_squared
+                metric_fn = metric_set(rmse, mae, r_squared)
+                metric_results = metric_fn(truth, estimate)
+            elif callable(metrics):
+                metric_results = metrics(truth, estimate)
+            else:
+                from py_yardstick import metric_set
+                metric_fn = metric_set(*metrics)
+                metric_results = metric_fn(truth, estimate)
+
+            # Add fold identifier
+            metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
+            metric_results['.config'] = "config_001"
+            metrics_df = metric_results
+
+        # Save predictions if requested
+        if save_pred:
+            predictions['.resample'] = f"Fold{fold_idx+1:02d}"
+            predictions['.config'] = "config_001"
+            predictions['.row'] = test_data.index.tolist()
+            predictions_df = predictions
+
+        return (metrics_df, predictions_df, None)
+
+    except Exception as e:
+        error_msg = f"Fold {fold_idx+1} failed with error: {str(e)}"
+        return (pd.DataFrame(), pd.DataFrame(), error_msg)
+
+
+def _fit_single_config_fold(workflow, params, config_name, split, fold_idx, metrics, save_pred):
+    """
+    Fit workflow with specific parameters on a single fold.
+
+    Helper function for parallel execution in tune_grid.
+
+    Args:
+        workflow: Base workflow
+        params: Parameter dictionary
+        config_name: Configuration name
+        split: Train/test split
+        fold_idx: Fold index
+        metrics: Metric function or list
+        save_pred: Whether to save predictions
+
+    Returns:
+        Tuple of (metrics_df, predictions_df, error_msg)
+    """
+    from py_rsample import training, testing
+
+    try:
+        # Update workflow with current parameters
+        current_wf = _update_workflow_params(workflow, params)
+
+        train_data = training(split)
+        test_data = testing(split)
+
+        # Fit and predict
+        wf_fit = current_wf.fit(train_data)
+        predictions = wf_fit.predict(test_data)
+
+        # Calculate metrics
+        metrics_df = pd.DataFrame()
+        predictions_df = pd.DataFrame()
+
+        if hasattr(current_wf, 'preprocessor') and isinstance(current_wf.preprocessor, str):
+            outcome = current_wf.preprocessor.split('~')[0].strip()
+            truth = test_data[outcome]
+            estimate = predictions['.pred']
+
+            # Compute metrics
+            if metrics is None:
+                from py_yardstick import metric_set, rmse, mae, r_squared
+                metric_fn = metric_set(rmse, mae, r_squared)
+                metric_results = metric_fn(truth, estimate)
+            elif callable(metrics):
+                metric_results = metrics(truth, estimate)
+            else:
+                from py_yardstick import metric_set
+                metric_fn = metric_set(*metrics)
+                metric_results = metric_fn(truth, estimate)
+
+            metric_results['.resample'] = f"Fold{fold_idx+1:02d}"
+            metric_results['.config'] = config_name
+            metrics_df = metric_results
+
+        # Save predictions
+        if save_pred:
+            predictions['.resample'] = f"Fold{fold_idx+1:02d}"
+            predictions['.config'] = config_name
+            predictions['.row'] = test_data.index.tolist()
+            predictions_df = predictions
+
+        return (metrics_df, predictions_df, None)
+
+    except Exception as e:
+        error_msg = f"Config {config_name}, Fold {fold_idx+1} failed: {str(e)}"
+        return (pd.DataFrame(), pd.DataFrame(), error_msg)
+
 
 def _update_workflow_params(workflow, params: Dict[str, Any]):
     """
