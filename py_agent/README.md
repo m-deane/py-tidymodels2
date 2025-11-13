@@ -16,7 +16,7 @@ AI agent system for automated time series forecasting workflow generation using 
 ### Phase 1: MVP (v0.1.0) - Rule-Based ✅ COMPLETE
 
 - ✅ Rule-based workflow generation (no LLM required)
-- ✅ Support for 3 model types: `linear_reg`, `prophet_reg`, `rand_forest`
+- ✅ Support for **ALL 23 model types** (baseline, linear, tree, SVM, neural nets, time series, hybrid)
 - ✅ Automated data analysis (seasonality, trend, autocorrelation)
 - ✅ Basic recipe generation (10+ preprocessing steps)
 - ✅ Performance diagnostics and debugging
@@ -38,10 +38,10 @@ AI agent system for automated time series forecasting workflow generation using 
 - ✅ Comprehensive test coverage (50+ tests for Phase 2)
 - 💰 Cost: ~$4-10 per workflow (with LLM)
 
-### Phase 3: Advanced Features (Roadmap)
+### Phase 3: Advanced Features (In Progress)
 
+- ✅ **Model Expansion Complete**: All 23 model types now supported!
 - ⏳ RAG knowledge base with 500+ forecasting examples
-- ⏳ Support for all 23 model types
 - ⏳ Full 51-step recipe library integration
 - ⏳ Multi-model comparison and ensembling
 - ⏳ Autonomous iteration and self-improvement
@@ -253,22 +253,48 @@ Example output:
 
 The agent uses a rule-based system to match data characteristics with model capabilities:
 
-### Supported Models (MVP)
+### Supported Models (All 23 Models)
 
-1. **`linear_reg`** - Linear Regression
-   - Best for: Linear trends, high interpretability
-   - Interpretability: HIGH
-   - Speed: VERY FAST
+#### Baseline Models (2)
+- **`null_model`** - Null baseline (mean/median)
+- **`naive_reg`** - Naive forecasting baselines
 
-2. **`prophet_reg`** - Facebook Prophet
-   - Best for: Strong seasonality, holidays, missing data
-   - Interpretability: MEDIUM
-   - Speed: FAST
+#### Linear & Generalized Models (3)
+- **`linear_reg`** - Linear Regression (HIGH interpretability, VERY FAST)
+- **`poisson_reg`** - Poisson Regression (for count data)
+- **`gen_additive_mod`** - Generalized Additive Models (nonlinear trends)
 
-3. **`rand_forest`** - Random Forest
-   - Best for: Complex patterns, feature interactions
-   - Interpretability: MEDIUM
-   - Speed: MODERATE
+#### Tree-Based Models (3)
+- **`decision_tree`** - Decision Trees (HIGH interpretability)
+- **`rand_forest`** - Random Forest (complex patterns, robustness)
+- **`boost_tree`** - Gradient Boosting (XGBoost, LightGBM, CatBoost)
+
+#### Support Vector Machines (2)
+- **`svm_rbf`** - RBF Kernel SVM (nonlinear patterns)
+- **`svm_linear`** - Linear Kernel SVM (linear patterns)
+
+#### Instance-Based & Adaptive (3)
+- **`nearest_neighbor`** - k-Nearest Neighbors
+- **`mars`** - Multivariate Adaptive Regression Splines
+- **`mlp`** - Multi-Layer Perceptron Neural Network
+
+#### Time Series Models (5)
+- **`arima_reg`** - ARIMA/SARIMAX (autocorrelation, short-term forecasts)
+- **`prophet_reg`** - Facebook Prophet (seasonality, holidays, MEDIUM interpretability)
+- **`exp_smoothing`** - Exponential Smoothing / ETS
+- **`seasonal_reg`** - STL Decomposition Models
+- **`varmax_reg`** - Multivariate VARMAX (multiple outcomes)
+
+#### Hybrid Time Series (2)
+- **`arima_boost`** - ARIMA + XGBoost Hybrid
+- **`prophet_boost`** - Prophet + XGBoost Hybrid
+
+#### Recursive Forecasting (1)
+- **`recursive_reg`** - ML models for multi-step forecasting (skforecast)
+
+#### Generic Hybrid & Manual (2)
+- **`hybrid_model`** - Combines any two models (residual, sequential, weighted, custom_data strategies)
+- **`manual_reg`** - User-specified coefficients (for external forecasts)
 
 ### Recommendation Logic
 
@@ -342,9 +368,10 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
 - ✅ 50+ Phase 2 tests passing
 - ✅ Dual-mode support (switch between rule-based and LLM)
 
-### Phase 3: Advanced Features (Planned)
+### Phase 3: Advanced Features (In Progress)
+- ✅ **Model Expansion Complete**: Expanded from 3 to all 23 model types!
+  - Baseline, Linear/GLM, Tree-based, SVM, Neural nets, Time series, Hybrid models
 - ⏳ RAG knowledge base with 500+ forecasting examples
-- ⏳ Expand to all 23 model types (currently 3)
 - ⏳ Full 51-step recipe library integration
 - ⏳ Multi-model WorkflowSet orchestration
 - ⏳ Ensemble recommendations

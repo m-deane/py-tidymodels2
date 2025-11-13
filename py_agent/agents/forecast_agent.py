@@ -506,20 +506,8 @@ class ForecastAgent:
         else:
             model_type = 'linear_reg'
 
-        # Import and create model
-        if model_type == 'linear_reg':
-            from py_parsnip import linear_reg
-            spec = linear_reg()
-        elif model_type == 'prophet_reg':
-            from py_parsnip import prophet_reg
-            spec = prophet_reg()
-        elif model_type == 'rand_forest':
-            from py_parsnip import rand_forest
-            spec = rand_forest()
-        else:
-            # Default to linear_reg if unknown
-            from py_parsnip import linear_reg
-            spec = linear_reg()
+        # Import and create model dynamically
+        spec = self._create_model_spec(model_type)
 
         # Create recipe (simplified - in full implementation would parse recipe_code)
         rec = recipe()
@@ -528,6 +516,70 @@ class ForecastAgent:
         wf = workflow().add_recipe(rec).add_model(spec)
 
         return wf
+
+    def _create_model_spec(self, model_type: str) -> object:
+        """
+        Dynamically create model specification for any model type.
+
+        Args:
+            model_type: Model type string (e.g., 'linear_reg', 'prophet_reg')
+
+        Returns:
+            Model specification object
+
+        Supports all 23 py-tidymodels models.
+        """
+        # Map of all 23 model types to their import names
+        model_map = {
+            # Baseline
+            'null_model': 'null_model',
+            'naive_reg': 'naive_reg',
+            # Linear & Generalized
+            'linear_reg': 'linear_reg',
+            'poisson_reg': 'poisson_reg',
+            'gen_additive_mod': 'gen_additive_mod',
+            # Tree-Based
+            'decision_tree': 'decision_tree',
+            'rand_forest': 'rand_forest',
+            'boost_tree': 'boost_tree',
+            # SVM
+            'svm_rbf': 'svm_rbf',
+            'svm_linear': 'svm_linear',
+            # Instance-Based & Adaptive
+            'nearest_neighbor': 'nearest_neighbor',
+            'mars': 'mars',
+            'mlp': 'mlp',
+            # Time Series
+            'arima_reg': 'arima_reg',
+            'prophet_reg': 'prophet_reg',
+            'exp_smoothing': 'exp_smoothing',
+            'seasonal_reg': 'seasonal_reg',
+            'varmax_reg': 'varmax_reg',
+            # Hybrid Time Series
+            'arima_boost': 'arima_boost',
+            'prophet_boost': 'prophet_boost',
+            # Recursive
+            'recursive_reg': 'recursive_reg',
+            # Hybrid & Manual
+            'hybrid_model': 'hybrid_model',
+            'manual_reg': 'manual_reg'
+        }
+
+        # Get import name (default to linear_reg if unknown)
+        import_name = model_map.get(model_type, 'linear_reg')
+
+        # Dynamic import and instantiation
+        import py_parsnip
+        model_func = getattr(py_parsnip, import_name, None)
+
+        if model_func is None:
+            # Fallback to linear_reg
+            if self.verbose:
+                print(f"⚠️  Unknown model type '{model_type}', falling back to linear_reg")
+            model_func = py_parsnip.linear_reg
+
+        # Create and return model specification
+        return model_func()
 
 
 class ConversationalSession:

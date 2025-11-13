@@ -107,6 +107,33 @@ def get_model_profiles() -> Dict:
         'medium'
     """
     return {
+        # Baseline Models
+        'null_model': {
+            'train_time_per_1k': 0.001,
+            'predict_time_per_1k': 0.0001,
+            'memory_per_feature': 0.001,
+            'interpretability': 'high',
+            'accuracy_tier': 'low',
+            'strengths': ['speed', 'simplicity', 'baseline'],
+            'weaknesses': ['accuracy', 'no_pattern_capture'],
+            'good_for_seasonality': False,
+            'good_for_trend': False,
+            'good_for_interactions': False
+        },
+        'naive_reg': {
+            'train_time_per_1k': 0.002,
+            'predict_time_per_1k': 0.0001,
+            'memory_per_feature': 0.002,
+            'interpretability': 'high',
+            'accuracy_tier': 'low',
+            'strengths': ['speed', 'simplicity', 'baseline', 'seasonality'],
+            'weaknesses': ['accuracy', 'limited_patterns'],
+            'good_for_seasonality': True,
+            'good_for_trend': False,
+            'good_for_interactions': False
+        },
+
+        # Linear & Generalized Models
         'linear_reg': {
             'train_time_per_1k': 0.05,
             'predict_time_per_1k': 0.001,
@@ -115,6 +142,146 @@ def get_model_profiles() -> Dict:
             'accuracy_tier': 'medium',
             'strengths': ['linear_trends', 'interpretability', 'speed'],
             'weaknesses': ['nonlinear_patterns', 'complex_interactions'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+        'poisson_reg': {
+            'train_time_per_1k': 0.08,
+            'predict_time_per_1k': 0.002,
+            'memory_per_feature': 0.01,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium',
+            'strengths': ['count_data', 'interpretability', 'nonnegative'],
+            'weaknesses': ['continuous_data', 'overdispersion'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+        'gen_additive_mod': {
+            'train_time_per_1k': 1.2,
+            'predict_time_per_1k': 0.01,
+            'memory_per_feature': 0.1,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium-high',
+            'strengths': ['nonlinear_trends', 'interpretability', 'smoothness'],
+            'weaknesses': ['interactions', 'high_dimensional'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+
+        # Tree-Based Models
+        'decision_tree': {
+            'train_time_per_1k': 0.5,
+            'predict_time_per_1k': 0.001,
+            'memory_per_feature': 0.05,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium',
+            'strengths': ['interpretability', 'interactions', 'nonlinear'],
+            'weaknesses': ['overfitting', 'instability'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'rand_forest': {
+            'train_time_per_1k': 3.5,
+            'predict_time_per_1k': 0.005,
+            'memory_per_feature': 0.2,
+            'interpretability': 'medium',
+            'accuracy_tier': 'high',
+            'strengths': ['nonlinear_patterns', 'interactions', 'robustness'],
+            'weaknesses': ['extrapolation', 'interpretability'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'boost_tree': {
+            'train_time_per_1k': 5.2,
+            'predict_time_per_1k': 0.003,
+            'memory_per_feature': 0.15,
+            'interpretability': 'medium',
+            'accuracy_tier': 'very_high',
+            'strengths': ['complex_patterns', 'interactions', 'accuracy'],
+            'weaknesses': ['speed', 'overfitting_risk'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+
+        # Support Vector Machines
+        'svm_rbf': {
+            'train_time_per_1k': 8.0,
+            'predict_time_per_1k': 0.02,
+            'memory_per_feature': 0.3,
+            'interpretability': 'low',
+            'accuracy_tier': 'high',
+            'strengths': ['nonlinear_patterns', 'robustness', 'accuracy'],
+            'weaknesses': ['speed', 'interpretability', 'hyperparameters'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'svm_linear': {
+            'train_time_per_1k': 0.8,
+            'predict_time_per_1k': 0.002,
+            'memory_per_feature': 0.05,
+            'interpretability': 'medium',
+            'accuracy_tier': 'medium',
+            'strengths': ['linear_patterns', 'robustness', 'speed'],
+            'weaknesses': ['nonlinear_patterns', 'hyperparameters'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+
+        # Instance-Based & Adaptive
+        'nearest_neighbor': {
+            'train_time_per_1k': 0.01,
+            'predict_time_per_1k': 0.5,
+            'memory_per_feature': 0.8,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium',
+            'strengths': ['simplicity', 'nonlinear', 'local_patterns'],
+            'weaknesses': ['prediction_speed', 'memory', 'curse_of_dimensionality'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'mars': {
+            'train_time_per_1k': 2.5,
+            'predict_time_per_1k': 0.005,
+            'memory_per_feature': 0.12,
+            'interpretability': 'high',
+            'accuracy_tier': 'high',
+            'strengths': ['nonlinear', 'interpretability', 'automatic_interactions'],
+            'weaknesses': ['computational_cost', 'overfitting_risk'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'mlp': {
+            'train_time_per_1k': 10.0,
+            'predict_time_per_1k': 0.01,
+            'memory_per_feature': 0.4,
+            'interpretability': 'low',
+            'accuracy_tier': 'high',
+            'strengths': ['complex_patterns', 'nonlinear', 'flexibility'],
+            'weaknesses': ['interpretability', 'hyperparameters', 'overfitting'],
+            'good_for_seasonality': False,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+
+        # Time Series Models
+        'arima_reg': {
+            'train_time_per_1k': 1.5,
+            'predict_time_per_1k': 0.008,
+            'memory_per_feature': 0.1,
+            'interpretability': 'medium',
+            'accuracy_tier': 'medium-high',
+            'strengths': ['autocorrelation', 'short_term_forecasts'],
+            'weaknesses': ['seasonality', 'long_series', 'nonstationary'],
             'good_for_seasonality': False,
             'good_for_trend': True,
             'good_for_interactions': False
@@ -131,38 +298,104 @@ def get_model_profiles() -> Dict:
             'good_for_trend': True,
             'good_for_interactions': False
         },
-        'rand_forest': {
-            'train_time_per_1k': 3.5,
-            'predict_time_per_1k': 0.005,
-            'memory_per_feature': 0.2,
+        'exp_smoothing': {
+            'train_time_per_1k': 0.3,
+            'predict_time_per_1k': 0.002,
+            'memory_per_feature': 0.02,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium',
+            'strengths': ['simple', 'seasonal', 'trend', 'speed'],
+            'weaknesses': ['complex_patterns', 'limited_exogenous'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+        'seasonal_reg': {
+            'train_time_per_1k': 1.8,
+            'predict_time_per_1k': 0.01,
+            'memory_per_feature': 0.15,
+            'interpretability': 'high',
+            'accuracy_tier': 'medium-high',
+            'strengths': ['seasonality', 'decomposition', 'interpretability'],
+            'weaknesses': ['complex_interactions', 'irregular_patterns'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': False
+        },
+        'varmax_reg': {
+            'train_time_per_1k': 3.0,
+            'predict_time_per_1k': 0.015,
+            'memory_per_feature': 0.25,
             'interpretability': 'medium',
             'accuracy_tier': 'high',
-            'strengths': ['nonlinear_patterns', 'interactions', 'robustness'],
-            'weaknesses': ['extrapolation', 'interpretability'],
+            'strengths': ['multivariate', 'cross_correlations', 'exogenous'],
+            'weaknesses': ['computational_cost', 'requires_multiple_outcomes'],
             'good_for_seasonality': False,
             'good_for_trend': True,
             'good_for_interactions': True
         },
-        'arima_reg': {
-            'train_time_per_1k': 1.5,
-            'predict_time_per_1k': 0.008,
-            'memory_per_feature': 0.1,
-            'interpretability': 'medium',
-            'accuracy_tier': 'medium-high',
-            'strengths': ['autocorrelation', 'short_term_forecasts'],
-            'weaknesses': ['seasonality', 'long_series', 'nonstationary'],
-            'good_for_seasonality': False,
-            'good_for_trend': True,
-            'good_for_interactions': False
-        },
-        'boost_tree': {
-            'train_time_per_1k': 5.2,
-            'predict_time_per_1k': 0.003,
-            'memory_per_feature': 0.15,
-            'interpretability': 'medium',
+
+        # Hybrid Time Series
+        'arima_boost': {
+            'train_time_per_1k': 6.0,
+            'predict_time_per_1k': 0.01,
+            'memory_per_feature': 0.2,
+            'interpretability': 'low',
             'accuracy_tier': 'very_high',
-            'strengths': ['complex_patterns', 'interactions', 'accuracy'],
-            'weaknesses': ['speed', 'overfitting_risk'],
+            'strengths': ['hybrid', 'accuracy', 'captures_residuals'],
+            'weaknesses': ['complexity', 'interpretability'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'prophet_boost': {
+            'train_time_per_1k': 7.0,
+            'predict_time_per_1k': 0.012,
+            'memory_per_feature': 0.25,
+            'interpretability': 'low',
+            'accuracy_tier': 'very_high',
+            'strengths': ['hybrid', 'seasonality', 'accuracy'],
+            'weaknesses': ['complexity', 'speed'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+
+        # Recursive Forecasting
+        'recursive_reg': {
+            'train_time_per_1k': 4.0,
+            'predict_time_per_1k': 0.02,
+            'memory_per_feature': 0.18,
+            'interpretability': 'medium',
+            'accuracy_tier': 'high',
+            'strengths': ['multi_step', 'autoregression', 'any_ml_model'],
+            'weaknesses': ['error_accumulation', 'computational_cost'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+
+        # Generic Hybrid & Manual
+        'hybrid_model': {
+            'train_time_per_1k': 8.0,
+            'predict_time_per_1k': 0.015,
+            'memory_per_feature': 0.35,
+            'interpretability': 'low',
+            'accuracy_tier': 'very_high',
+            'strengths': ['flexibility', 'ensemble', 'adaptive'],
+            'weaknesses': ['complexity', 'tuning_required'],
+            'good_for_seasonality': True,
+            'good_for_trend': True,
+            'good_for_interactions': True
+        },
+        'manual_reg': {
+            'train_time_per_1k': 0.001,
+            'predict_time_per_1k': 0.0001,
+            'memory_per_feature': 0.005,
+            'interpretability': 'high',
+            'accuracy_tier': 'varies',
+            'strengths': ['domain_knowledge', 'reproducibility', 'external_models'],
+            'weaknesses': ['requires_coefficients', 'no_learning'],
             'good_for_seasonality': False,
             'good_for_trend': True,
             'good_for_interactions': True
