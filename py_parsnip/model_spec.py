@@ -614,9 +614,21 @@ class ModelFit:
 
         return self
 
-    def extract_outputs(self) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def extract_outputs(
+        self,
+        conformal_alpha: Optional[Union[float, list]] = None,
+        conformal_method: str = 'auto'
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Extract standardized three-DataFrame output.
+
+        Args:
+            conformal_alpha: Optional confidence level(s) for conformal prediction intervals.
+                If provided, adds conformal interval columns to outputs DataFrame.
+                Examples: 0.05 (95% intervals), [0.05, 0.1] (95% and 90% intervals)
+            conformal_method: Conformal prediction method to use when conformal_alpha is provided.
+                Options: 'auto', 'split', 'cv+', 'jackknife+', 'enbpi'
+                Default: 'auto' (selects based on model type and data size)
 
         Returns:
             Tuple of (outputs, coefficients, stats) DataFrames
@@ -627,17 +639,29 @@ class ModelFit:
         - fitted (training) / forecast (test)
         - residuals
         - split (train/test/forecast)
+        - .pred_lower, .pred_upper (if conformal_alpha provided)
 
         Example:
+            >>> # Standard output without conformal intervals
             >>> outputs, coefs, stats = fit.extract_outputs()
             >>> print(outputs)  # Observation-level results
             >>> print(coefs)  # Coefficients with p-values, CI
             >>> print(stats)  # Metrics by split
+
+            >>> # Output with conformal intervals
+            >>> outputs, coefs, stats = fit.extract_outputs(conformal_alpha=0.05)
+            >>> print(outputs[['actuals', 'fitted', '.pred_lower', '.pred_upper']])
         """
         from py_parsnip.engine_registry import get_engine
 
         engine = get_engine(self.spec.model_type, self.spec.engine)
         outputs, coefficients, stats = engine.extract_outputs(self)
+
+        # Add conformal prediction intervals if requested
+        if conformal_alpha is not None:
+            outputs = self._add_conformal_intervals_to_outputs(
+                outputs, conformal_alpha, conformal_method
+            )
 
         # Reorder columns for consistent ordering: date first, then core columns
         from py_parsnip.utils.output_ordering import (
@@ -651,6 +675,82 @@ class ModelFit:
         stats = reorder_stats_columns(stats, group_col=None)
 
         return outputs, coefficients, stats
+
+    def _add_conformal_intervals_to_outputs(
+        self,
+        outputs: pd.DataFrame,
+        conformal_alpha: Union[float, list],
+        conformal_method: str
+    ) -> pd.DataFrame:
+        """
+        Add conformal prediction intervals to outputs DataFrame.
+
+        Internal method that computes conformal intervals for training data
+        and merges them into the outputs DataFrame.
+
+        Args:
+            outputs: Outputs DataFrame from engine.extract_outputs()
+            conformal_alpha: Confidence level(s) for conformal prediction
+            conformal_method: Conformal prediction method
+
+        Returns:
+            Outputs DataFrame with conformal interval columns added
+        """
+        # Get training data from fit_data
+        if 'training_data' in self.fit_data:
+            train_data = self.fit_data['training_data']
+        elif 'original_training_data' in self.fit_data:
+            train_data = self.fit_data['original_training_data']
+        else:
+            import warnings
+            warnings.warn(
+                "Cannot add conformal intervals: training data not found in fit_data. "
+                "Returning outputs without conformal columns.",
+                UserWarning
+            )
+            return outputs
+
+        # Compute conformal predictions on training data
+        try:
+            conformal_preds = self.conformal_predict(
+                train_data,
+                alpha=conformal_alpha,
+                method=conformal_method
+            )
+        except Exception as e:
+            import warnings
+            warnings.warn(
+                f"Conformal prediction failed: {str(e)}. "
+                "Returning outputs without conformal columns.",
+                UserWarning
+            )
+            return outputs
+
+        # Merge conformal intervals into outputs DataFrame
+        # Match by index position (both should have same order as training data)
+        train_mask = outputs['split'] == 'train'
+        train_outputs = outputs[train_mask].copy()
+
+        # Identify conformal interval columns (exclude .pred and .conf_method)
+        conformal_cols = [col for col in conformal_preds.columns
+                         if col.startswith('.pred_') and col != '.pred']
+
+        if len(train_outputs) == len(conformal_preds):
+            # Align by position
+            train_outputs = train_outputs.reset_index(drop=True)
+            for col in conformal_cols:
+                train_outputs[col] = conformal_preds[col].values
+
+            # Merge back into full outputs
+            outputs = outputs.copy()
+            # Initialize conformal columns with NaN
+            for col in conformal_cols:
+                outputs[col] = pd.NA
+
+            # Assign conformal values to training rows
+            outputs.loc[train_mask, conformal_cols] = train_outputs[conformal_cols].values
+
+        return outputs
 
     def conformal_predict(
         self,
@@ -1161,11 +1261,23 @@ class NestedModelFit:
 
         return self
 
-    def extract_outputs(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def extract_outputs(
+        self,
+        conformal_alpha: Optional[Union[float, list]] = None,
+        conformal_method: str = 'auto'
+    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Extract comprehensive three-DataFrame outputs for all groups.
 
         Combines outputs from all group models and adds group column.
+
+        Args:
+            conformal_alpha: Optional confidence level(s) for conformal prediction intervals.
+                If provided, adds per-group conformal interval columns to outputs DataFrame.
+                Examples: 0.05 (95% intervals), [0.05, 0.1] (95% and 90% intervals)
+            conformal_method: Conformal prediction method to use when conformal_alpha is provided.
+                Options: 'auto', 'split', 'cv+', 'jackknife+', 'enbpi'
+                Default: 'auto' (selects based on model type and data size per group)
 
         Returns:
             Tuple of (outputs, coefficients, stats) DataFrames
@@ -1174,7 +1286,12 @@ class NestedModelFit:
             - stats: Includes group_col
 
         Examples:
+            >>> # Standard output without conformal intervals
             >>> outputs, coefficients, stats = nested_fit.extract_outputs()
+            >>>
+            >>> # With per-group conformal intervals
+            >>> outputs, coeffs, stats = nested_fit.extract_outputs(conformal_alpha=0.05)
+            >>> print(outputs[['group', 'actuals', 'fitted', '.pred_lower', '.pred_upper']])
             >>>
             >>> # Filter to specific group
             >>> store_a_outputs = outputs[outputs[group_col] == "A"]
@@ -1190,8 +1307,11 @@ class NestedModelFit:
         all_stats = []
 
         for group, group_fit in self.group_fits.items():
-            # Extract outputs for this group
-            outputs, coefficients, stats = group_fit.extract_outputs()
+            # Extract outputs for this group (with optional conformal intervals)
+            outputs, coefficients, stats = group_fit.extract_outputs(
+                conformal_alpha=conformal_alpha,
+                conformal_method=conformal_method
+            )
 
             # Preserve date information if available
             # This is needed for plot_forecast() to work
