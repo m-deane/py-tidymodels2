@@ -14,6 +14,13 @@ from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from .parallel_utils import (
+    validate_n_jobs,
+    get_joblib_backend,
+    check_windows_compatibility,
+    format_parallel_info
+)
+
 
 @dataclass
 class WorkflowSet:
@@ -304,11 +311,19 @@ class WorkflowSet:
         work_items = [(wf_id, wf, resamples, metrics, control)
                       for wf_id, wf in self.workflows.items()]
 
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
         # Sequential or parallel execution
-        if n_jobs is None or n_jobs == 1:
+        if effective_n_jobs == 1:
             # Sequential execution
             if verbose:
-                print(f"Fitting {len(work_items)} workflows (sequential)...")
+                info = format_parallel_info(1, len(work_items), "workflows")
+                print(f"{info}...")
 
             results = []
             for i, (wf_id, wf, resamples, metrics, control) in enumerate(work_items):
@@ -319,10 +334,12 @@ class WorkflowSet:
         else:
             # Parallel execution
             if verbose:
-                print(f"Fitting {len(work_items)} workflows (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflows")
+                print(f"{info}...")
 
             joblib_verbose = 10 if verbose else 0
-            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
                 delayed(self._fit_single_workflow_resamples)(wf_id, wf, resamples, metrics, control)
                 for wf_id, wf, resamples, metrics, control in work_items
             )
@@ -517,11 +534,19 @@ class WorkflowSet:
         work_items = [(wf_id, wf, data, group_col, per_group_prep, min_group_size)
                       for wf_id, wf in self.workflows.items()]
 
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
         # Sequential or parallel execution
-        if n_jobs is None or n_jobs == 1:
+        if effective_n_jobs == 1:
             # Sequential execution
             if verbose:
-                print(f"Fitting {len(work_items)} workflows across all groups (sequential)...")
+                info = format_parallel_info(1, len(work_items), "workflows")
+                print(f"{info} across all groups...")
 
             results = []
             for i, (wf_id, wf, data, group_col, per_group_prep, min_group_size) in enumerate(work_items):
@@ -532,10 +557,12 @@ class WorkflowSet:
         else:
             # Parallel execution
             if verbose:
-                print(f"Fitting {len(work_items)} workflows across all groups (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflows")
+                print(f"{info} across all groups...")
 
             joblib_verbose = 10 if verbose else 0
-            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
                 delayed(self._fit_single_workflow_nested)(wf_id, wf, data, group_col, per_group_prep, min_group_size)
                 for wf_id, wf, data, group_col, per_group_prep, min_group_size in work_items
             )
@@ -772,8 +799,15 @@ class WorkflowSet:
             for group_name, cv_splits in resamples.items()
         ]
 
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
         # Sequential or parallel execution
-        if n_jobs is None or n_jobs == 1:
+        if effective_n_jobs == 1:
             # Sequential execution
             if verbose:
                 total_folds = sum(len(cv_splits) for cv_splits in resamples.values())
@@ -803,13 +837,16 @@ class WorkflowSet:
             # Parallel execution
             if verbose:
                 total_folds = sum(len(cv_splits) for cv_splits in resamples.values())
-                print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflow-group combinations")
+                print(f"{info} with CV...")
                 print(f"Total evaluations: {len(work_items)} (workflows × groups)")
             else:
-                print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflow-group combinations")
+                print(f"{info} with CV...")
 
             joblib_verbose = 10 if verbose else 0
-            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
                 delayed(self._fit_single_workflow_group_resamples)(wf_id, wf, group_name, cv_splits, group_col, metrics)
                 for wf_id, wf, group_name, cv_splits, group_col, metrics in work_items
             )
@@ -985,10 +1022,18 @@ class WorkflowSet:
             for group_name in groups
         ]
 
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
         # Sequential or parallel execution
-        if n_jobs is None or n_jobs == 1:
+        if effective_n_jobs == 1:
             if verbose:
-                print(f"Fitting {len(self.workflows)} global workflows with per-group CV across {len(groups)} groups (sequential)...")
+                info = format_parallel_info(1, len(work_items), "global workflow evaluations")
+                print(f"{info} with per-group CV across {len(groups)} groups...")
                 print(f"Total evaluations: {len(work_items)} (workflows × groups)")
                 print()
 
@@ -1005,12 +1050,14 @@ class WorkflowSet:
                     print(f"  [{workflow_num}/{len(self.workflows)}] {wf_id} - [{group_num}/{len(groups)}] {group_name} ✓")
         else:
             if verbose:
-                print(f"Fitting {len(self.workflows)} global workflows with per-group CV across {len(groups)} groups (n_jobs={n_jobs})...")
+                info = format_parallel_info(effective_n_jobs, len(work_items), "global workflow evaluations")
+                print(f"{info} with per-group CV across {len(groups)} groups...")
                 print(f"Total evaluations: {len(work_items)} (workflows × groups)")
                 print()
 
             joblib_verbose = 10 if verbose else 0
-            results = Parallel(n_jobs=n_jobs, verbose=joblib_verbose)(
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
                 delayed(self._fit_single_workflow_group_global)(
                     wf_id, wf, group_name, cv_splits, data_item, group_col_item, metrics_item
                 )
