@@ -78,6 +78,10 @@ from py_recipes.steps.filter_supervised import (
     StepSelectShap,
     StepSelectPermutation,
 )
+from py_recipes.steps.genetic_selection import (
+    step_select_genetic_algorithm,
+    StepSelectGeneticAlgorithm,
+)
 from py_recipes.steps.splitwise import (
     StepSplitwise,
 )
