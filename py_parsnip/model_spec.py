@@ -11,7 +11,7 @@ This separation ensures:
 """
 
 from dataclasses import dataclass, field, replace
-from typing import Dict, Any, Optional, Literal, Tuple
+from typing import Dict, Any, Optional, Literal, Tuple, Union
 import pandas as pd
 import warnings
 
@@ -651,6 +651,373 @@ class ModelFit:
         stats = reorder_stats_columns(stats, group_col=None)
 
         return outputs, coefficients, stats
+
+    def conformal_predict(
+        self,
+        new_data: pd.DataFrame,
+        alpha: Union[float, list] = 0.05,
+        method: str = 'auto',
+        calibration_data: Optional[pd.DataFrame] = None,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generate conformal prediction intervals.
+
+        Conformal prediction provides distribution-free uncertainty quantification
+        with finite-sample coverage guarantees. The intervals are valid under
+        the exchangeability assumption (i.i.d. or specific time series methods).
+
+        Parameters
+        ----------
+        new_data : DataFrame
+            Test data for predictions
+        alpha : float or list of float, default=0.05
+            Significance level(s). 0.05 gives 95% prediction intervals.
+            Can provide multiple values: [0.05, 0.1] for 95% and 90% intervals.
+        method : str, default='auto'
+            Conformal method to use:
+            - 'auto': Automatically select based on model type and data size
+            - 'split': Split conformal (O(1), best for large datasets)
+            - 'cv+': Cross-validation+ (O(K), balanced approach)
+            - 'jackknife+': Jackknife+ (O(n), data-efficient for small datasets)
+            - 'enbpi': Ensemble Batch Prediction Intervals (for time series)
+            - 'cqr': Conformalized Quantile Regression (for heteroscedastic data)
+        calibration_data : DataFrame, optional
+            Separate calibration dataset. If None, automatically splits from
+            training data stored in fit_data.
+        **kwargs : dict
+            Additional arguments passed to MAPIE:
+            - cv: Number of folds for CV+ (default: 5 for medium, 10 for large datasets)
+            - n_resamplings: Number of bootstrap samples for EnbPI (default: 10)
+            - n_jobs: Number of parallel jobs (default: -1, uses all CPUs)
+            - random_state: Random seed for reproducibility
+
+        Returns
+        -------
+        DataFrame
+            Predictions with conformal intervals:
+            - .pred: Point predictions
+            - .pred_lower: Lower bound (single alpha) or .pred_lower_{coverage}
+            - .pred_upper: Upper bound (single alpha) or .pred_upper_{coverage}
+            - .conf_method: Method used
+            - .conf_alpha: Significance level (single alpha only)
+            - .conf_coverage: Target coverage = 1 - alpha (single alpha only)
+
+        Examples
+        --------
+        Basic usage with automatic method selection:
+
+        >>> from py_parsnip import linear_reg
+        >>> spec = linear_reg()
+        >>> fit = spec.fit(train_data, 'y ~ x1 + x2')
+        >>> preds = fit.conformal_predict(test_data, alpha=0.05)
+        >>> print(preds[['.pred', '.pred_lower', '.pred_upper']].head())
+
+        Multiple confidence levels:
+
+        >>> preds = fit.conformal_predict(test_data, alpha=[0.05, 0.1, 0.2])
+        >>> # Returns 95%, 90%, and 80% intervals
+
+        Time series with EnbPI:
+
+        >>> from py_parsnip import prophet_reg
+        >>> fit = prophet_reg().fit(ts_data, 'sales ~ date')
+        >>> preds = fit.conformal_predict(
+        ...     test_data,
+        ...     method='enbpi',
+        ...     n_resamplings=10
+        ... )
+
+        With explicit calibration set:
+
+        >>> preds = fit.conformal_predict(
+        ...     test_data,
+        ...     calibration_data=calibration_set,
+        ...     method='split'
+        ... )
+
+        Notes
+        -----
+        **Coverage Guarantees:**
+        - Split, Jackknife-minmax: Exact 1-α coverage
+        - CV+, Jackknife+: At least 1-2α coverage
+        - EnbPI: Approximate 1-α for time series with distribution shifts
+
+        **Method Selection Guidelines:**
+        - Use 'enbpi' for ALL time series models (prophet, ARIMA, etc.)
+        - Use 'split' for large datasets (n > 10k) or expensive models
+        - Use 'cv+' for medium datasets (1k-10k)
+        - Use 'jackknife+' for small datasets (< 1k)
+
+        **Calibration Set Sizing:**
+        - Aim for 1000+ samples when possible
+        - Minimum 100 samples acceptable
+        - Typically use 10-20% of training data
+
+        References
+        ----------
+        - Vovk et al. (2005): Algorithmic Learning in a Random World
+        - Barber et al. (2021): Predictive inference with the jackknife+
+        - Xu & Xie (2021): Conformal Prediction Interval for Dynamic Time-Series
+        - Romano et al. (2019): Conformalized Quantile Regression
+        """
+        from py_parsnip.utils.conformal_utils import (
+            auto_select_method,
+            validate_conformal_params,
+            format_conformal_predictions,
+            get_mapie_cv_config,
+            is_time_series_model,
+            split_calibration_data,
+            split_calibration_time_series,
+            create_block_bootstrap,
+            estimate_seasonal_period
+        )
+        from mapie.regression import MapieRegressor, MapieTimeSeriesRegressor
+        import numpy as np
+
+        # Check if we already have a cached conformal wrapper
+        if hasattr(self, '_conformal_wrapper') and self._conformal_wrapper is not None:
+            # Use cached wrapper if method and alpha match
+            if (hasattr(self, '_conformal_method') and self._conformal_method == method and
+                hasattr(self, '_conformal_alpha') and self._conformal_alpha == alpha):
+                mapie_wrapper = self._conformal_wrapper
+                # Generate predictions with cached wrapper
+                X_test = self._prepare_features_for_mapie(new_data)
+                y_pred, y_intervals = mapie_wrapper.predict(
+                    X_test,
+                    alpha=alpha
+                )
+                return format_conformal_predictions(y_pred, y_intervals, alpha, method)
+
+        # Get training data from fit_data
+        # Try both 'training_data' and 'original_training_data' keys
+        if 'training_data' in self.fit_data:
+            train_data = self.fit_data['training_data']
+        elif 'original_training_data' in self.fit_data:
+            train_data = self.fit_data['original_training_data']
+        else:
+            raise ValueError(
+                "Training data not found in fit_data. "
+                "Conformal prediction requires access to training data. "
+                "Engines must store either 'training_data' or 'original_training_data' in fit_data."
+            )
+        n_train = len(train_data)
+
+        # Auto-select method if needed
+        if method == 'auto':
+            method = auto_select_method(
+                self.spec.model_type,
+                n_train,
+                is_time_series=None  # Will be auto-detected
+            )
+
+        # Validate parameters
+        validate_conformal_params(alpha, method, n_train)
+
+        # Handle calibration data
+        if calibration_data is None:
+            # Auto-split from training data
+            is_ts = is_time_series_model(self.spec.model_type)
+
+            if is_ts and 'date_col' in self.fit_data:
+                # Use temporal split for time series
+                train_subset, cal_data = split_calibration_time_series(
+                    train_data,
+                    self.fit_data['date_col'],
+                    calibration_size=kwargs.get('calibration_size', 0.15)
+                )
+            else:
+                # Use random split for cross-sectional data
+                formula = self.blueprint.formula if hasattr(self.blueprint, 'formula') else None
+                train_subset, cal_data = split_calibration_data(
+                    train_data,
+                    formula,
+                    calibration_size=kwargs.get('calibration_size', 0.15),
+                    random_state=kwargs.get('random_state', None)
+                )
+        else:
+            train_subset = train_data
+            cal_data = calibration_data
+
+        # Prepare data for MAPIE
+        X_train, y_train = self._prepare_data_for_mapie(train_subset)
+        X_cal, y_cal = self._prepare_data_for_mapie(cal_data)
+        X_test = self._prepare_features_for_mapie(new_data)
+
+        # Get MAPIE configuration
+        mapie_config = get_mapie_cv_config(method, len(train_subset), **kwargs)
+
+        # Create MAPIE wrapper
+        if method == 'enbpi':
+            # Time series specific wrapper
+            # Configure block bootstrap for temporal structure
+            if 'date_col' in self.fit_data:
+                seasonal_period = estimate_seasonal_period(
+                    train_data,
+                    self.fit_data['date_col']
+                )
+            else:
+                seasonal_period = kwargs.get('n_blocks', 10)
+
+            cv = create_block_bootstrap(
+                n_blocks=seasonal_period,
+                n_resamplings=mapie_config.get('n_resamplings', 10),
+                overlapping=False,
+                random_state=kwargs.get('random_state', None)
+            )
+
+            mapie_wrapper = MapieTimeSeriesRegressor(
+                estimator=self._create_sklearn_compatible_estimator(),
+                method='enbpi',
+                cv=cv,
+                agg_function='mean',
+                n_jobs=mapie_config.get('n_jobs', -1)
+            )
+        else:
+            # Standard regression wrapper
+            mapie_wrapper = MapieRegressor(
+                estimator=self._create_sklearn_compatible_estimator(),
+                method=mapie_config['method'],
+                cv=mapie_config.get('cv', 'split'),
+                n_jobs=mapie_config.get('n_jobs', -1)
+            )
+
+        # Fit MAPIE wrapper on training + calibration
+        X_full = pd.concat([X_train, X_cal], axis=0)
+        y_full = pd.concat([y_train, y_cal], axis=0)
+        mapie_wrapper.fit(X_full, y_full)
+
+        # Cache wrapper for future predictions
+        self._conformal_wrapper = mapie_wrapper
+        self._conformal_method = method
+        self._conformal_alpha = alpha
+
+        # Generate predictions with intervals
+        y_pred, y_intervals = mapie_wrapper.predict(X_test, alpha=alpha)
+
+        # Format and return
+        return format_conformal_predictions(y_pred, y_intervals, alpha, method)
+
+    def _prepare_data_for_mapie(self, data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+        """
+        Prepare data for MAPIE (features and outcome).
+
+        Parameters
+        ----------
+        data : DataFrame
+            Data with both features and outcome
+
+        Returns
+        -------
+        X : DataFrame
+            Features
+        y : Series
+            Outcome variable
+        """
+        from py_hardhat import mold
+
+        # Use mold() to get both predictors and outcomes
+        # (forge() is for prediction only, no outcomes)
+        molded = mold(self.blueprint.formula, data)
+
+        # Extract features and outcome
+        X = molded.predictors
+        y = molded.outcomes.iloc[:, 0]  # First outcome column
+
+        return X, y
+
+    def _prepare_features_for_mapie(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Prepare features for MAPIE prediction.
+
+        Parameters
+        ----------
+        data : DataFrame
+            New data with features
+
+        Returns
+        -------
+        X : DataFrame
+            Features
+        """
+        from py_hardhat import forge
+
+        forged = forge(data, self.blueprint)
+        return forged.predictors
+
+    def _create_sklearn_compatible_estimator(self) -> Any:
+        """
+        Create an sklearn-compatible estimator from the fitted model.
+
+        This wraps the fitted engine model in an sklearn-compatible interface
+        that MAPIE can use for refitting during calibration.
+
+        Returns
+        -------
+        estimator
+            sklearn-compatible estimator
+        """
+        from sklearn.base import BaseEstimator, RegressorMixin
+
+        # Get the fitted engine model
+        fitted_model = self.extract_fit_engine()
+
+        # Check if model is already sklearn-compatible
+        if hasattr(fitted_model, 'fit') and hasattr(fitted_model, 'predict'):
+            return fitted_model
+
+        # For non-sklearn models, create a wrapper
+        class EngineWrapper(BaseEstimator, RegressorMixin):
+            """Wrapper to make engine models sklearn-compatible."""
+
+            def __init__(self, model_fit):
+                self.model_fit = model_fit
+
+            def fit(self, X, y):
+                # Re-fit the model using the engine
+                # This is needed for conformal calibration
+                from py_parsnip.engine_registry import get_engine
+
+                engine = get_engine(
+                    self.model_fit.spec.model_type,
+                    self.model_fit.spec.engine
+                )
+
+                # Create temporary blueprint and molded data
+                from py_hardhat import mold
+                temp_data = X.copy()
+                temp_data['_outcome_'] = y
+
+                molded = mold('_outcome_ ~ .', temp_data)
+
+                # Fit engine
+                fit_data = engine.fit(self.model_fit.spec, molded)
+                self.fit_data_ = fit_data
+
+                return self
+
+            def predict(self, X):
+                # Use engine's predict method
+                from py_parsnip.engine_registry import get_engine
+                from py_hardhat import Blueprint
+
+                engine = get_engine(
+                    self.model_fit.spec.model_type,
+                    self.model_fit.spec.engine
+                )
+
+                # Create temporary ModelFit for prediction
+                from dataclasses import replace as dc_replace
+                temp_fit = dc_replace(self.model_fit, fit_data=self.fit_data_)
+
+                # Predict
+                from py_hardhat import forge
+                forged = forge(X, self.model_fit.blueprint)
+                preds = engine.predict(temp_fit, forged, type='numeric')
+
+                return preds['.pred'].values
+
+        return EngineWrapper(self)
 
 
 @dataclass
