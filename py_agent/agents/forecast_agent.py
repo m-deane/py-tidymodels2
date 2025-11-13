@@ -558,6 +558,70 @@ class ForecastAgent:
 
         return results
 
+    def iterate(
+        self,
+        data: pd.DataFrame,
+        request: str,
+        target_metric: str = 'rmse',
+        target_value: Optional[float] = None,
+        max_iterations: int = 5,
+        test_data: Optional[pd.DataFrame] = None,
+        formula: Optional[str] = None,
+        constraints: Optional[Dict] = None
+    ) -> tuple:
+        """
+        Autonomously iterate to improve workflow performance.
+
+        This is Phase 3.5: Autonomous Iteration.
+        The agent will try different approaches until target performance
+        is reached or maximum iterations exhausted.
+
+        Args:
+            data: Training data
+            request: Natural language description of forecasting task
+            target_metric: Metric to optimize ('rmse', 'mae', 'r_squared')
+            target_value: Target value to achieve (stops when reached)
+            max_iterations: Maximum iterations (default: 5)
+            test_data: Optional test data for evaluation
+            formula: Optional explicit formula
+            constraints: Optional constraints dict
+
+        Returns:
+            (best_workflow, iteration_history) tuple
+            - best_workflow: Best fitted workflow found
+            - iteration_history: List of IterationResult objects
+
+        Example:
+            >>> agent = ForecastAgent()
+            >>> best_wf, history = agent.iterate(
+            ...     data=train_data,
+            ...     request="Forecast daily sales with seasonality",
+            ...     target_metric='rmse',
+            ...     target_value=10.0,  # Stop when RMSE < 10
+            ...     max_iterations=5,
+            ...     test_data=test_data
+            ... )
+            >>> print(f"Best RMSE: {best_wf.extract_outputs()[2]['rmse'].iloc[0]:.2f}")
+            >>> print(f"Iterations: {len(history)}")
+        """
+        from py_agent.tools.autonomous_iteration import IterationLoop
+
+        loop = IterationLoop(
+            agent=self,
+            max_iterations=max_iterations,
+            target_metric=target_metric,
+            target_value=target_value,
+            verbose=self.verbose
+        )
+
+        return loop.iterate(
+            data=data,
+            request=request,
+            test_data=test_data,
+            formula=formula,
+            constraints=constraints
+        )
+
     def start_session(self) -> 'ConversationalSession':
         """
         Start conversational session for iterative workflow building.

@@ -44,7 +44,7 @@ AI agent system for automated time series forecasting workflow generation using 
 - ✅ **Phase 3.2 Complete**: Enhanced Recipe Generation - Intelligent 51-step selection!
 - ✅ **Phase 3.3 Complete**: Multi-Model WorkflowSet Orchestration - Automatic model comparison!
 - ✅ **Phase 3.4 Complete**: RAG knowledge base with 8 foundational forecasting examples!
-- ⏳ Phase 3.5: Autonomous iteration and self-improvement
+- ✅ **Phase 3.5 Complete**: Autonomous iteration with try-evaluate-improve loops!
 
 ## Quick Start
 
@@ -299,6 +299,125 @@ for lesson in lessons:
 - **Retrieval Speed**: Sub-100ms with caching, scalable to 500+ examples
 - **Extensible**: Easy to add new examples (JSON format), no code changes needed
 
+### Phase 3.5: Autonomous Iteration (Self-Improving Workflows)
+
+```python
+from py_agent import ForecastAgent
+import pandas as pd
+
+# Load your data
+train_data = pd.DataFrame({
+    'date': pd.date_range('2020-01-01', periods=500, freq='D'),
+    'sales': [...],  # Daily sales with seasonality
+    'temperature': [...],
+    'promotion': [...]
+})
+
+test_data = pd.DataFrame({
+    'date': pd.date_range('2021-05-15', periods=100, freq='D'),
+    'sales': [...],
+    'temperature': [...],
+    'promotion': [...]
+})
+
+# Initialize agent
+agent = ForecastAgent(verbose=True)
+
+# Autonomous iteration: Try multiple approaches until target reached
+best_workflow, history = agent.iterate(
+    data=train_data,
+    request="Forecast daily sales with seasonality",
+    target_metric='rmse',     # Optimize RMSE
+    target_value=10.0,        # Stop when RMSE < 10
+    max_iterations=5,         # Try up to 5 different approaches
+    test_data=test_data
+)
+
+# Agent automatically:
+# 1. Generates initial workflow with default recommendation
+# 2. Fits and evaluates on test data
+# 3. If performance unsatisfactory, diagnoses issues
+# 4. Tries different approaches (simpler model, regularization, more features, etc.)
+# 5. Stops when target reached or max iterations exhausted
+
+# Example iteration output:
+# 🔄 Starting autonomous iteration loop...
+#    Target: rmse < 10.0
+#    Max iterations: 5
+#
+# ============================================================
+# Iteration 1/5
+# ============================================================
+# 🎯 Approach: default_recommendation
+#    Fitting workflow...
+#    Evaluating on test data...
+#    RMSE: 15.234
+#    MAE: 12.456
+#    R²: 0.752
+# ⚠️  Issues detected: 1
+#    • overfitting: Train RMSE much lower than test
+#
+# ============================================================
+# Iteration 2/5
+# ============================================================
+# 🎯 Approach: regularization_or_simpler_model
+#    Fitting workflow...
+#    Evaluating on test data...
+#    RMSE: 11.234
+#    MAE: 9.123
+#    R²: 0.821
+# ✨ New best rmse: 11.234
+#
+# ============================================================
+# Iteration 3/5
+# ============================================================
+# 🎯 Approach: try_tree_based_model
+#    Fitting workflow...
+#    Evaluating on test data...
+#    RMSE: 9.456
+#    MAE: 7.234
+#    R²: 0.892
+# ✨ New best rmse: 9.456
+# ✅ Stopping: Target RMSE of 10.0 reached
+
+# Access best workflow
+print(f"Best RMSE: {best_workflow.extract_outputs()[2]['rmse'].iloc[0]:.2f}")
+
+# Analyze iteration history
+print(f"\nIterations: {len(history)}")
+for i, result in enumerate(history, 1):
+    print(f"{i}. {result.approach}: RMSE={result.performance.get('rmse', 'N/A'):.2f}, Success={result.success}")
+
+# Use best workflow for predictions
+predictions = best_workflow.predict(future_data)
+```
+
+**Iteration Approaches (Automatic Selection)**
+
+The agent automatically tries different approaches based on detected issues:
+
+1. **default_recommendation** (Iteration 1): Agent's best guess based on data analysis
+2. **regularization_or_simpler_model**: If overfitting detected
+3. **more_complex_model_or_features**: If underfitting detected
+4. **try_tree_based_model**: Try gradient boosting or random forest
+5. **try_time_series_model**: Try Prophet or ARIMA
+6. **try_ensemble_or_boosting**: Try ensemble methods
+7. **try_advanced_preprocessing**: Add polynomial features, interactions, PCA
+
+**Stopping Criteria**
+
+Iteration stops when:
+- **Target reached**: Performance meets or exceeds target value
+- **No improvement**: Less than 5% improvement over previous best
+- **Max iterations**: Maximum number of iterations exhausted
+
+**Key Benefits:**
+- **Autonomous Improvement**: Agent tries multiple approaches automatically
+- **Self-Debugging**: Detects overfitting, underfitting, and other issues
+- **Adaptive Strategies**: Different approaches based on previous results
+- **Performance Guarantees**: Stops when target performance reached
+- **Time Efficient**: Avoids manual trial-and-error (hours → minutes)
+
 ## Architecture
 
 ### Core Components
@@ -310,6 +429,7 @@ py_agent/
 │   ├── model_selection.py          # Model recommendation engine
 │   ├── recipe_generation.py        # Preprocessing recipe creation (Phase 3.2: 51 steps)
 │   ├── multi_model_orchestration.py # Multi-model comparison (Phase 3.3)
+│   ├── autonomous_iteration.py     # Autonomous iteration loops (Phase 3.5)
 │   ├── workflow_execution.py       # Workflow fitting and evaluation
 │   └── diagnostics.py              # Performance analysis
 │
@@ -367,6 +487,16 @@ py_agent/
   - `get_preprocessing_insights()` - Extract preprocessing strategies
   - `get_key_lessons()` - Extract key lessons learned
 - `create_foundational_examples()` - Load 8 foundational forecasting examples
+
+#### Autonomous Iteration Tools (Phase 3.5)
+- `IterationLoop` - Autonomous try-evaluate-improve loop
+  - `iterate()` - Iteratively improve workflow until target or max iterations
+  - Automatic approach selection based on previous issues
+  - Performance-based stopping criteria
+- `IterationResult` - Result from single iteration attempt
+  - Tracks performance, issues, approach, success/failure
+  - Includes duration and error information
+- `iterate_until_target()` - Convenience function for autonomous iteration
 
 #### Workflow Execution Tools
 - `fit_workflow()` - Execute workflow on data
