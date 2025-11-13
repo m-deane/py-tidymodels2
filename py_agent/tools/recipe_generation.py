@@ -2,7 +2,8 @@
 Recipe generation tools for creating preprocessing pipelines.
 
 These tools generate py-recipes code based on data characteristics,
-model requirements, and domain knowledge.
+model requirements, and domain knowledge. Intelligently selects from
+all 51 available recipe steps for optimal preprocessing.
 """
 
 from typing import Dict, List, Optional
