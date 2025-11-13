@@ -456,7 +456,8 @@ class TestWorkflowSetLargeScaleGrouped:
 
         # 12 workflows × 3 groups = 36 models
         metrics_by_group = results.collect_metrics(by_group=True, split='train')
-        assert len(metrics_by_group) == 36
+        unique_combos = metrics_by_group[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == 36
 
         # Get top 5 overall
         ranked = results.rank_results('rmse', split='train', by_group=False, n=5)
@@ -476,7 +477,8 @@ class TestWorkflowSetLargeScaleGrouped:
         results = wf_set.fit_nested(data, group_col='country')
 
         metrics_by_group = results.collect_metrics(by_group=True, split='train')
-        assert len(metrics_by_group) == 20
+        unique_combos = metrics_by_group[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == 20
 
         # Best per group
         best_by_group = results.extract_best_workflow('rmse', split='train', by_group=True)
@@ -531,9 +533,10 @@ class TestWorkflowSetEdgeCases:
 
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
-        # Should still work
+        # Should still work - 1 workflow with multiple metrics
         metrics = results.collect_metrics(by_group=False, split='train')
-        assert len(metrics) == 1
+        unique_workflows = metrics['wflow_id'].nunique()
+        assert unique_workflows == 1
 
     def test_many_workflows_single_group(self, refinery_data_small_groups):
         """Test many workflows on single group."""
@@ -550,7 +553,8 @@ class TestWorkflowSetEdgeCases:
 
         # 4 workflows × 1 group = 4 models
         metrics_by_group = results.collect_metrics(by_group=True, split='train')
-        assert len(metrics_by_group) == 4
+        unique_combos = metrics_by_group[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == 4
 
         # Best overall
         best = results.extract_best_workflow('rmse', split='train', by_group=False)
