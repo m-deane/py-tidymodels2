@@ -44,6 +44,13 @@ from .tune_race_win_loss import (
     tune_race_win_loss,
 )
 
+from .sim_anneal import (
+    # Simulated Annealing
+    tune_sim_anneal,
+    SimAnnealControl,
+    control_sim_anneal,
+)
+
 __all__ = [
     # Parameter Markers
     "tune",
@@ -58,6 +65,7 @@ __all__ = [
     "tune_grid",
     "tune_race_anova",
     "tune_race_win_loss",
+    "tune_sim_anneal",
 
     # Results
     "TuneResults",
@@ -67,6 +75,10 @@ __all__ = [
     "control_race",
     "filter_parameters_anova",
     "filter_parameters_bt",
+
+    # Simulated Annealing Control
+    "SimAnnealControl",
+    "control_sim_anneal",
 
     # Workflow Finalization
     "finalize_workflow",
