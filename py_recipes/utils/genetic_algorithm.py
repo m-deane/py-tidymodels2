@@ -25,6 +25,9 @@ class GAConfig:
     adaptive_mutation: bool = False
     adaptive_crossover: bool = False
     n_jobs: int = 1
+    maintain_diversity: bool = False
+    diversity_threshold: float = 0.3
+    fitness_sharing_sigma: float = 0.5
     random_state: Optional[int] = None
     verbose: bool = False
 
@@ -48,6 +51,10 @@ class GAConfig:
             raise ValueError("convergence_patience must be >= 1")
         if self.n_jobs < -1 or self.n_jobs == 0:
             raise ValueError("n_jobs must be -1 (all cores), or >= 1")
+        if not (0 <= self.diversity_threshold <= 1):
+            raise ValueError("diversity_threshold must be in [0, 1]")
+        if self.fitness_sharing_sigma <= 0:
+            raise ValueError("fitness_sharing_sigma must be > 0")
 
 
 class GeneticAlgorithm:
@@ -162,6 +169,10 @@ class GeneticAlgorithm:
         self.current_crossover_rate_: float = self.config.crossover_rate
         self.mutation_rate_history_: List[float] = []
         self.crossover_rate_history_: List[float] = []
+
+        # Diversity tracking
+        self.diversity_history_: List[float] = []
+        self.shared_fitness_scores_: Optional[np.ndarray] = None
 
     def initialize_population(self) -> np.ndarray:
         """
@@ -481,6 +492,109 @@ class GeneticAlgorithm:
         self.mutation_rate_history_.append(self.current_mutation_rate_)
         self.crossover_rate_history_.append(self.current_crossover_rate_)
 
+    def calculate_hamming_distance(
+        self,
+        chromosome1: np.ndarray,
+        chromosome2: np.ndarray
+    ) -> float:
+        """
+        Calculate Hamming distance between two binary chromosomes.
+
+        Hamming distance is the number of positions at which bits differ.
+        Normalized by chromosome length to get a value in [0, 1].
+
+        Parameters
+        ----------
+        chromosome1 : np.ndarray
+            First chromosome
+        chromosome2 : np.ndarray
+            Second chromosome
+
+        Returns
+        -------
+        distance : float
+            Normalized Hamming distance in [0, 1]
+        """
+        return np.sum(chromosome1 != chromosome2) / self.n_features
+
+    def calculate_diversity(self, population: np.ndarray) -> float:
+        """
+        Calculate population diversity using average pairwise Hamming distance.
+
+        Higher values indicate more diverse population.
+
+        Parameters
+        ----------
+        population : np.ndarray
+            Population matrix (population_size × n_features)
+
+        Returns
+        -------
+        diversity : float
+            Average pairwise Hamming distance in [0, 1]
+        """
+        n_individuals = len(population)
+        if n_individuals <= 1:
+            return 0.0
+
+        # Calculate pairwise distances
+        total_distance = 0.0
+        n_pairs = 0
+
+        for i in range(n_individuals):
+            for j in range(i + 1, n_individuals):
+                total_distance += self.calculate_hamming_distance(
+                    population[i], population[j]
+                )
+                n_pairs += 1
+
+        return total_distance / n_pairs if n_pairs > 0 else 0.0
+
+    def apply_fitness_sharing(
+        self,
+        population: np.ndarray,
+        fitness_scores: np.ndarray
+    ) -> np.ndarray:
+        """
+        Apply fitness sharing to maintain diversity.
+
+        Reduces fitness of similar individuals based on their distance.
+        Uses a Gaussian sharing function.
+
+        Parameters
+        ----------
+        population : np.ndarray
+            Population matrix (population_size × n_features)
+        fitness_scores : np.ndarray
+            Original fitness scores
+
+        Returns
+        -------
+        shared_fitness : np.ndarray
+            Fitness scores after sharing
+        """
+        n_individuals = len(population)
+        shared_fitness = fitness_scores.copy()
+
+        # Calculate sharing denominator for each individual
+        for i in range(n_individuals):
+            niche_count = 0.0
+
+            # Sum sharing over all other individuals
+            for j in range(n_individuals):
+                distance = self.calculate_hamming_distance(population[i], population[j])
+
+                # Gaussian sharing function
+                if distance < self.config.fitness_sharing_sigma:
+                    sharing = np.exp(-(distance ** 2) / (2 * self.config.fitness_sharing_sigma ** 2))
+                    niche_count += sharing
+
+            # Reduce fitness based on niche count
+            if niche_count > 0:
+                shared_fitness[i] = fitness_scores[i] / niche_count
+
+        return shared_fitness
+
     def evolve(self) -> Tuple[np.ndarray, float, List[float]]:
         """
         Run the genetic algorithm evolution process.
@@ -498,6 +612,13 @@ class GeneticAlgorithm:
         self.population_ = self.initialize_population()
         self.fitness_scores_ = self.evaluate_population(self.population_)
 
+        # Calculate initial diversity
+        if self.config.maintain_diversity:
+            initial_diversity = self.calculate_diversity(self.population_)
+            self.diversity_history_ = [initial_diversity]
+        else:
+            self.diversity_history_ = []
+
         # Track best individual
         best_idx = np.argmax(self.fitness_scores_)
         self.best_chromosome_ = self.population_[best_idx].copy()
@@ -506,6 +627,8 @@ class GeneticAlgorithm:
 
         if self.config.verbose:
             print(f"Generation 0: Best fitness = {self.best_fitness_:.6f}")
+            if self.config.maintain_diversity:
+                print(f"  Diversity = {initial_diversity:.4f}")
 
         # Evolution loop
         for generation in range(1, self.config.generations + 1):
@@ -539,6 +662,31 @@ class GeneticAlgorithm:
                 new_population, new_fitness
             )
 
+            # Maintain diversity through fitness sharing if enabled
+            if self.config.maintain_diversity:
+                current_diversity = self.calculate_diversity(self.population_)
+                self.diversity_history_.append(current_diversity)
+
+                # Apply fitness sharing if diversity drops below threshold
+                if current_diversity < self.config.diversity_threshold:
+                    self.shared_fitness_scores_ = self.apply_fitness_sharing(
+                        self.population_, self.fitness_scores_
+                    )
+                    # Use shared fitness for selection in next generation
+                    # (We replace fitness_scores_ temporarily for selection)
+                    original_fitness = self.fitness_scores_.copy()
+                    self.fitness_scores_ = self.shared_fitness_scores_
+
+                    if self.config.verbose and generation % 10 == 0:
+                        print(f"  Applied fitness sharing (diversity={current_diversity:.4f})")
+                else:
+                    # Reset shared fitness when not needed
+                    self.shared_fitness_scores_ = None
+                    # Restore original fitness if it was replaced
+                    if hasattr(self, '_original_fitness_backup'):
+                        self.fitness_scores_ = self._original_fitness_backup
+                        delattr(self, '_original_fitness_backup')
+
             # Update best individual
             best_idx = np.argmax(self.fitness_scores_)
             if self.fitness_scores_[best_idx] > self.best_fitness_:
@@ -556,7 +704,10 @@ class GeneticAlgorithm:
                 self.adapt_rates()
 
             if self.config.verbose and generation % 10 == 0:
-                print(f"Generation {generation}: Best fitness = {self.best_fitness_:.6f}")
+                msg = f"Generation {generation}: Best fitness = {self.best_fitness_:.6f}"
+                if self.config.maintain_diversity and len(self.diversity_history_) > 0:
+                    msg += f", Diversity = {self.diversity_history_[-1]:.4f}"
+                print(msg)
 
             # Check convergence
             if self.check_convergence():

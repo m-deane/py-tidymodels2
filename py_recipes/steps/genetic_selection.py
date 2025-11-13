@@ -136,6 +136,9 @@ class StepSelectGeneticAlgorithm:
     n_ensemble: int = 1
     ensemble_strategy: str = "voting"
     ensemble_threshold: float = 0.5
+    maintain_diversity: bool = False
+    diversity_threshold: float = 0.3
+    fitness_sharing_sigma: float = 0.5
     use_nsga2: bool = False
     nsga2_objectives: List[str] = field(default_factory=lambda: ["performance", "sparsity"])
     nsga2_selection_method: str = "knee_point"  # "knee_point", "min_features", "best_performance", "index"
@@ -156,6 +159,7 @@ class StepSelectGeneticAlgorithm:
     _is_prepared: bool = field(default=False, init=False, repr=False)
     _ensemble_results: List[Dict[str, Any]] = field(default_factory=list, init=False, repr=False)
     _feature_frequencies: Dict[str, int] = field(default_factory=dict, init=False, repr=False)
+    _diversity_history: List[float] = field(default_factory=list, init=False, repr=False)
     _pareto_front: np.ndarray = field(default=None, init=False, repr=False)
     _pareto_objectives: np.ndarray = field(default=None, init=False, repr=False)
     _pareto_indices: List[int] = field(default_factory=list, init=False, repr=False)
@@ -186,6 +190,13 @@ class StepSelectGeneticAlgorithm:
 
         if not (0 < self.ensemble_threshold <= 1.0):
             raise ValueError("ensemble_threshold must be in (0, 1]")
+
+        # Diversity maintenance validation
+        if not (0 <= self.diversity_threshold <= 1):
+            raise ValueError("diversity_threshold must be in [0, 1]")
+
+        if self.fitness_sharing_sigma <= 0:
+            raise ValueError("fitness_sharing_sigma must be > 0")
 
         if self.use_nsga2:
             if len(self.nsga2_objectives) < 2:
@@ -357,6 +368,9 @@ class StepSelectGeneticAlgorithm:
             adaptive_mutation=self.adaptive_mutation,
             adaptive_crossover=self.adaptive_crossover,
             n_jobs=self.n_jobs,
+            maintain_diversity=self.maintain_diversity,
+            diversity_threshold=self.diversity_threshold,
+            fitness_sharing_sigma=self.fitness_sharing_sigma,
             random_state=self.random_state,
             verbose=self.verbose
         )
@@ -483,6 +497,7 @@ class StepSelectGeneticAlgorithm:
             # Store Pareto front results
             best_fitness = -pareto_objectives[selected_idx, 0] if self.maximize else pareto_objectives[selected_idx, 0]
             history = []  # NSGA-II doesn't have single fitness history
+            diversity_history = []  # NSGA-II uses crowding distance instead
 
             # Store for prepared instance
             ensemble_results = []
@@ -523,6 +538,9 @@ class StepSelectGeneticAlgorithm:
             selected_indices = np.where(best_chromosome == 1)[0]
             selected_features = [numeric_cols[i] for i in selected_indices]
 
+            # Capture diversity history if enabled
+            diversity_history = ga.diversity_history_ if self.maintain_diversity else []
+
             # Initialize for consistency with other modes
             pareto_front_storage = None
             pareto_objectives_storage = None
@@ -532,6 +550,7 @@ class StepSelectGeneticAlgorithm:
             if self.verbose:
                 print(f"\nRunning ensemble with {self.n_ensemble} GA instances...")
 
+            ensemble_results = []
             all_selected_features = []
             feature_frequency = {feat: 0 for feat in numeric_cols}
 
@@ -611,6 +630,10 @@ class StepSelectGeneticAlgorithm:
             best_fitness = best_run['fitness']
             history = best_run['history']
 
+            # For ensemble mode, use empty diversity history (each run has its own)
+            # Diversity history is stored per-run in ensemble_results if needed
+            diversity_history = []
+
             # Initialize for consistency with other modes
             pareto_front_storage = None
             pareto_objectives_storage = None
@@ -660,6 +683,7 @@ class StepSelectGeneticAlgorithm:
         prepared._ga_history = history
         prepared._final_fitness = best_fitness
         prepared._best_chromosome = best_chromosome
+        prepared._diversity_history = diversity_history
 
         if self.use_nsga2:
             prepared._converged = False  # NSGA-II doesn't have convergence
@@ -854,6 +878,9 @@ def step_select_genetic_algorithm(
     n_ensemble: int = 1,
     ensemble_strategy: str = "voting",
     ensemble_threshold: float = 0.5,
+    maintain_diversity: bool = False,
+    diversity_threshold: float = 0.3,
+    fitness_sharing_sigma: float = 0.5,
     use_nsga2: bool = False,
     nsga2_objectives: List[str] = None,
     nsga2_selection_method: str = "knee_point",
@@ -990,6 +1017,9 @@ def step_select_genetic_algorithm(
         n_ensemble=n_ensemble,
         ensemble_strategy=ensemble_strategy,
         ensemble_threshold=ensemble_threshold,
+        maintain_diversity=maintain_diversity,
+        diversity_threshold=diversity_threshold,
+        fitness_sharing_sigma=fitness_sharing_sigma,
         use_nsga2=use_nsga2,
         nsga2_objectives=nsga2_objectives,
         nsga2_selection_method=nsga2_selection_method,
