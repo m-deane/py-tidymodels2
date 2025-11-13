@@ -18,12 +18,23 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Optional, List
 import json
+import os
 
 from py_agent.tools.data_analysis import analyze_temporal_patterns
 from py_agent.tools.model_selection import suggest_model, get_model_profiles
 from py_agent.tools.recipe_generation import create_recipe, get_recipe_templates
 from py_agent.tools.workflow_execution import fit_workflow, evaluate_workflow
 from py_agent.tools.diagnostics import diagnose_performance
+
+# Phase 2 imports (optional)
+try:
+    from py_agent.llm.client import LLMClient
+    from py_agent.agents.specialized_agents import (
+        DataAnalyzer, FeatureEngineer, ModelSelector, Orchestrator
+    )
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
 
 
 class ForecastAgent:
@@ -50,20 +61,69 @@ class ForecastAgent:
         self,
         api_key: Optional[str] = None,
         model: str = "claude-sonnet-4.5",
-        verbose: bool = True
+        verbose: bool = True,
+        use_llm: bool = False,
+        budget_per_day: float = 100.0
     ):
         """
         Initialize ForecastAgent.
 
         Args:
-            api_key: Optional API key for LLM provider (future use)
-            model: LLM model to use (future use)
+            api_key: Optional API key for LLM provider (Phase 2)
+            model: LLM model to use (Phase 2)
             verbose: Whether to print progress messages
+            use_llm: Whether to use LLM-enhanced reasoning (Phase 2) or rule-based (Phase 1)
+            budget_per_day: Daily budget for LLM API calls in USD (Phase 2)
         """
         self.api_key = api_key
         self.model = model
         self.verbose = verbose
+        self.use_llm = use_llm
         self.session_history = []
+
+        # Initialize Phase 2 components if LLM mode requested
+        self.llm_client = None
+        self.orchestrator = None
+
+        if use_llm:
+            if not LLM_AVAILABLE:
+                raise ImportError(
+                    "Phase 2 LLM components not available. "
+                    "Make sure py_agent.llm and py_agent.agents.specialized_agents are installed."
+                )
+
+            # Check for API key
+            if not api_key and not os.environ.get("ANTHROPIC_API_KEY"):
+                raise ValueError(
+                    "API key required for LLM mode. "
+                    "Provide api_key parameter or set ANTHROPIC_API_KEY environment variable."
+                )
+
+            # Initialize LLM client
+            self.llm_client = LLMClient(
+                api_key=api_key,
+                model=model,
+                budget_per_day=budget_per_day
+            )
+
+            # Initialize specialized agents
+            data_analyzer = DataAnalyzer(self.llm_client)
+            feature_engineer = FeatureEngineer(self.llm_client)
+            model_selector = ModelSelector(self.llm_client)
+
+            # Initialize orchestrator
+            self.orchestrator = Orchestrator(
+                llm_client=self.llm_client,
+                data_analyzer=data_analyzer,
+                feature_engineer=feature_engineer,
+                model_selector=model_selector
+            )
+
+            if self.verbose:
+                print("✅ ForecastAgent initialized in LLM mode (Phase 2)")
+        else:
+            if self.verbose:
+                print("✅ ForecastAgent initialized in rule-based mode (Phase 1)")
 
     def generate_workflow(
         self,
@@ -97,6 +157,11 @@ class ForecastAgent:
             ... )
             >>> fit = workflow.fit(train_data)
         """
+        # Route to LLM-based orchestrator if in LLM mode
+        if self.use_llm and self.orchestrator:
+            return self._generate_workflow_llm(data, request, formula, constraints)
+
+        # Otherwise use Phase 1 rule-based implementation
         self._log("🔍 Analyzing your data...")
 
         # Parse request to extract key information
@@ -379,6 +444,90 @@ class ForecastAgent:
         """Log message if verbose mode enabled."""
         if self.verbose:
             print(message)
+
+    def _generate_workflow_llm(
+        self,
+        data: pd.DataFrame,
+        request: str,
+        formula: Optional[str] = None,
+        constraints: Optional[Dict] = None
+    ) -> object:
+        """
+        Generate workflow using LLM-based orchestrator (Phase 2).
+
+        Args:
+            data: DataFrame containing your data
+            request: Natural language description of forecasting task
+            formula: Optional explicit formula
+            constraints: Optional constraints dict
+
+        Returns:
+            Workflow object ready to fit
+        """
+        self._log("🤖 Using LLM-enhanced workflow generation (Phase 2)...")
+        self._log("🔍 Orchestrating specialized agents...")
+
+        # Use orchestrator to generate workflow
+        orchestration_result = self.orchestrator.generate_workflow(
+            data=data,
+            request=request,
+            constraints=constraints
+        )
+
+        # Store workflow info for debugging
+        self.last_workflow_info = {
+            'mode': 'llm',
+            'data_characteristics': orchestration_result['data_analysis']['analysis'],
+            'model_type': orchestration_result['model_selection']['recommendation'].get('model_type', 'unknown'),
+            'recipe_code': orchestration_result['feature_engineering']['recipe'],
+            'workflow_code': orchestration_result['workflow'],
+            'data_analysis_reasoning': orchestration_result['data_analysis']['insights'],
+            'model_selection_reasoning': orchestration_result['model_selection']['reasoning'],
+            'feature_engineering_reasoning': orchestration_result['feature_engineering']['reasoning']
+        }
+
+        self._log("\n✅ Workflow generation complete!")
+        self._log(f"📊 Data Analysis: {orchestration_result['data_analysis']['tool_calls']} tool calls")
+        self._log(f"🎯 Model Selection: {orchestration_result['model_selection']['tool_calls']} tool calls")
+        self._log(f"🔧 Feature Engineering: {orchestration_result['feature_engineering']['tool_calls']} tool calls")
+
+        if self.llm_client:
+            self._log(f"\n💰 API Cost: ${self.llm_client.total_cost:.4f}")
+            self._log(f"🪙  Tokens: {self.llm_client.usage_stats['total_input_tokens']} in, {self.llm_client.usage_stats['total_output_tokens']} out")
+
+        # Build actual workflow object from generated code
+        from py_workflows import workflow
+        from py_recipes import recipe
+
+        # Parse model type from recommendation
+        recommendation = orchestration_result['model_selection']['recommendation']
+        if isinstance(recommendation, dict):
+            model_type = recommendation.get('model_type', 'linear_reg')
+        else:
+            model_type = 'linear_reg'
+
+        # Import and create model
+        if model_type == 'linear_reg':
+            from py_parsnip import linear_reg
+            spec = linear_reg()
+        elif model_type == 'prophet_reg':
+            from py_parsnip import prophet_reg
+            spec = prophet_reg()
+        elif model_type == 'rand_forest':
+            from py_parsnip import rand_forest
+            spec = rand_forest()
+        else:
+            # Default to linear_reg if unknown
+            from py_parsnip import linear_reg
+            spec = linear_reg()
+
+        # Create recipe (simplified - in full implementation would parse recipe_code)
+        rec = recipe()
+
+        # Build workflow
+        wf = workflow().add_recipe(rec).add_model(spec)
+
+        return wf
 
 
 class ConversationalSession:

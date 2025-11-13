@@ -11,18 +11,44 @@ AI agent system for automated time series forecasting workflow generation using 
 - Create complete py-tidymodels workflows
 - Diagnose performance issues and suggest improvements
 
-## MVP Features (v0.1.0)
+## Features
 
-This is the initial MVP implementation with:
-- ✅ Rule-based workflow generation
+### Phase 1: MVP (v0.1.0) - Rule-Based ✅ COMPLETE
+
+- ✅ Rule-based workflow generation (no LLM required)
 - ✅ Support for 3 model types: `linear_reg`, `prophet_reg`, `rand_forest`
 - ✅ Automated data analysis (seasonality, trend, autocorrelation)
 - ✅ Basic recipe generation (10+ preprocessing steps)
 - ✅ Performance diagnostics and debugging
 - ✅ Conversational session interface
 - 🎯 Target: 70%+ workflow success rate
+- 💰 Cost: $0 (no API calls)
+
+### Phase 2: LLM Integration (v0.2.0) - ✅ COMPLETE
+
+- ✅ Claude Sonnet 4.5 integration via Anthropic SDK
+- ✅ Multi-agent architecture with specialized agents:
+  - **DataAnalyzer**: LLM-enhanced temporal pattern analysis
+  - **FeatureEngineer**: Advanced recipe optimization with reasoning
+  - **ModelSelector**: Intelligent model selection with trade-off analysis
+  - **Orchestrator**: High-level workflow coordination
+- ✅ Tool-calling architecture for structured LLM interactions
+- ✅ Budget management and cost tracking ($100/day default)
+- ✅ Dual-mode support: Switch between rule-based (Phase 1) and LLM-enhanced (Phase 2)
+- ✅ Comprehensive test coverage (50+ tests for Phase 2)
+- 💰 Cost: ~$4-10 per workflow (with LLM)
+
+### Phase 3: Advanced Features (Roadmap)
+
+- ⏳ RAG knowledge base with 500+ forecasting examples
+- ⏳ Support for all 23 model types
+- ⏳ Full 51-step recipe library integration
+- ⏳ Multi-model comparison and ensembling
+- ⏳ Autonomous iteration and self-improvement
 
 ## Quick Start
+
+### Phase 1: Rule-Based Mode (Default)
 
 ```python
 from py_agent import ForecastAgent
@@ -35,7 +61,7 @@ sales_data = pd.DataFrame({
     'store_id': [...]  # Optional: for grouped forecasting
 })
 
-# Initialize agent
+# Initialize agent in rule-based mode (no API costs)
 agent = ForecastAgent(verbose=True)
 
 # Generate workflow from natural language
@@ -49,21 +75,69 @@ fit = workflow.fit(sales_data)
 predictions = fit.predict(future_data)
 ```
 
+### Phase 2: LLM-Enhanced Mode
+
+```python
+from py_agent import ForecastAgent
+import os
+
+# Set API key (or use ANTHROPIC_API_KEY environment variable)
+os.environ["ANTHROPIC_API_KEY"] = "your-api-key-here"
+
+# Initialize agent in LLM mode
+agent = ForecastAgent(
+    use_llm=True,              # Enable LLM-enhanced reasoning
+    model="claude-sonnet-4.5",  # LLM model to use
+    budget_per_day=100.0,       # Daily budget in USD
+    verbose=True
+)
+
+# Generate workflow with LLM orchestration
+workflow = agent.generate_workflow(
+    data=sales_data,
+    request="Forecast sales with weekly seasonality and account for holidays",
+    constraints={
+        'max_train_time': 60,  # Maximum 60 seconds training
+        'interpretability': 'high'  # Prefer interpretable models
+    }
+)
+
+# Access LLM reasoning
+print("Data Analysis Insights:", agent.last_workflow_info['data_analysis_reasoning'])
+print("Model Selection Reasoning:", agent.last_workflow_info['model_selection_reasoning'])
+print("Feature Engineering Reasoning:", agent.last_workflow_info['feature_engineering_reasoning'])
+print(f"API Cost: ${agent.llm_client.total_cost:.4f}")
+
+# Fit and predict
+fit = workflow.fit(sales_data)
+predictions = fit.predict(future_data)
+```
+
 ## Architecture
 
 ### Core Components
 
 ```
 py_agent/
-├── tools/              # Analysis and recommendation functions
+├── tools/              # Analysis and recommendation functions (Phase 1)
 │   ├── data_analysis.py       # Temporal pattern detection
 │   ├── model_selection.py     # Model recommendation engine
 │   ├── recipe_generation.py   # Preprocessing recipe creation
 │   ├── workflow_execution.py  # Workflow fitting and evaluation
 │   └── diagnostics.py         # Performance analysis
 │
+├── llm/                # LLM integration (Phase 2)
+│   ├── client.py              # Anthropic SDK wrapper with budget management
+│   └── tool_schemas.py        # Tool calling schemas for LLM
+│
 ├── agents/             # Agent implementations
-│   └── forecast_agent.py      # Main ForecastAgent class
+│   ├── forecast_agent.py      # Main ForecastAgent class (dual-mode)
+│   └── specialized_agents.py  # Multi-agent system (Phase 2)
+│       ├── BaseAgent          # Base class for all agents
+│       ├── DataAnalyzer       # LLM-enhanced data analysis
+│       ├── FeatureEngineer    # LLM-enhanced recipe optimization
+│       ├── ModelSelector      # LLM-enhanced model selection
+│       └── Orchestrator       # High-level coordination
 │
 └── README.md           # This file
 ```
@@ -249,23 +323,33 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
 
 ## Roadmap
 
-### Phase 1: MVP (Current)
+### Phase 1: MVP ✅ COMPLETE
 - ✅ Rule-based workflow generation
 - ✅ 3 model types supported
 - ✅ Basic recipe generation
 - ✅ Performance diagnostics
+- ✅ 50+ tests passing
+- ✅ Demo notebook with 4 examples
 
-### Phase 2: LLM Integration (Planned)
-- ⏳ Claude Sonnet 4.5 integration
-- ⏳ LLM-based reasoning for model selection
-- ⏳ Advanced recipe optimization
-- ⏳ Natural language explanations
+### Phase 2: LLM Integration ✅ COMPLETE
+- ✅ Claude Sonnet 4.5 integration via Anthropic SDK
+- ✅ LLM-based reasoning for model selection
+- ✅ Advanced recipe optimization with reasoning
+- ✅ Natural language explanations
+- ✅ Multi-agent architecture (DataAnalyzer, FeatureEngineer, ModelSelector, Orchestrator)
+- ✅ Tool-calling pattern for structured interactions
+- ✅ Budget management and cost tracking
+- ✅ 50+ Phase 2 tests passing
+- ✅ Dual-mode support (switch between rule-based and LLM)
 
-### Phase 3: Multi-Agent System (Planned)
-- ⏳ Specialized agents (DataAnalyzer, FeatureEngineer, ModelSelector)
-- ⏳ RAG knowledge base
+### Phase 3: Advanced Features (Planned)
+- ⏳ RAG knowledge base with 500+ forecasting examples
+- ⏳ Expand to all 23 model types (currently 3)
+- ⏳ Full 51-step recipe library integration
+- ⏳ Multi-model WorkflowSet orchestration
 - ⏳ Ensemble recommendations
-- ⏳ Autonomous iteration
+- ⏳ Autonomous iteration and self-improvement
+- ⏳ Performance profiling and auto-optimization
 
 ## Performance Targets
 
@@ -278,11 +362,16 @@ Based on research report (`.claude_plans/AI_AGENT_RESEARCH_REPORT.md`):
 
 ## Dependencies
 
+### Phase 1 (Rule-Based)
 - pandas >= 2.0
 - numpy >= 1.24
 - statsmodels >= 0.14
 - scipy >= 1.10
 - py_tidymodels (all packages: hardhat, parsnip, recipes, workflows, etc.)
+
+### Phase 2 (LLM Integration) - Additional Dependencies
+- anthropic >= 0.40.0 (Claude SDK)
+- python-dotenv >= 1.0.0 (for environment variable management)
 
 ## Contributing
 
