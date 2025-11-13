@@ -372,7 +372,7 @@ def get_mapie_cv_config(method: str, n_samples: int, **kwargs) -> Dict[str, Any]
 def estimate_seasonal_period(
     data: pd.DataFrame,
     date_col: str
-) -> Optional[int]:
+) -> int:
     """
     Estimate seasonal period from time series data.
 
@@ -385,32 +385,52 @@ def estimate_seasonal_period(
 
     Returns
     -------
-    int or None
+    int
         Estimated period (e.g., 7 for daily with weekly seasonality,
-        12 for monthly with annual seasonality), or None if unable to detect
+        12 for monthly with annual seasonality), or 10 as default
     """
     if date_col not in data.columns:
-        return None
+        return 10  # Default fallback
 
     dates = pd.to_datetime(data[date_col])
     if len(dates) < 2:
-        return None
+        return 10  # Default fallback
 
     # Infer frequency
-    freq = pd.infer_freq(dates)
+    try:
+        freq = pd.infer_freq(dates)
+    except (ValueError, TypeError):
+        return 10  # Default fallback
+
     if freq is None:
-        return None
+        return 10  # Default fallback
 
     # Map frequency to seasonal periods
+    # Handle both old and new pandas frequency codes
     freq_map = {
         'D': 7,      # Daily → weekly seasonality
         'W': 52,     # Weekly → annual seasonality
         'MS': 12,    # Month start → annual seasonality
         'M': 12,     # Month end → annual seasonality
+        'ME': 12,    # Month end (new pandas) → annual seasonality
         'Q': 4,      # Quarter → annual seasonality
-        'H': 24,     # Hourly → daily seasonality
+        'QE': 4,     # Quarter end (new pandas) → annual seasonality
+        'H': 24,     # Hourly → daily seasonality (deprecated)
+        'h': 24,     # Hourly → daily seasonality (new pandas)
+        'T': 60,     # Minute → hourly seasonality (deprecated)
+        'min': 60,   # Minute → hourly seasonality (new pandas)
+        'S': 60,     # Second → minute seasonality
+        'Y': 1,      # Yearly → no sub-annual seasonality
+        'YE': 1,     # Year end (new pandas) → no sub-annual seasonality
     }
 
+    # Extract base frequency code (first character or full code)
+    # Handle multi-character codes like 'MS', 'QE', etc.
+    for code in ['MS', 'ME', 'QE', 'min', 'YE']:
+        if freq.startswith(code):
+            return freq_map.get(code, 10)
+
+    # Single character codes
     return freq_map.get(freq[0] if freq else None, 10)  # Default to 10
 
 
