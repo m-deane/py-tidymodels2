@@ -9,7 +9,7 @@ from py_tune import (
     tune_race_anova,
     control_race,
     RaceControl,
-    test_parameters_anova,
+    filter_parameters_anova,
     tune_grid,
     grid_regular,
     TuneResults
@@ -83,8 +83,8 @@ class TestRaceControl:
         assert ctrl2.parallel_over == "everything"
 
 
-class TestParametersAnova:
-    """Tests for test_parameters_anova() function."""
+class TestFilterParametersAnova:
+    """Tests for filter_parameters_anova() function."""
 
     def create_mock_results(self, n_configs=5, n_resamples=5):
         """Create mock TuneResults for testing."""
@@ -125,7 +125,7 @@ class TestParametersAnova:
     def test_single_config(self):
         """Single configuration always passes."""
         results = self.create_mock_results(n_configs=1)
-        filtered = test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+        filtered = filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
         assert len(filtered) == 1
         assert filtered['pass'].iloc[0] == True
@@ -133,7 +133,7 @@ class TestParametersAnova:
     def test_multiple_configs(self):
         """Multiple configurations get tested."""
         results = self.create_mock_results(n_configs=5, n_resamples=10)
-        filtered = test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+        filtered = filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
         assert len(filtered) == 5
         assert '.config' in filtered.columns
@@ -147,14 +147,14 @@ class TestParametersAnova:
     def test_returns_correct_columns(self):
         """Result DataFrame has required columns."""
         results = self.create_mock_results(n_configs=3)
-        filtered = test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+        filtered = filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
         assert set(filtered.columns) == {'.config', 'mean', 'pass'}
 
     def test_mean_calculation(self):
         """Mean is calculated correctly across resamples."""
         results = self.create_mock_results(n_configs=2, n_resamples=3)
-        filtered = test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+        filtered = filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
         # Manually calculate mean for first config
         config_1_metrics = results.metrics[results.metrics['.config'] == 'config_001']
@@ -170,7 +170,7 @@ class TestParametersAnova:
         results.metrics = results.metrics.drop(columns=['.resample'])
 
         with pytest.raises(ValueError, match="Metrics DataFrame must have '.resample' column"):
-            test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+            filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
     def test_missing_config_column(self):
         """Raises error if .config column missing."""
@@ -178,7 +178,7 @@ class TestParametersAnova:
         results.metrics = results.metrics.drop(columns=['.config'])
 
         with pytest.raises(ValueError, match="Metrics DataFrame must have '.config' column"):
-            test_parameters_anova(results, alpha=0.05, metric_name='rmse')
+            filter_parameters_anova(results, alpha=0.05, metric_name='rmse')
 
 
 class TestTuneRaceAnova:

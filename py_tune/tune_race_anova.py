@@ -9,7 +9,7 @@ from typing import Optional, Union, Dict, Any, Callable
 import pandas as pd
 import numpy as np
 
-from .racing import RaceControl, control_race, test_parameters_anova, restore_rset, randomize_resamples
+from .racing import RaceControl, control_race, filter_parameters_anova, restore_rset, randomize_resamples
 from .tune import tune_grid, TuneResults
 
 
@@ -145,8 +145,8 @@ def tune_race_anova(
 
     # Racing loop - iterate through remaining resamples
     for resample_idx in range(control.burn_in, n_resamples):
-        # Test current results with ANOVA
-        filter_results = test_parameters_anova(
+        # Filter current results with ANOVA
+        filter_results = filter_parameters_anova(
             results,
             alpha=control.alpha,
             metric_name=opt_metric_name,

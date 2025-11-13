@@ -31,8 +31,8 @@ from .racing import (
     control_race,
 
     # Statistical Tests
-    test_parameters_anova,
-    test_parameters_bt,
+    filter_parameters_anova,
+    filter_parameters_bt,
 )
 
 from .tune_race_anova import (
@@ -60,8 +60,8 @@ __all__ = [
     # Racing Control
     "RaceControl",
     "control_race",
-    "test_parameters_anova",
-    "test_parameters_bt",
+    "filter_parameters_anova",
+    "filter_parameters_bt",
 
     # Workflow Finalization
     "finalize_workflow",

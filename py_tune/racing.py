@@ -107,14 +107,14 @@ def control_race(
     )
 
 
-def test_parameters_anova(
+def filter_parameters_anova(
     results: Any,
     alpha: float,
     metric_name: str,
     eval_time: Optional[float] = None
 ) -> pd.DataFrame:
     """
-    Test parameter configurations using repeated measures ANOVA.
+    Filter parameter configurations using repeated measures ANOVA.
 
     Fits a mixed linear model: metric ~ config + (1|resample_id)
     to determine which configurations are statistically different from the best.
@@ -242,14 +242,14 @@ def test_parameters_anova(
     return result
 
 
-def test_parameters_bt(
+def filter_parameters_bt(
     results: Any,
     alpha: float,
     metric_name: str,
     eval_time: Optional[float] = None
 ) -> pd.DataFrame:
     """
-    Test parameter configurations using Bradley-Terry win/loss model.
+    Filter parameter configurations using Bradley-Terry win/loss model.
 
     Computes pairwise win/loss records and fits a Bradley-Terry model to
     estimate "winning ability" of each configuration.
