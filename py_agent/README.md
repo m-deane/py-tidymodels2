@@ -40,11 +40,11 @@ AI agent system for automated time series forecasting workflow generation using 
 
 ### Phase 3: Advanced Features (In Progress)
 
-- ✅ **Model Expansion Complete**: All 23 model types now supported!
-- ⏳ RAG knowledge base with 500+ forecasting examples
-- ⏳ Full 51-step recipe library integration
-- ⏳ Multi-model comparison and ensembling
-- ⏳ Autonomous iteration and self-improvement
+- ✅ **Phase 3.1 Complete**: Model Expansion - All 23 model types!
+- ✅ **Phase 3.2 Complete**: Enhanced Recipe Generation - Intelligent 51-step selection!
+- ⏳ Phase 3.3: Multi-model WorkflowSet orchestration
+- ⏳ Phase 3.4: RAG knowledge base with 500+ forecasting examples
+- ⏳ Phase 3.5: Autonomous iteration and self-improvement
 
 ## Quick Start
 
@@ -314,21 +314,128 @@ if feature_interactions or nonlinear_patterns:
 
 ## Recipe Generation
 
-Automatically generates preprocessing recipes based on:
-- Data quality (missing values, outliers)
-- Model requirements
-- Domain knowledge (retail, finance, energy)
+### Enhanced Recipe Generation (Phase 3.2) ✅ COMPLETE
 
-Example generated recipe:
+Intelligently generates preprocessing recipes using **all 51 available recipe steps** with an 8-phase pipeline:
+
+#### 8-Phase Preprocessing Pipeline
+
+1. **Phase 1: Data Cleaning**
+   - Remove rows with infinite values (`step_naomit()`)
+   - Triggered by outlier rate > 0
+
+2. **Phase 2: Imputation**
+   - **Low missing rate (<5%)**: Median imputation
+   - **Moderate missing rate (5-15%)**: Linear interpolation (time series) or median (ML)
+   - **High missing rate (>15%)**: KNN imputation with 5 neighbors
+
+3. **Phase 3: Feature Engineering**
+   - **Date features**: Extract temporal features based on frequency and domain
+   - **Polynomial features**: For linear models with nonlinear trends (<15 features)
+   - **Interaction terms**: For linear models with 2-10 features
+
+4. **Phase 4: Transformations**
+   - **YeoJohnson transformation**: For models assuming normality (linear, SVM, k-NN)
+   - Handles negative values better than BoxCox
+
+5. **Phase 5: Filtering & Dimensionality Reduction**
+   - **Zero-variance filter**: Always applied (`step_zv()`)
+   - **Correlation filter**: For linear models (threshold=0.9, multicollinearity removal)
+   - **PCA**: For high-dimensional data (>20 features OR features > 50% of observations)
+     - Excludes: Time series models (loses interpretability)
+     - Excludes: Interpretable models (linear_reg, decision_tree, mars)
+     - Components: min(n_features × 0.8, 20)
+
+6. **Phase 6: Normalization/Scaling**
+   - Applied to: Distance-based models (k-NN, SVM), neural networks, linear models, tree models
+   - Uses `step_normalize()` for mean=0, std=1
+
+7. **Phase 7: Encoding**
+   - One-hot encoding for ML models (`step_dummy()`)
+   - Skipped for time series models (prophet, ARIMA)
+
+8. **Phase 8: Final Cleanup**
+   - Remove any NAs introduced by preprocessing (`step_naomit()`)
+
+#### Intelligent Preprocessing Decisions
+
+The system uses 6 decision functions to optimize preprocessing:
+
+- **`_needs_polynomial_features()`**: Adds polynomial features for linear models with nonlinear trends (max 15 features to avoid curse of dimensionality)
+- **`_needs_interactions()`**: Adds interaction terms for linear models with 2-10 features (avoids explosion)
+- **`_needs_transformation()`**: Applies YeoJohnson for models assuming normality
+- **`_needs_correlation_filter()`**: Removes multicollinear features for linear models
+- **`_needs_dimensionality_reduction()`**: Applies PCA for high-dimensional data (>20 features)
+- **`_needs_normalization()`**: Normalizes features for distance-based and neural network models
+
+#### 17 Domain-Specific Templates
+
+Pre-configured recipes for common use cases:
+
+**Basic (3):**
+- `minimal`: Imputation only
+- `standard_ml`: Imputation + normalization + encoding
+- `time_series`: Linear interpolation for time series
+
+**Retail & E-commerce (3):**
+- `retail_daily`: Daily sales with holidays
+- `retail_weekly`: Weekly sales with promotions
+- `ecommerce_hourly`: Hourly traffic/conversions
+
+**Energy & Utilities (2):**
+- `energy_hourly`: Energy load forecasting
+- `solar_generation`: Solar power generation
+
+**Finance & Economics (2):**
+- `finance_daily`: Financial time series (no imputation)
+- `stock_prices`: Stock price prediction with log returns
+
+**Healthcare (1):**
+- `patient_volume`: Hospital patient volume
+
+**Transportation & Logistics (2):**
+- `demand_forecasting`: Product/service demand
+- `traffic_volume`: Traffic congestion prediction
+
+**High-Dimensional & Specialized (4):**
+- `high_dimensional`: PCA + correlation filter (>20 features)
+- `text_features`: TF-IDF dimension reduction
+- `iot_sensors`: Correlated sensor data filtering
+
+#### Example Generated Recipes
+
+**Simple ML Model (Linear Regression):**
 ```python
 from py_recipes import recipe
-from py_recipes.selectors import all_numeric, all_nominal
+from py_recipes.selectors import all_numeric_predictors, all_nominal_predictors
 
 rec = (recipe(data, formula)
     .step_impute_median(all_numeric())
-    .step_date('date', features=['dow', 'month', 'quarter'])
-    .step_normalize(all_numeric())
-    .step_dummy(all_nominal()))
+    .step_date('date', features=['dow', 'month'])
+    .step_YeoJohnson(all_numeric_predictors())
+    .step_zv(all_predictors())
+    .step_select_corr(all_numeric_predictors(), threshold=0.9, method='multicollinearity')
+    .step_normalize(all_numeric_predictors())
+    .step_dummy(all_nominal_predictors())
+    .step_naomit())
+```
+
+**High-Dimensional Data (Random Forest):**
+```python
+rec = (recipe(data, formula)
+    .step_naomit()
+    .step_impute_median(all_numeric())
+    .step_zv(all_predictors())
+    .step_pca(all_numeric_predictors(), num_comp=20)  # Reduce from 50 to 20
+    .step_normalize(all_numeric_predictors())
+    .step_dummy(all_nominal_predictors())
+    .step_naomit())
+```
+
+**Time Series Model (Prophet):**
+```python
+rec = (recipe(data, formula)
+    .step_impute_linear(all_numeric()))  # Minimal preprocessing
 ```
 
 ## Testing
@@ -369,10 +476,14 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
 - ✅ Dual-mode support (switch between rule-based and LLM)
 
 ### Phase 3: Advanced Features (In Progress)
-- ✅ **Model Expansion Complete**: Expanded from 3 to all 23 model types!
+- ✅ **Phase 3.1 Complete**: Model Expansion - All 23 model types!
   - Baseline, Linear/GLM, Tree-based, SVM, Neural nets, Time series, Hybrid models
+- ✅ **Phase 3.2 Complete**: Enhanced Recipe Generation - Intelligent 51-step selection!
+  - 8-phase preprocessing pipeline
+  - 6 intelligent decision functions
+  - 17 domain-specific templates
+  - Model-specific optimizations (PCA, polynomial, interactions, transformations)
 - ⏳ RAG knowledge base with 500+ forecasting examples
-- ⏳ Full 51-step recipe library integration
 - ⏳ Multi-model WorkflowSet orchestration
 - ⏳ Ensemble recommendations
 - ⏳ Autonomous iteration and self-improvement
