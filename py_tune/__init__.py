@@ -51,6 +51,13 @@ from .sim_anneal import (
     control_sim_anneal,
 )
 
+from .bayes import (
+    # Bayesian Optimization
+    tune_bayes,
+    BayesControl,
+    control_bayes,
+)
+
 __all__ = [
     # Parameter Markers
     "tune",
@@ -66,6 +73,7 @@ __all__ = [
     "tune_race_anova",
     "tune_race_win_loss",
     "tune_sim_anneal",
+    "tune_bayes",
 
     # Results
     "TuneResults",
@@ -79,6 +87,10 @@ __all__ = [
     # Simulated Annealing Control
     "SimAnnealControl",
     "control_sim_anneal",
+
+    # Bayesian Optimization Control
+    "BayesControl",
+    "control_bayes",
 
     # Workflow Finalization
     "finalize_workflow",
