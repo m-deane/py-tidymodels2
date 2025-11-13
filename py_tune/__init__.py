@@ -40,6 +40,10 @@ from .tune_race_anova import (
     tune_race_anova,
 )
 
+from .tune_race_win_loss import (
+    tune_race_win_loss,
+)
+
 __all__ = [
     # Parameter Markers
     "tune",
@@ -53,6 +57,7 @@ __all__ = [
     "fit_resamples",
     "tune_grid",
     "tune_race_anova",
+    "tune_race_win_loss",
 
     # Results
     "TuneResults",
