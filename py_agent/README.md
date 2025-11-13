@@ -420,7 +420,7 @@ Iteration stops when:
 
 ## Tutorial Notebooks 📚
 
-We provide **4 comprehensive Jupyter notebook tutorials** covering beginner to advanced topics. All tutorials are executable and include visualizations, performance metrics, and detailed explanations.
+We provide **5 comprehensive Jupyter notebook tutorials** covering beginner to advanced topics. All tutorials are executable and include visualizations, performance metrics, and detailed explanations.
 
 ### Quick Reference
 
@@ -430,8 +430,9 @@ We provide **4 comprehensive Jupyter notebook tutorials** covering beginner to a
 | **23** | [**LLM-Enhanced Mode**](../examples/23_agent_llm_mode_tutorial.ipynb) | Intermediate | 45-60 min | Claude Sonnet 4.5 integration, explainable reasoning, budget management, constraints |
 | **24** | [**Domain Examples**](../examples/24_agent_domain_specific_examples.ipynb) | Intermediate | 60-90 min | Retail, finance, energy forecasting; domain-adapted preprocessing; industry best practices |
 | **25** | [**Advanced Features**](../examples/25_agent_advanced_features.ipynb) | Advanced | 90-120 min | Performance debugging, ensembles, grouped modeling, production best practices |
+| **26** | [**Real-World Data**](../examples/26_agent_real_world_data.ipynb) 🆕 | Advanced | 60-90 min | European gas demand, commodity futures, crude oil production; real datasets from `_md/__data` |
 
-**Total Learning Time**: 3.5-5 hours for complete mastery
+**Total Learning Time**: 4.5-6.5 hours for complete mastery
 
 ### Which Tutorial Should I Start With?
 
@@ -465,6 +466,12 @@ We provide **4 comprehensive Jupyter notebook tutorials** covering beginner to a
 - Sample data: Complex scenario with non-linear relationships, structural breaks
 - Demonstrates: Performance debugging, ensembles, grouped modeling, monitoring
 - Prerequisites: Complete Notebooks 22-24
+
+**Notebook 26: Real-World Energy & Commodities Data** 🆕
+- Real-world datasets from energy and commodities sectors
+- Sample data: European gas demand (96K rows), commodity futures (135K rows), crude oil production (13K rows)
+- Demonstrates: Data quality handling, weather-dependent forecasting, grouped modeling with real data
+- Prerequisites: Notebooks 22 & 24; datasets in `_md/__data/` directory
 
 📖 **Full Tutorial Guide**: See [examples/TUTORIALS_INDEX.md](../examples/TUTORIALS_INDEX.md) for detailed descriptions, learning paths, and setup instructions.
 
@@ -892,11 +899,12 @@ pytest tests/test_agent/ --cov=py_agent --cov-report=html
   - Automatic approach selection based on previous issues
 
 ### Documentation & Tutorials ✅ COMPLETE
-- ✅ **4 Comprehensive Tutorial Notebooks** (Notebooks 22-25)
+- ✅ **5 Comprehensive Tutorial Notebooks** (Notebooks 22-26)
   - Complete overview (beginner, 30-45 min)
   - LLM-enhanced mode (intermediate, 45-60 min)
   - Domain-specific examples (intermediate, 60-90 min)
   - Advanced features & production (advanced, 90-120 min)
+  - Real-world energy & commodities data (advanced, 60-90 min) 🆕
 - ✅ **Tutorial Index** with navigation guide and learning paths
 - ✅ **Complete API Documentation** in README
 

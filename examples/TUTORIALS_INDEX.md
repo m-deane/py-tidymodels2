@@ -6,7 +6,7 @@ Welcome to the **py_agent tutorial collection**! These Jupyter notebooks provide
 
 ## 📚 Tutorial Overview
 
-We provide **4 progressive tutorials** covering beginner to advanced topics:
+We provide **5 progressive tutorials** covering beginner to advanced topics:
 
 | # | Notebook | Level | Time | Topics Covered |
 |---|----------|-------|------|----------------|
@@ -14,8 +14,9 @@ We provide **4 progressive tutorials** covering beginner to advanced topics:
 | **23** | [**LLM-Enhanced Mode**](23_agent_llm_mode_tutorial.ipynb) | Intermediate | 45-60 min | Claude Sonnet 4.5 integration, explainable reasoning, budget management, constraints |
 | **24** | [**Domain Examples**](24_agent_domain_specific_examples.ipynb) | Intermediate | 60-90 min | Retail, finance, energy forecasting; domain-adapted preprocessing; industry best practices |
 | **25** | [**Advanced Features**](25_agent_advanced_features.ipynb) | Advanced | 90-120 min | Performance debugging, ensembles, grouped modeling, production best practices |
+| **26** | [**Real-World Data**](26_agent_real_world_data.ipynb) ⭐ NEW | Advanced | 60-90 min | European gas demand, commodity futures, crude oil production; real datasets from `_md/__data` |
 
-**Total Learning Time**: 3.5-5 hours for complete mastery
+**Total Learning Time**: 4.5-6.5 hours for complete mastery
 
 ---
 
@@ -149,6 +150,34 @@ We provide **4 progressive tutorials** covering beginner to advanced topics:
 - Version control configurations
 
 **Prerequisites**: Complete Notebooks 22-24, production deployment knowledge helpful
+
+---
+
+### Notebook 26: Real-World Energy & Commodities Data ⭐ NEW
+
+**File**: `26_agent_real_world_data.ipynb`
+
+**What You'll Learn**:
+- **European Gas Demand**: Multi-country forecasting with weather dependencies (Germany focus)
+- **Commodity Futures**: Corn futures price forecasting with momentum and volatility features
+- **Crude Oil Production**: Multi-country panel modeling with grouped forecasts (top 5 producers)
+- Working with real datasets from `_md/__data/` directory
+- Handling data quality issues in production data
+
+**Datasets Used**:
+- `european_gas_demand_weather_data.csv` (96K rows): Daily gas demand for multiple European countries with temperature and wind data (2013-2022)
+- `all_commodities_futures_collection.csv` (135K rows): Futures prices for multiple commodities (2002-2024)
+- `jodi_crude_production_data.csv` (13K rows): Monthly crude oil production by country (2002-2024)
+
+**Key Takeaways**:
+- Handle real-world data quality issues (missing values, zeros, outliers, structural breaks)
+- Deal with non-stationary data and trend changes
+- Work with weather-dependent forecasting (inverse temperature relationship)
+- Apply grouped modeling to multi-entity datasets (`fit_nested()`)
+- Use domain-specific constraints for energy and commodities
+- Navigate dataset selection from available real-world data
+
+**Prerequisites**: Complete Notebooks 22 and 24; datasets in `_md/__data/` directory
 
 ---
 
