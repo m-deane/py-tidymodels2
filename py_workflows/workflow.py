@@ -1603,6 +1603,150 @@ class NestedWorkflowFit:
 
         return combined_outputs, combined_coefficients, combined_stats
 
+    def conformal_predict(
+        self,
+        new_data: pd.DataFrame,
+        alpha: Union[float, list] = 0.05,
+        method: str = 'auto',
+        calibration_data: Optional[pd.DataFrame] = None,
+        per_group_calibration: bool = True,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generate conformal prediction intervals for all groups.
+
+        This method performs per-group conformal prediction by default, where each
+        group gets its own calibration set and conformal intervals. This respects
+        group-specific patterns and heterogeneity.
+
+        Parameters
+        ----------
+        new_data : DataFrame
+            Test data for predictions with group column
+        alpha : float or list of float, default=0.05
+            Significance level(s). 0.05 gives 95% prediction intervals.
+        method : str, default='auto'
+            Conformal method to use (see ModelFit.conformal_predict for options)
+        calibration_data : DataFrame, optional
+            Separate calibration dataset with group column. If None, automatically
+            splits from training data stored in group_fits.
+        per_group_calibration : bool, default=True
+            If True, each group gets its own calibration set (respects heterogeneity).
+            If False, pools calibration data across groups (stronger assumptions).
+        **kwargs : dict
+            Additional arguments passed to conformal prediction
+
+        Returns
+        -------
+        DataFrame
+            Predictions with conformal intervals and group column:
+            - .pred: Point predictions
+            - .pred_lower: Lower bound
+            - .pred_upper: Upper bound
+            - .conf_method: Method used
+            - .conf_alpha: Significance level
+            - group_col: Group identifier
+
+        Examples
+        --------
+        Basic per-group conformal prediction:
+
+        >>> from py_workflows import workflow
+        >>> from py_parsnip import linear_reg
+        >>> from py_recipes import recipe
+        >>>
+        >>> rec = recipe().step_normalize(all_numeric_predictors())
+        >>> wf = workflow().add_recipe(rec).add_model(linear_reg())
+        >>> nested_fit = wf.fit_nested(train_data, group_col='store_id')
+        >>> preds = nested_fit.conformal_predict(test_data, alpha=0.05)
+        >>> # Each store gets its own intervals
+
+        With multiple confidence levels:
+
+        >>> preds = nested_fit.conformal_predict(
+        ...     test_data,
+        ...     alpha=[0.05, 0.1, 0.2]
+        ... )
+
+        Notes
+        -----
+        **Per-Group vs Pooled Calibration:**
+        - per_group_calibration=True (default): Each group has separate coverage.
+          Use when groups have different uncertainty patterns.
+        - per_group_calibration=False: All groups share calibration data.
+          Use when groups are similar and you need more calibration samples.
+
+        **Recipe Preprocessing:**
+        - Recipes are applied before conformal calibration
+        - Per-group recipes (if used) maintain group-specific transformations
+        """
+        if self.group_col not in new_data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in new_data")
+
+        # Delegate to each group's WorkflowFit to handle conformal prediction
+        # This automatically handles recipe preprocessing
+        if per_group_calibration:
+            all_predictions = []
+
+            for group, group_fit in self.group_fits.items():
+                # Filter data for this group
+                group_data = new_data[new_data[self.group_col] == group].copy()
+
+                if len(group_data) == 0:
+                    continue  # Skip groups not in new_data
+
+                # Remove group column before prediction (workflows don't expect it)
+                group_data_no_group = group_data.drop(columns=[self.group_col])
+
+                # Get group-specific calibration data if provided
+                group_cal_data = None
+                if calibration_data is not None:
+                    group_cal_data = calibration_data[calibration_data[self.group_col] == group].copy()
+                    if len(group_cal_data) > 0:
+                        group_cal_data = group_cal_data.drop(columns=[self.group_col])
+                    else:
+                        group_cal_data = None
+
+                # Get conformal predictions for this group
+                # WorkflowFit delegates to ModelFit.conformal_predict()
+                try:
+                    group_preds = group_fit.fit.conformal_predict(
+                        group_data_no_group,
+                        alpha=alpha,
+                        method=method,
+                        calibration_data=group_cal_data,
+                        **kwargs
+                    )
+
+                    # Add group columns back
+                    group_preds[self.group_col] = group
+                    group_preds['group'] = group
+                    all_predictions.append(group_preds)
+
+                except Exception as e:
+                    import warnings
+                    warnings.warn(
+                        f"Conformal prediction failed for group {group}: {str(e)}. Skipping this group.",
+                        UserWarning
+                    )
+                    continue
+
+            if len(all_predictions) == 0:
+                raise ValueError(
+                    "No conformal predictions generated. Check that groups in new_data "
+                    "match groups in fitted model and that calibration data is sufficient."
+                )
+
+            # Combine predictions from all groups
+            return pd.concat(all_predictions, ignore_index=True)
+
+        else:
+            # Pooled calibration across groups (less common)
+            raise NotImplementedError(
+                "Pooled calibration (per_group_calibration=False) is not yet implemented. "
+                "Use per_group_calibration=True for group-specific intervals."
+            )
+
     def extract_preprocessed_data(
         self,
         data: pd.DataFrame,

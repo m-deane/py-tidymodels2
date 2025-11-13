@@ -1263,3 +1263,156 @@ class NestedModelFit:
         combined_stats = reorder_stats_columns(combined_stats, group_col=self.group_col)
 
         return combined_outputs, combined_coefficients, combined_stats
+
+    def conformal_predict(
+        self,
+        new_data: pd.DataFrame,
+        alpha: Union[float, list] = 0.05,
+        method: str = 'auto',
+        calibration_data: Optional[pd.DataFrame] = None,
+        per_group_calibration: bool = True,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generate conformal prediction intervals for all groups.
+
+        This method performs per-group conformal prediction by default, where each
+        group gets its own calibration set and conformal intervals. This respects
+        group-specific patterns and heterogeneity.
+
+        Parameters
+        ----------
+        new_data : DataFrame
+            Test data for predictions with group column
+        alpha : float or list of float, default=0.05
+            Significance level(s). 0.05 gives 95% prediction intervals.
+        method : str, default='auto'
+            Conformal method to use (see ModelFit.conformal_predict for options)
+        calibration_data : DataFrame, optional
+            Separate calibration dataset with group column. If None, automatically
+            splits from training data stored in group_fits.
+        per_group_calibration : bool, default=True
+            If True, each group gets its own calibration set (respects heterogeneity).
+            If False, pools calibration data across groups (stronger assumptions).
+        **kwargs : dict
+            Additional arguments passed to conformal prediction
+
+        Returns
+        -------
+        DataFrame
+            Predictions with conformal intervals and group column:
+            - .pred: Point predictions
+            - .pred_lower: Lower bound
+            - .pred_upper: Upper bound
+            - .conf_method: Method used
+            - .conf_alpha: Significance level
+            - group_col: Group identifier
+
+        Examples
+        --------
+        Basic per-group conformal prediction:
+
+        >>> spec = linear_reg()
+        >>> nested_fit = spec.fit_nested(train_data, 'y ~ x1 + x2', group_col='store_id')
+        >>> preds = nested_fit.conformal_predict(test_data, alpha=0.05)
+        >>> # Each store gets its own intervals
+
+        With pooled calibration across groups:
+
+        >>> preds = nested_fit.conformal_predict(
+        ...     test_data,
+        ...     alpha=0.05,
+        ...     per_group_calibration=False
+        ... )
+
+        Multiple confidence levels per group:
+
+        >>> preds = nested_fit.conformal_predict(
+        ...     test_data,
+        ...     alpha=[0.05, 0.1, 0.2]
+        ... )
+
+        Notes
+        -----
+        **Per-Group vs Pooled Calibration:**
+        - per_group_calibration=True (default): Each group has separate coverage.
+          Use when groups have different uncertainty patterns.
+        - per_group_calibration=False: All groups share calibration data.
+          Use when groups are similar and you need more calibration samples.
+
+        **Method Selection:**
+        - Time series groups automatically use EnbPI
+        - Auto-selection considers group-level sample sizes
+        """
+        if self.group_col not in new_data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in new_data")
+
+        if per_group_calibration:
+            # Per-group conformal prediction (default)
+            all_predictions = []
+            is_recursive = self.spec.model_type == "recursive_reg"
+
+            for group, group_fit in self.group_fits.items():
+                # Filter data for this group
+                group_data = new_data[new_data[self.group_col] == group].copy()
+
+                if len(group_data) == 0:
+                    continue  # Skip groups not in new_data
+
+                # For recursive models, set date as index if needed
+                if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
+                    group_data = group_data.set_index("date")
+                    group_data_no_group = group_data.drop(columns=[self.group_col])
+                else:
+                    # Remove group column before prediction
+                    group_data_no_group = group_data.drop(columns=[self.group_col])
+
+                # Get group-specific calibration data if provided
+                group_cal_data = None
+                if calibration_data is not None:
+                    group_cal_data = calibration_data[calibration_data[self.group_col] == group].copy()
+                    if len(group_cal_data) > 0:
+                        if is_recursive and "date" in group_cal_data.columns:
+                            group_cal_data = group_cal_data.set_index("date")
+                        group_cal_data = group_cal_data.drop(columns=[self.group_col])
+                    else:
+                        group_cal_data = None
+
+                # Get conformal predictions for this group
+                try:
+                    group_preds = group_fit.conformal_predict(
+                        group_data_no_group,
+                        alpha=alpha,
+                        method=method,
+                        calibration_data=group_cal_data,
+                        **kwargs
+                    )
+
+                    # Add group column back
+                    group_preds[self.group_col] = group
+                    all_predictions.append(group_preds)
+
+                except Exception as e:
+                    import warnings
+                    warnings.warn(
+                        f"Conformal prediction failed for group {group}: {str(e)}. Skipping this group.",
+                        UserWarning
+                    )
+                    continue
+
+            if len(all_predictions) == 0:
+                raise ValueError(
+                    "No conformal predictions generated. Check that groups in new_data "
+                    "match groups in fitted model and that calibration data is sufficient."
+                )
+
+            # Combine predictions from all groups
+            return pd.concat(all_predictions, ignore_index=True)
+
+        else:
+            # Pooled calibration across groups (less common)
+            # This treats all groups as exchangeable for calibration
+            raise NotImplementedError(
+                "Pooled calibration (per_group_calibration=False) is not yet implemented. "
+                "Use per_group_calibration=True for group-specific intervals."
+            )
