@@ -345,7 +345,7 @@ class TestModelEdgeCases:
         train, test = train_test_split_80_20(gas_demand_ungrouped)
 
         wf = workflow().add_formula('gas_demand ~ temperature + wind_speed').add_model(
-            decision_tree(tree_depth=30, min_n=1).set_mode('regression')
+            decision_tree(tree_depth=30, min_n=2).set_mode('regression')
         )
         fit = wf.fit(train)
 
@@ -506,5 +506,7 @@ class TestEvaluationEdgeCases:
 
         # R² should be near 1, RMSE near 0
         test_stats = stats[stats['split'] == 'test']
-        assert test_stats['r_squared'].iloc[0] > 0.99
-        assert test_stats['rmse'].iloc[0] < 0.1
+        test_r2 = test_stats[test_stats['metric'] == 'r_squared']['value'].iloc[0]
+        test_rmse = test_stats[test_stats['metric'] == 'rmse']['value'].iloc[0]
+        assert test_r2 > 0.99
+        assert test_rmse < 0.1

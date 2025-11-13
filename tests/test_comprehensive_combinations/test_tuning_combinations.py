@@ -519,7 +519,7 @@ class TestTuningWorkflow:
         eval_fit = fit.evaluate(test)
         outputs, coeffs, stats = eval_fit.extract_outputs()
 
-        test_rmse = stats[stats['split'] == 'test']['rmse'].iloc[0]
+        test_rmse = stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0]
         assert test_rmse > 0
 
     def test_tuning_with_complex_recipe(self, gas_demand_ungrouped, train_test_split_80_20):

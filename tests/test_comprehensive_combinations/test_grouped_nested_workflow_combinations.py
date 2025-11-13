@@ -344,7 +344,7 @@ class TestNestedComplexPipelines:
         # Verify structure
         assert 'group' in outputs.columns
         assert 'split' in outputs.columns
-        assert 'rmse' in stats.columns
+        assert 'rmse' in stats['metric'].values
 
     def test_nested_poly_rf_pipeline(self, refinery_data_small_groups, train_test_split_by_group):
         """Test nested random forest with polynomial features."""

@@ -50,15 +50,18 @@ class TestFormulaOnlyWorkflows:
         assert 'split' in outputs.columns
         assert set(outputs['split'].unique()).issubset({'train', 'test'})
 
-        # Verify stats
-        assert 'rmse' in stats.columns
-        assert 'mae' in stats.columns
-        assert 'r_squared' in stats.columns
+        # Verify stats (long format with 'metric' and 'value' columns)
+        assert 'metric' in stats.columns
+        assert 'value' in stats.columns
+        assert 'rmse' in stats['metric'].values
+        assert 'mae' in stats['metric'].values
+        assert 'r_squared' in stats['metric'].values
         train_stats = stats[stats['split'] == 'train']
         test_stats = stats[stats['split'] == 'test']
         assert len(train_stats) > 0
         assert len(test_stats) > 0
-        assert test_stats['rmse'].iloc[0] > 0
+        test_rmse = test_stats[test_stats['metric'] == 'rmse']['value'].iloc[0]
+        assert test_rmse > 0
 
     def test_dot_notation_formula(self, refinery_data_ungrouped, train_test_split_80_20):
         """Test dot notation formula (all predictors)."""
@@ -119,7 +122,7 @@ class TestFormulaOnlyWorkflows:
 
         eval_fit = fit.evaluate(test)
         _, _, stats = eval_fit.extract_outputs()
-        test_rmse = stats[stats['split'] == 'test']['rmse'].iloc[0]
+        test_rmse = stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0]
         assert test_rmse > 0
 
 
@@ -234,7 +237,7 @@ class TestRecipePCAWorkflows:
 
         eval_fit = fit.evaluate(test)
         _, _, stats = eval_fit.extract_outputs()
-        assert stats[stats['split'] == 'test']['rmse'].iloc[0] > 0
+        assert stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0] > 0
 
 
 class TestRecipePolynomialWorkflows:
@@ -346,7 +349,7 @@ class TestTreeBasedModelWorkflows:
 
         eval_fit = fit.evaluate(test)
         _, _, stats = eval_fit.extract_outputs()
-        assert stats[stats['split'] == 'test']['rmse'].iloc[0] > 0
+        assert stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0] > 0
 
     def test_boost_tree_with_pca(self, refinery_data_ungrouped, train_test_split_80_20):
         """Test gradient boosting with PCA."""
@@ -431,7 +434,7 @@ class TestComplexPipelineWorkflows:
 
         eval_fit = fit.evaluate(test)
         _, _, stats = eval_fit.extract_outputs()
-        assert stats[stats['split'] == 'test']['rmse'].iloc[0] > 0
+        assert stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0] > 0
 
     def test_poly_interaction_pipeline(self, refinery_data_ungrouped, train_test_split_80_20):
         """Test pipeline with polynomials and normalization."""
