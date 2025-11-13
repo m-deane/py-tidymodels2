@@ -222,7 +222,7 @@ class TestWorkflowSetNestedBestWorkflow:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Get best by RMSE
-        best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+        best_wf_id = results.extract_best_workflow('rmse', split='train', by_group=False)
 
         # Should return workflow ID string
         assert isinstance(best_wf_id, str)
@@ -237,7 +237,7 @@ class TestWorkflowSetNestedBestWorkflow:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Get best per group
-        best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        best_by_group = results.extract_best_workflow('rmse', split='train', by_group=True)
 
         # Should return DataFrame with group and wflow_id
         assert isinstance(best_by_group, pd.DataFrame)
@@ -261,7 +261,7 @@ class TestWorkflowSetNestedBestWorkflow:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Get best per group
-        best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        best_by_group = results.extract_best_workflow('rmse', split='train', by_group=True)
 
         # Check if different groups prefer different workflows
         unique_workflows = best_by_group['wflow_id'].nunique()
@@ -402,7 +402,7 @@ class TestWorkflowSetMixedModels:
         results = wf_set.fit_nested(refinery_data_small_groups, group_col='country')
 
         # Check best model per group
-        best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        best_by_group = results.extract_best_workflow('rmse', split='train', by_group=True)
         assert len(best_by_group) == len(refinery_data_small_groups['country'].unique())
 
     def test_nested_boosting_comparison(self, gas_demand_small_groups):
@@ -470,7 +470,7 @@ class TestWorkflowSetLargeScaleGrouped:
         assert len(metrics_by_group) == 20
 
         # Best per group
-        best_by_group = results.extract_best_workflow('rmse', by_group=True)
+        best_by_group = results.extract_best_workflow('rmse', split='train', by_group=True)
         assert len(best_by_group) == 5
 
 
@@ -544,5 +544,5 @@ class TestWorkflowSetEdgeCases:
         assert len(metrics_by_group) == 4
 
         # Best overall
-        best = results.extract_best_workflow('rmse', by_group=False)
+        best = results.extract_best_workflow('rmse', split='train', by_group=False)
         assert best in wf_set.workflow_ids
