@@ -742,6 +742,138 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def compare_conformal(
+        self,
+        data: pd.DataFrame,
+        alpha: Union[float, list] = 0.05,
+        method: str = 'auto'
+    ) -> pd.DataFrame:
+        """
+        Fit all workflows and compare conformal prediction intervals.
+
+        Useful for understanding which preprocessing strategy or model
+        provides tighter or better-calibrated prediction intervals.
+
+        Args:
+            data: Data to fit workflows on and get conformal predictions for
+            alpha: Confidence level (0.05 for 95% CI) or list of levels
+            method: Conformal method ('auto', 'split', 'cv+', 'jackknife+', 'enbpi')
+
+        Returns:
+            DataFrame comparing conformal intervals across workflows with columns:
+            - wflow_id: Workflow identifier
+            - model: Model type
+            - preprocessor: Preprocessor type
+            - conf_method: Conformal method used
+            - avg_interval_width: Average width of prediction intervals
+            - median_interval_width: Median width of prediction intervals
+            - coverage: Empirical coverage (if actuals available)
+            - n_predictions: Number of predictions
+
+        Examples:
+            >>> # Create multiple workflows
+            >>> wf_set = WorkflowSet.from_cross(
+            ...     preproc=["y ~ x1", "y ~ x1 + x2", "y ~ x1 + x2 + I(x1*x2)"],
+            ...     models=[linear_reg(), linear_reg(penalty=0.1)]
+            ... )
+            >>>
+            >>> # Compare conformal intervals
+            >>> comparison = wf_set.compare_conformal(train_data, alpha=0.05)
+            >>> print(comparison.sort_values('avg_interval_width'))
+            >>>
+            >>> # Find workflow with tightest intervals
+            >>> best_wf_id = comparison.loc[comparison['avg_interval_width'].idxmin(), 'wflow_id']
+        """
+        comparison_results = []
+
+        for wf_id, wf in self.workflows.items():
+            try:
+                # Fit workflow
+                print(f"Fitting {wf_id}...")
+                fit = wf.fit(data)
+
+                # Get conformal predictions
+                conformal_preds = fit.conformal_predict(
+                    data,
+                    alpha=alpha,
+                    method=method
+                )
+
+                # Determine column names based on alpha
+                if isinstance(alpha, list):
+                    # Multiple alphas - use first one for comparison
+                    alpha_val = alpha[0]
+                    conf_level = int((1 - alpha_val) * 100)
+                    lower_col = f'.pred_lower_{conf_level}'
+                    upper_col = f'.pred_upper_{conf_level}'
+                else:
+                    # Single alpha
+                    lower_col = '.pred_lower'
+                    upper_col = '.pred_upper'
+
+                # Calculate interval statistics
+                interval_widths = (
+                    conformal_preds[upper_col] - conformal_preds[lower_col]
+                )
+
+                avg_width = interval_widths.mean()
+                median_width = interval_widths.median()
+                conf_method_used = conformal_preds['.conf_method'].iloc[0]
+
+                # Try to calculate coverage if actuals available
+                coverage = np.nan
+                try:
+                    # Extract formula to get outcome column name
+                    formula = fit.extract_formula()
+                    outcome_col = formula.split('~')[0].strip()
+
+                    if outcome_col in data.columns:
+                        actuals = data[outcome_col].values
+                        in_interval = (
+                            (actuals >= conformal_preds[lower_col].values) &
+                            (actuals <= conformal_preds[upper_col].values)
+                        )
+                        coverage = in_interval.mean()
+                except:
+                    # Coverage calculation failed, leave as NaN
+                    pass
+
+                # Get workflow info
+                wf_info = self.info[self.info['wflow_id'] == wf_id].iloc[0]
+
+                comparison_results.append({
+                    'wflow_id': wf_id,
+                    'model': wf_info['model'],
+                    'preprocessor': wf_info['preprocessor'],
+                    'conf_method': conf_method_used,
+                    'avg_interval_width': avg_width,
+                    'median_interval_width': median_width,
+                    'coverage': coverage,
+                    'n_predictions': len(conformal_preds)
+                })
+
+            except Exception as e:
+                print(f"  ⚠ Error with {wf_id}: {e}")
+                # Add failed result
+                wf_info = self.info[self.info['wflow_id'] == wf_id].iloc[0]
+                comparison_results.append({
+                    'wflow_id': wf_id,
+                    'model': wf_info['model'],
+                    'preprocessor': wf_info['preprocessor'],
+                    'conf_method': 'failed',
+                    'avg_interval_width': np.nan,
+                    'median_interval_width': np.nan,
+                    'coverage': np.nan,
+                    'n_predictions': 0
+                })
+
+        comparison_df = pd.DataFrame(comparison_results)
+
+        # Sort by average interval width (tighter is better)
+        comparison_df = comparison_df.sort_values('avg_interval_width')
+
+        return comparison_df
+
 
 @dataclass
 class WorkflowSetResults:

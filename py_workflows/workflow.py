@@ -950,6 +950,84 @@ class WorkflowFit:
 
         return predictions
 
+    def conformal_predict(
+        self,
+        new_data: pd.DataFrame,
+        alpha: Union[float, list] = 0.05,
+        method: str = 'auto',
+        calibration_data: Optional[pd.DataFrame] = None,
+        cv: int = 5,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Generate conformal prediction intervals using the fitted workflow.
+
+        Automatically applies preprocessing before generating conformal predictions.
+
+        Args:
+            new_data: New data for prediction
+            alpha: Significance level(s) (default: 0.05 for 95% intervals)
+                   Can be a single float or list of floats
+            method: Conformal method ('split', 'cv+', 'jackknife+', 'enbpi', 'auto')
+            calibration_data: Optional separate calibration data
+            cv: Number of CV folds for cv+ method
+            **kwargs: Additional arguments passed to conformal prediction
+
+        Returns:
+            DataFrame with predictions and conformal intervals:
+            - .pred: Point predictions
+            - .pred_lower: Lower bound(s)
+            - .pred_upper: Upper bound(s)
+            - .conf_method: Method used
+
+        Examples:
+            >>> # Basic usage with 95% intervals
+            >>> conformal_preds = wf_fit.conformal_predict(test_data, alpha=0.05)
+            >>>
+            >>> # Multiple confidence levels
+            >>> conformal_preds = wf_fit.conformal_predict(
+            ...     test_data,
+            ...     alpha=[0.05, 0.1, 0.2]
+            ... )
+            >>>
+            >>> # Specify method
+            >>> conformal_preds = wf_fit.conformal_predict(
+            ...     test_data,
+            ...     alpha=0.05,
+            ...     method='cv+',
+            ...     cv=10
+            ... )
+        """
+        # Apply preprocessing to new data
+        if isinstance(self.pre, str):
+            # Formula - pass data directly to model (forge() handles it)
+            processed_data = new_data
+        elif isinstance(self.pre, PreparedRecipe):
+            # Recipe - apply fitted transformations
+            processed_data = self.pre.bake(new_data)
+        else:
+            raise ValueError(f"Unknown preprocessor type: {type(self.pre)}")
+
+        # Apply preprocessing to calibration data if provided
+        processed_calibration = None
+        if calibration_data is not None:
+            if isinstance(self.pre, str):
+                processed_calibration = calibration_data
+            elif isinstance(self.pre, PreparedRecipe):
+                processed_calibration = self.pre.bake(calibration_data)
+
+        # Get conformal predictions from underlying ModelFit
+        conformal_preds = self.fit.conformal_predict(
+            processed_data,
+            alpha=alpha,
+            method=method,
+            calibration_data=processed_calibration,
+            cv=cv,
+            **kwargs
+        )
+
+        return conformal_preds
+
     def evaluate(
         self,
         test_data: pd.DataFrame,
