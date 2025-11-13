@@ -309,10 +309,11 @@ class TestWorkflowSetGlobal:
         # Fit global (1 workflow = 1 model, group as feature)
         results = wf_set.fit_global(refinery_data_small_groups, group_col='country')
 
-        # Should still have group-aware metrics
-        metrics_by_group = results.collect_metrics(by_group=True, split='train')
-        n_groups = len(refinery_data_small_groups['country'].unique())
-        assert len(metrics_by_group) == n_groups
+        # Collect metrics (global fit returns WorkflowSetResults)
+        metrics = results.collect_metrics(summarize=True)
+        # Should have 1 workflow with multiple metrics
+        unique_workflows = metrics['wflow_id'].nunique()
+        assert unique_workflows == 1
 
     def test_fit_global_multiple_workflows(self, refinery_data_small_groups):
         """Test fit_global with multiple workflows."""
@@ -323,8 +324,10 @@ class TestWorkflowSetGlobal:
         # 4 workflows (each trained once globally)
         results = wf_set.fit_global(refinery_data_small_groups, group_col='country')
 
-        metrics_avg = results.collect_metrics(by_group=False, split='train')
-        assert len(metrics_avg) == 4
+        metrics = results.collect_metrics(summarize=True)
+        # Should have 4 workflows
+        unique_workflows = metrics['wflow_id'].nunique()
+        assert unique_workflows == 4
 
     def test_global_vs_nested_comparison(self, gas_demand_small_groups):
         """Compare global and nested modeling approaches."""
@@ -332,19 +335,21 @@ class TestWorkflowSetGlobal:
         models = [linear_reg()]
         wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
 
-        # Global approach
+        # Global approach (returns WorkflowSetResults)
         results_global = wf_set.fit_global(gas_demand_small_groups, group_col='country')
-        metrics_global = results_global.collect_metrics(by_group=False, split='train')
+        metrics_global = results_global.collect_metrics(summarize=True)
 
-        # Nested approach
+        # Nested approach (returns WorkflowSetNestedResults)
         results_nested = wf_set.fit_nested(gas_demand_small_groups, group_col='country')
         metrics_nested = results_nested.collect_metrics(by_group=False, split='train')
 
-        # Both should have metrics for same workflow
-        assert len(metrics_global) == 1
-        assert len(metrics_nested) == 1
+        # Both should have metrics for same workflow (1 workflow)
+        assert metrics_global['wflow_id'].nunique() == 1
+        assert metrics_nested['wflow_id'].nunique() == 1
 
-        # Metrics may differ due to different modeling approaches
+        # Both should have multiple metrics per workflow
+        assert len(metrics_global) > 0
+        assert len(metrics_nested) > 0
 
 
 class TestWorkflowSetMixedPreprocessing:

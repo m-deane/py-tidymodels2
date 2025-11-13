@@ -792,6 +792,9 @@ class WorkflowSetResults:
         combined = pd.concat(all_metrics, ignore_index=True)
 
         if summarize:
+            # Convert value column to numeric
+            combined["value"] = pd.to_numeric(combined["value"], errors='coerce')
+
             # Summarize by taking mean and std across resamples
             summary = combined.groupby(["wflow_id", "metric"])["value"].agg([
                 ("mean", "mean"),
