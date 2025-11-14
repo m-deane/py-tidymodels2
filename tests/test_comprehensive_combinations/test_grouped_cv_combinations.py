@@ -132,8 +132,10 @@ class TestFitNestedResamples:
         # Collect summarized metrics
         summary = results.collect_metrics(by_group=True, summarize=True)
 
-        # Should have 4 workflows × 3 groups = 12 rows
-        assert len(summary) == 12
+        # Should have 4 workflows × 3 groups × 3 metrics = 36 rows (long format)
+        # Count unique workflow-group combinations
+        unique_combos = summary[['wflow_id', 'group']].drop_duplicates()
+        assert len(unique_combos) == 12  # 4 workflows × 3 groups
         assert 'wflow_id' in summary.columns
         assert 'group' in summary.columns
 
@@ -163,7 +165,7 @@ class TestFitNestedResamples:
         )
 
         summary = results.collect_metrics(by_group=False, summarize=True)
-        assert len(summary) == 2  # 2 workflows
+        assert len(summary) == 6  # 2 workflows × 3 metrics (long format)
 
 
 class TestFitGlobalResamples:
@@ -219,7 +221,7 @@ class TestFitGlobalResamples:
         )
 
         summary = results.collect_metrics(by_group=False, summarize=True)
-        assert len(summary) == 2  # 2 workflows
+        assert len(summary) == 6  # 2 workflows × 3 metrics (long format)
 
 
 class TestCVMetricsCollection:
@@ -283,7 +285,7 @@ class TestCVMetricsCollection:
 
         # Overall summary (averaged across groups and folds)
         summary = results.collect_metrics(by_group=False, summarize=True)
-        assert len(summary) == 2  # 2 workflows
+        assert len(summary) == 6  # 2 workflows × 3 metrics (long format)
 
     def test_collect_metrics_unsummarized(self, refinery_data_small_groups, metric_set_basic):
         """Test collecting raw fold-level metrics."""
@@ -552,8 +554,8 @@ class TestMixedCVStrategies:
         metrics_nested = results_nested.collect_metrics(by_group=False, summarize=True)
         metrics_global = results_global.collect_metrics(by_group=False, summarize=True)
 
-        assert len(metrics_nested) == 1
-        assert len(metrics_global) == 1
+        assert len(metrics_nested) == 3  # 1 workflow × 3 metrics (long format)
+        assert len(metrics_global) == 3  # 1 workflow × 3 metrics (long format)
 
 
 class TestCVWithComplexPreprocessing:
@@ -584,7 +586,7 @@ class TestCVWithComplexPreprocessing:
         )
 
         summary = results.collect_metrics(by_group=False, summarize=True)
-        assert len(summary) == 1
+        assert len(summary) == 3  # 1 workflow × 3 metrics (long format)
 
     def test_cv_with_dimensionality_reduction(self, gas_demand_small_groups, metric_set_basic):
         """Test CV with PCA dimensionality reduction."""
@@ -650,7 +652,7 @@ class TestCVPerformance:
         )
 
         summary = results.collect_metrics(by_group=False, summarize=True)
-        assert len(summary) == 6
+        assert len(summary) == 18  # 6 workflows × 3 metrics (long format)
 
         ranked = results.rank_results('rmse', by_group=False, n=3)
         assert len(ranked) == 3
