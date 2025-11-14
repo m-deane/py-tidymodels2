@@ -688,19 +688,18 @@ class WorkflowSet:
 
             for group_name, cv_splits in resamples.items():
                 try:
-                    # Get group data
-                    group_data = data[data[group_col] == group_name].copy()
-
                     # For each fold, fit global model and evaluate
                     fold_results = []
                     for fold_num, split in enumerate(cv_splits.splits):
                         # Extract train/test indices from RSplit object
+                        # NOTE: These indices are for the FULL dataset, not group-specific
                         train_idx = split._split.in_id
                         test_idx = split._split.out_id
 
-                        # Get fold data (with group_col)
-                        fold_train = group_data.iloc[train_idx].copy()
-                        fold_test = group_data.iloc[test_idx].copy()
+                        # Get fold data using global indices (NOT group-filtered data)
+                        # Global CV splits are on the full dataset, not per-group
+                        fold_train = data.iloc[train_idx].copy()
+                        fold_test = data.iloc[test_idx].copy()
 
                         # Fit global workflow on training fold
                         fold_fit = wf.fit_global(fold_train, group_col=group_col)
