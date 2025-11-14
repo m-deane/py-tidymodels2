@@ -122,9 +122,27 @@ class PreparedStepBs:
 
         result = data.copy()
 
-        if self.column not in result.columns or len(self.knot_values) == 0:
+        if len(self.knot_values) == 0:
             return result
 
+        # Check if transformation already applied (idempotency for double-baking scenarios)
+        original_col_exists = self.column in result.columns
+        transformed_cols_exist = all(col in result.columns for col in self.feature_names)
+
+        if not original_col_exists and transformed_cols_exist:
+            # Data already transformed (columns are already spline features)
+            # This happens in double-baking scenarios (e.g., per-group preprocessing)
+            return result
+        elif not original_col_exists and not transformed_cols_exist:
+            # Neither original nor transformed columns exist - data mismatch error
+            raise ValueError(
+                f"Required column not found in data.\n"
+                f"Expected original column: {self.column}\n"
+                f"Or transformed columns: {self.feature_names}\n"
+                f"Available columns: {list(result.columns)}"
+            )
+
+        # Transform (original column exists)
         x = result[self.column].values
 
         # Compute B-spline basis
@@ -251,9 +269,24 @@ class PreparedStepNs:
         """
         result = data.copy()
 
-        if self.column not in result.columns:
-            return result
+        # Check if transformation already applied (idempotency for double-baking scenarios)
+        original_col_exists = self.column in result.columns
+        transformed_cols_exist = all(col in result.columns for col in self.feature_names)
 
+        if not original_col_exists and transformed_cols_exist:
+            # Data already transformed (columns are already spline features)
+            # This happens in double-baking scenarios (e.g., per-group preprocessing)
+            return result
+        elif not original_col_exists and not transformed_cols_exist:
+            # Neither original nor transformed columns exist - data mismatch error
+            raise ValueError(
+                f"Required column not found in data.\n"
+                f"Expected original column: {self.column}\n"
+                f"Or transformed columns: {self.feature_names}\n"
+                f"Available columns: {list(result.columns)}"
+            )
+
+        # Transform (original column exists)
         x = result[self.column].values
         x_min, x_max = self.boundary_knots
 
@@ -407,7 +440,29 @@ class PreparedStepPoly:
 
         result = data.copy()
 
-        # Transform
+        # Check if transformation already applied (idempotency for double-baking scenarios)
+        original_cols_exist = all(col in result.columns for col in self.columns)
+
+        # feature_names includes original columns + polynomial features
+        # After inplace=True, only polynomial features remain (not original columns)
+        # Filter to get only the polynomial features (exclude original columns)
+        poly_features = [name for name in self.feature_names if name not in self.columns]
+        transformed_cols_exist = all(col in result.columns for col in poly_features) if poly_features else False
+
+        if not original_cols_exist and transformed_cols_exist:
+            # Data already transformed (columns are already polynomial features)
+            # This happens in double-baking scenarios (e.g., per-group preprocessing)
+            return result
+        elif not original_cols_exist and not transformed_cols_exist:
+            # Neither original nor transformed columns exist - data mismatch error
+            raise ValueError(
+                f"Required columns not found in data.\n"
+                f"Expected original columns: {self.columns}\n"
+                f"Or transformed columns: {poly_features}\n"
+                f"Available columns: {list(result.columns)}"
+            )
+
+        # Transform (original columns exist)
         poly_data = self.poly_transformer.transform(result[self.columns])
 
         # Check if we need to filter features (when include_interactions=False)
