@@ -32,6 +32,7 @@ from py_parsnip.models.poisson_reg import poisson_reg
 from py_parsnip.models.gen_additive_mod import gen_additive_mod
 from py_parsnip.models.decision_tree import decision_tree
 from py_parsnip.models.nearest_neighbor import nearest_neighbor
+from py_parsnip.models.panel_reg import panel_reg
 from py_parsnip.models.svm_rbf import svm_rbf
 from py_parsnip.models.svm_linear import svm_linear
 from py_parsnip.models.svm_poly import svm_poly
@@ -65,6 +66,7 @@ __all__ = [
     "gen_additive_mod",
     "decision_tree",
     "nearest_neighbor",
+    "panel_reg",
     "svm_rbf",
     "svm_linear",
     "svm_poly",

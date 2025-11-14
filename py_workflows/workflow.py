@@ -862,8 +862,18 @@ class Workflow:
                 # Add group_col explicitly
                 updated_formula = f"{outcome} ~ {predictors} + {group_col}"
 
-            # Update workflow with new formula
+            # Update workflow with new formula and store group_col in spec for panel models
             updated_workflow = self.update_formula(updated_formula)
+            # For panel models, store group_col in spec args so engine can access it
+            if updated_workflow.spec and updated_workflow.spec.model_type == "panel_reg":
+                updated_workflow = Workflow(
+                    preprocessor=updated_workflow.preprocessor,
+                    spec=updated_workflow.spec.set_args(_group_col=group_col),
+                    post=updated_workflow.post,
+                    case_weights=updated_workflow.case_weights,
+                    model_name=updated_workflow.model_name,
+                    model_group_name=updated_workflow.model_group_name,
+                )
             fit_result = updated_workflow.fit(data)
             # Mark this as a global fit and store the group column
             fit_result.is_global_fit = True
@@ -873,7 +883,19 @@ class Workflow:
             return fit_result
         elif isinstance(self.preprocessor, Recipe):
             # For recipes, group column will be included automatically if present in data
-            fit_result = self.fit(data)
+            # For panel models, store group_col in spec args so engine can access it
+            if self.spec and self.spec.model_type == "panel_reg":
+                updated_workflow = Workflow(
+                    preprocessor=self.preprocessor,
+                    spec=self.spec.set_args(_group_col=group_col),
+                    post=self.post,
+                    case_weights=self.case_weights,
+                    model_name=self.model_name,
+                    model_group_name=self.model_group_name,
+                )
+                fit_result = updated_workflow.fit(data)
+            else:
+                fit_result = self.fit(data)
             # Mark this as a global fit and store the group column
             fit_result.is_global_fit = True
             fit_result.group_col = group_col
