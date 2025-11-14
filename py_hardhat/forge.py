@@ -119,11 +119,20 @@ def _validate_factor_levels(data: pd.DataFrame, blueprint: Blueprint) -> None:
     """
     Validate that categorical variables don't have new levels.
 
+    Only validates columns that are actually predictors in the blueprint,
+    skipping columns that may be in the data but not used in the model
+    (e.g., group columns for panel models).
+
     Raises:
         ValueError: If new levels are found
     """
+    # Get list of predictor columns from blueprint (excluding outcome)
+    predictor_roles = blueprint.roles.get('predictor', [])
+
     for col, expected_levels in blueprint.factor_levels.items():
-        if col in data.columns:
+        # Only validate if column is in data AND is a predictor
+        # Skip columns like group_col that may be in factor_levels but not in predictors
+        if col in data.columns and col in predictor_roles:
             actual_levels = set(data[col].unique())
             expected_levels_set = set(expected_levels)
 

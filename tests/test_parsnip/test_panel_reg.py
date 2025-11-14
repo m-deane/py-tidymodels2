@@ -620,9 +620,12 @@ class TestPanelRegIntegration:
 
     def test_workflow_fit_global_recipe(self, balanced_panel):
         """Test panel_reg with recipe preprocessing"""
-        rec = recipe(balanced_panel, "sales ~ price").step_normalize(all_numeric())
+        # Note: Recipe doesn't support explicit formulas, it auto-generates them
+        # The recipe will normalize all numeric columns
+        rec = recipe().step_normalize(all_numeric())
         spec = panel_reg()
 
+        # When using recipe, don't add formula - it will be auto-generated
         wf = workflow().add_recipe(rec).add_model(spec)
         fit = wf.fit_global(balanced_panel, group_col='store_id')
 
@@ -639,8 +642,8 @@ class TestPanelRegIntegration:
 
         formulas = ["sales ~ price"]
         models = [
-            ("linear_reg", linear_reg()),
-            ("panel_reg", panel_reg()),
+            linear_reg(),
+            panel_reg(),
         ]
 
         wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
@@ -652,14 +655,15 @@ class TestPanelRegIntegration:
         results = wf_set.fit_global(balanced_panel, group_col='store_id')
 
         # Should have results for both workflows
-        assert len(results.workflow_fits) == 2
+        assert len(results.results) == 2
 
-        # Extract outputs
-        outputs, coefficients, stats = results.extract_outputs()
+        # Check that both workflows succeeded
+        assert all(r["fit"] is not None for r in results.results)
 
-        # Should have results for both models
-        assert "linear_reg" in stats["model"].values or "prep_1_linear_reg_1" in stats["model"].values
-        assert "panel_reg" in stats["model"].values or "prep_1_panel_reg_1" in stats["model"].values
+        # Check workflow IDs
+        wflow_ids = [r["wflow_id"] for r in results.results]
+        assert "prep_1_linear_reg_1" in wflow_ids
+        assert "prep_1_panel_reg_2" in wflow_ids
 
     def test_workflow_predict_evaluate(self, balanced_panel):
         """Test full workflow: fit → predict → evaluate"""

@@ -851,16 +851,23 @@ class Workflow:
             outcome = lhs.strip()
             predictors = rhs.strip()
 
-            # Check if group_col is already in the formula
-            # Split predictors on '+' and check each term
-            predictor_terms = [term.strip() for term in predictors.split('+')]
-
-            if group_col in predictor_terms or predictors == ".":
-                # group_col already in formula or using "." notation (includes all columns)
+            # For panel_reg models, do NOT add group_col to formula
+            # The group column is used internally but not as a predictor
+            if self.spec and self.spec.model_type == "panel_reg":
+                # Keep original formula, just store group_col in spec args
                 updated_formula = formula
             else:
-                # Add group_col explicitly
-                updated_formula = f"{outcome} ~ {predictors} + {group_col}"
+                # For other models (like linear_reg with fit_global), add group_col to formula
+                # Check if group_col is already in the formula
+                # Split predictors on '+' and check each term
+                predictor_terms = [term.strip() for term in predictors.split('+')]
+
+                if group_col in predictor_terms or predictors == ".":
+                    # group_col already in formula or using "." notation (includes all columns)
+                    updated_formula = formula
+                else:
+                    # Add group_col explicitly
+                    updated_formula = f"{outcome} ~ {predictors} + {group_col}"
 
             # Update workflow with new formula and store group_col in spec for panel models
             updated_workflow = self.update_formula(updated_formula)

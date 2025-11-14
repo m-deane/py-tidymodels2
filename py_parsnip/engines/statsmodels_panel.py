@@ -99,7 +99,8 @@ class StatsmodelsPanelEngine(Engine):
         group_col_name = args.get("_group_col")
         if group_col_name is None:
             raise ValueError(
-                "panel_reg requires group column. Use fit_global(data, group_col='column_name')"
+                "panel_reg requires original_training_data with group column. "
+                "Use fit_global(data, group_col='column_name')"
             )
 
         if group_col_name not in original_training_data.columns:
@@ -219,15 +220,49 @@ class StatsmodelsPanelEngine(Engine):
         model = MixedLM(endog=y, exog=X, groups=groups, exog_re=exog_re)
         fitted_model = model.fit(method=['lbfgs'])
 
-        # Calculate fitted values and residuals
-        fitted = fitted_model.fittedvalues.values
-        residuals = fitted_model.resid.values
-
         # =====================
         # 6. EXTRACT RANDOM EFFECTS AND COVARIANCE
         # =====================
-        random_effects_dict = fitted_model.random_effects
-        cov_re = fitted_model.cov_re
+        # Handle singular covariance matrices gracefully
+        try:
+            random_effects_dict = fitted_model.random_effects
+            cov_re = fitted_model.cov_re
+            # Calculate fitted values and residuals
+            fitted = fitted_model.fittedvalues.values
+            residuals = fitted_model.resid.values
+        except (ValueError, np.linalg.LinAlgError) as e:
+            # Singular covariance matrix - fall back to fixed effects only
+            import warnings
+            warnings.warn(
+                f"Singular random effects covariance matrix detected. "
+                f"Using fixed effects only for fitted values. "
+                f"This can occur with small datasets or perfect collinearity. "
+                f"Error: {e}",
+                UserWarning
+            )
+            # Use fixed effects predictions only
+            fitted = fitted_model.predict(X).values
+            residuals = y.values if isinstance(y, pd.Series) else y - fitted
+
+            # Set random effects to zero for all groups
+            unique_groups_list = pd.unique(groups).tolist()
+            if exog_re is not None and hasattr(exog_re, 'shape') and exog_re.shape[1] > 1:
+                # Random intercepts + slopes
+                random_effects_dict = {g: np.zeros(exog_re.shape[1]) for g in unique_groups_list}
+            else:
+                # Random intercepts only
+                random_effects_dict = {g: np.array([0.0]) for g in unique_groups_list}
+
+            # Try to get cov_re, or create a zero matrix
+            try:
+                cov_re = fitted_model.cov_re
+            except:
+                # Create zero covariance matrix
+                if exog_re is not None and hasattr(exog_re, 'shape'):
+                    n_re = exog_re.shape[1]
+                else:
+                    n_re = 1
+                cov_re = np.zeros((n_re, n_re))
 
         # =====================
         # 7. RETURN FIT_DATA DICT
@@ -320,19 +355,30 @@ class StatsmodelsPanelEngine(Engine):
             return pd.DataFrame({".pred": predictions.values})
         else:  # conf_int
             # Get prediction intervals
-            # Note: MixedLM prediction intervals are complex (involve both fixed and random effects uncertainty)
-            # For now, we use approximate intervals from get_prediction()
+            # Note: MixedLM doesn't have get_prediction() method like OLS
+            # We'll compute approximate intervals using residual standard error
             try:
-                pred_summary = model.get_prediction(X)
-                pred_int = pred_summary.conf_int(alpha=0.05)  # 95% CI
+                # Get residual standard error (scale)
+                residual_std = np.sqrt(model.scale)
+
+                # For mixed models, prediction interval is approximately:
+                # pred ± t_critical * sqrt(residual_variance + random_effects_variance)
+                # For simplicity, we use residual std * 1.96 (approx 95% CI)
+                from scipy import stats
+                n_obs = len(fit.fit_data.get("y_train", []))
+                n_params = len(model.params)
+                df = max(1, n_obs - n_params)
+                t_critical = stats.t.ppf(0.975, df)  # 95% CI
+
+                margin = t_critical * residual_std
 
                 return pd.DataFrame({
                     ".pred": predictions.values,
-                    ".pred_lower": pred_int[:, 0],
-                    ".pred_upper": pred_int[:, 1],
+                    ".pred_lower": predictions.values - margin,
+                    ".pred_upper": predictions.values + margin,
                 })
             except Exception as e:
-                # If get_prediction fails, return predictions only
+                # If interval computation fails, return predictions only
                 import warnings
                 warnings.warn(
                     f"Could not compute confidence intervals: {e}. "
