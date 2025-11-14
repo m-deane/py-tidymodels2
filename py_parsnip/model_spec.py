@@ -872,7 +872,12 @@ class ModelFit:
             create_block_bootstrap,
             estimate_seasonal_period
         )
-        from mapie.regression import MapieRegressor, MapieTimeSeriesRegressor
+        from mapie.regression import (
+            SplitConformalRegressor,
+            CrossConformalRegressor,
+            TimeSeriesRegressor,
+            ConformalizedQuantileRegressor
+        )
         import numpy as np
 
         # Check if we already have a cached conformal wrapper
@@ -883,10 +888,27 @@ class ModelFit:
                 mapie_wrapper = self._conformal_wrapper
                 # Generate predictions with cached wrapper
                 X_test = self._prepare_features_for_mapie(new_data)
-                y_pred, y_intervals = mapie_wrapper.predict(
-                    X_test,
-                    alpha=alpha
-                )
+                
+                # Use appropriate predict method based on wrapper type
+                if isinstance(mapie_wrapper, TimeSeriesRegressor):
+                    # Convert alpha to confidence_level
+                    alphas = [alpha] if isinstance(alpha, (int, float)) else alpha
+                    confidence_levels = [1 - a for a in alphas]
+                    if len(confidence_levels) == 1:
+                        confidence_level = confidence_levels[0]
+                    else:
+                        confidence_level = confidence_levels
+                    y_pred, y_intervals = mapie_wrapper.predict(
+                        X_test,
+                        confidence_level=confidence_level
+                    )
+                elif hasattr(mapie_wrapper, 'predict_interval'):
+                    # Use predict_interval for SplitConformalRegressor and CrossConformalRegressor
+                    y_pred, y_intervals = mapie_wrapper.predict_interval(X_test)
+                else:
+                    # Fallback for other methods
+                    y_pred, y_intervals = mapie_wrapper.predict(X_test, alpha=alpha)
+                    
                 return format_conformal_predictions(y_pred, y_intervals, alpha, method)
 
         # Get training data from fit_data
@@ -947,7 +969,18 @@ class ModelFit:
         # Get MAPIE configuration
         mapie_config = get_mapie_cv_config(method, len(train_subset), **kwargs)
 
-        # Create MAPIE wrapper
+        # Create MAPIE wrapper based on method
+        estimator = self._create_sklearn_compatible_estimator()
+        n_jobs = mapie_config.get('n_jobs', -1)
+        
+        # Convert alpha to confidence_level (alpha=0.05 -> confidence_level=0.95)
+        alphas = [alpha] if isinstance(alpha, (int, float)) else alpha
+        confidence_levels = [1 - a for a in alphas]
+        if len(confidence_levels) == 1:
+            confidence_level = confidence_levels[0]
+        else:
+            confidence_level = confidence_levels
+        
         if method == 'enbpi':
             # Time series specific wrapper
             # Configure block bootstrap for temporal structure
@@ -966,34 +999,84 @@ class ModelFit:
                 random_state=kwargs.get('random_state', None)
             )
 
-            mapie_wrapper = MapieTimeSeriesRegressor(
-                estimator=self._create_sklearn_compatible_estimator(),
+            mapie_wrapper = TimeSeriesRegressor(
+                estimator=estimator,
                 method='enbpi',
                 cv=cv,
                 agg_function='mean',
-                n_jobs=mapie_config.get('n_jobs', -1)
+                n_jobs=n_jobs
             )
+            
+            # Fit on training data
+            mapie_wrapper.fit(X_train, y_train)
+            
+            # Generate predictions with intervals (confidence_level passed to predict)
+            y_pred, y_intervals = mapie_wrapper.predict(
+                X_test,
+                confidence_level=confidence_level
+            )
+            
+        elif method == 'split':
+            # Split conformal regression
+            # Note: confidence_level is set in constructor, not in predict
+            # Set prefit=False so we can fit the estimator ourselves
+            mapie_wrapper = SplitConformalRegressor(
+                estimator=estimator,
+                confidence_level=confidence_level,
+                prefit=False,
+                n_jobs=n_jobs
+            )
+            
+            # Fit on training data, then conformalize on calibration data
+            mapie_wrapper.fit(X_train, y_train)
+            mapie_wrapper.conformalize(X_cal, y_cal)
+            
+            # Generate predictions with intervals
+            y_pred, y_intervals = mapie_wrapper.predict_interval(X_test)
+            
+        elif method == 'cqr':
+            # Conformalized quantile regression
+            mapie_wrapper = ConformalizedQuantileRegressor(
+                estimator=estimator,
+                confidence_level=confidence_level,
+                prefit=False
+            )
+            
+            # Fit on training data, then conformalize on calibration data
+            mapie_wrapper.fit(X_train, y_train)
+            mapie_wrapper.conformalize(X_cal, y_cal)
+            
+            # Generate predictions with intervals
+            y_pred, y_intervals = mapie_wrapper.predict_interval(X_test)
+                
         else:
-            # Standard regression wrapper
-            mapie_wrapper = MapieRegressor(
-                estimator=self._create_sklearn_compatible_estimator(),
-                method=mapie_config['method'],
-                cv=mapie_config.get('cv', 'split'),
-                n_jobs=mapie_config.get('n_jobs', -1)
+            # Cross-conformal methods (cv+, jackknife+, etc.)
+            # Use CrossConformalRegressor for cv+ and jackknife+
+            cv_param = mapie_config.get('cv', 5)
+            mapie_method = mapie_config.get('method', 'plus')
+            
+            mapie_wrapper = CrossConformalRegressor(
+                estimator=estimator,
+                method=mapie_method,
+                cv=cv_param,
+                confidence_level=confidence_level,
+                n_jobs=n_jobs,
+                random_state=kwargs.get('random_state', None)
             )
-
-        # Fit MAPIE wrapper on training + calibration
-        X_full = pd.concat([X_train, X_cal], axis=0)
-        y_full = pd.concat([y_train, y_cal], axis=0)
-        mapie_wrapper.fit(X_full, y_full)
+            
+            # Cross-conformal uses fit_conformalize (CV handles calibration internally)
+            # Combine training and calibration data
+            X_full = pd.concat([X_train, X_cal], axis=0)
+            y_full = pd.concat([y_train, y_cal], axis=0)
+            mapie_wrapper.fit_conformalize(X_full, y_full)
+            
+            # Generate predictions with intervals
+            y_pred, y_intervals = mapie_wrapper.predict_interval(X_test)
 
         # Cache wrapper for future predictions
         self._conformal_wrapper = mapie_wrapper
         self._conformal_method = method
         self._conformal_alpha = alpha
-
-        # Generate predictions with intervals
-        y_pred, y_intervals = mapie_wrapper.predict(X_test, alpha=alpha)
 
         # Format and return
         return format_conformal_predictions(y_pred, y_intervals, alpha, method)
