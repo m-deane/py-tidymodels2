@@ -20,6 +20,7 @@ from py_parsnip.models.prophet_reg import prophet_reg
 from py_parsnip.models.arima_reg import arima_reg
 from py_parsnip.models.exp_smoothing import exp_smoothing
 from py_parsnip.models.seasonal_reg import seasonal_reg
+from py_parsnip.models.varmax_reg import varmax_reg
 from py_parsnip.models.rand_forest import rand_forest
 from py_parsnip.models.recursive_reg import recursive_reg
 from py_parsnip.models.null_model import null_model
@@ -53,6 +54,7 @@ __all__ = [
     "arima_reg",
     "exp_smoothing",
     "seasonal_reg",
+    "varmax_reg",
     "rand_forest",
     "recursive_reg",
     "null_model",
