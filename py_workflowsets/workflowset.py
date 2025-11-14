@@ -196,6 +196,11 @@ class WorkflowSet:
         """Get workflow by ID"""
         return self.workflows[key]
 
+    @property
+    def workflow_ids(self):
+        """Get list of workflow IDs"""
+        return list(self.workflows.keys())
+
     def workflow_map(self,
                      fn: str,
                      resamples: Any = None,
@@ -1028,6 +1033,52 @@ class WorkflowSet:
         # Windows compatibility check
         if effective_n_jobs > 1:
             check_windows_compatibility(verbose=verbose and n_jobs is not None)
+            for group_name, cv_splits in resamples.items():
+                try:
+                    # For each fold, fit global model and evaluate
+                    fold_results = []
+                    for fold_num, split in enumerate(cv_splits.splits):
+                        # Extract train/test indices from RSplit object
+                        # NOTE: These indices are for the FULL dataset, not group-specific
+                        train_idx = split._split.in_id
+                        test_idx = split._split.out_id
+
+                        # Get fold data using global indices (NOT group-filtered data)
+                        # Global CV splits are on the full dataset, not per-group
+                        fold_train = data.iloc[train_idx].copy()
+                        fold_test = data.iloc[test_idx].copy()
+
+                        # Fit global workflow on training fold
+                        fold_fit = wf.fit_global(fold_train, group_col=group_col)
+
+                        # Predict on test fold
+                        predictions = fold_fit.predict(fold_test)
+
+                        # Calculate metrics
+                        from py_yardstick import rmse, mae, r_squared
+                        truth = fold_test[fold_fit.extract_formula().split('~')[0].strip()]
+
+                        for metric_fn in [rmse, mae, r_squared]:
+                            result_df = metric_fn(truth, predictions['.pred'])
+                            metric_name = result_df.iloc[0]['metric']
+                            metric_value = result_df.iloc[0]['value']
+
+                            fold_results.append({
+                                'wflow_id': wf_id,
+                                'group': group_name,
+                                'fold': fold_num + 1,
+                                'metric': metric_name,
+                                'value': metric_value
+                            })
+
+                    fold_metrics_df = pd.DataFrame(fold_results)
+
+                    all_cv_results.append({
+                        "wflow_id": wf_id,
+                        "group": group_name,
+                        "cv_results": None,  # Not using standard fit_resamples
+                        "fold_metrics": fold_metrics_df
+                    })
 
         # Sequential or parallel execution
         if effective_n_jobs == 1:
@@ -1133,6 +1184,9 @@ class WorkflowSetResults:
         combined = pd.concat(all_metrics, ignore_index=True)
 
         if summarize:
+            # Convert value column to numeric
+            combined["value"] = pd.to_numeric(combined["value"], errors='coerce')
+
             # Summarize by taking mean and std across resamples
             summary = combined.groupby(["wflow_id", "metric"])["value"].agg([
                 ("mean", "mean"),
