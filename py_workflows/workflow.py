@@ -6,12 +6,19 @@ with model specifications into complete pipelines.
 """
 
 from dataclasses import dataclass, replace, field
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union, Dict
 from datetime import datetime
 import pandas as pd
+from joblib import Parallel, delayed
 
 from py_parsnip import ModelSpec, ModelFit
 from py_recipes import Recipe, PreparedRecipe
+from .parallel_utils import (
+    validate_n_jobs,
+    get_joblib_backend,
+    check_windows_compatibility,
+    format_parallel_info
+)
 
 
 @dataclass(frozen=True)
@@ -504,12 +511,212 @@ class Workflow:
             formula=formula  # Store formula for easy access
         )
 
+    def _fit_single_group(
+        self,
+        group,
+        group_data: pd.DataFrame,
+        group_col: str,
+        per_group_prep: bool,
+        min_group_size: int,
+        global_recipe: Optional[PreparedRecipe],
+        outcome_col_global: Optional[str]
+    ) -> Tuple[Any, Any, pd.DataFrame, Optional[str]]:
+        """
+        Fit model for a single group.
+
+        Helper function for parallel execution in fit_nested.
+
+        Args:
+            group: Group identifier
+            group_data: Data for this group
+            group_col: Name of group column
+            per_group_prep: Whether to use per-group preprocessing
+            min_group_size: Minimum size for per-group preprocessing
+            global_recipe: Pre-prepared global recipe (if any)
+            outcome_col_global: Outcome column name
+
+        Returns:
+            Tuple of (group_fit, group_recipe, group_train_data, error_msg)
+        """
+        try:
+            # Store original group training data
+            group_train_data = group_data.copy()
+
+            # Determine if we should use per-group preprocessing
+            use_group_recipe = per_group_prep and len(group_data) >= min_group_size
+
+            if not use_group_recipe and per_group_prep and len(group_data) < min_group_size:
+                import warnings
+                warnings.warn(
+                    f"Group '{group}' has only {len(group_data)} samples "
+                    f"(minimum: {min_group_size}). Using global recipe instead.",
+                    UserWarning
+                )
+
+            # For recursive models, set date as index if needed
+            is_recursive = self.spec and self.spec.model_type == "recursive_reg"
+            if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
+                group_data = group_data.set_index("date")
+                group_data_no_group = group_data.drop(columns=[group_col])
+            else:
+                group_data_no_group = group_data.drop(columns=[group_col])
+
+            # Detect outcome column
+            outcome_col = self._get_outcome_from_recipe(self.preprocessor) if isinstance(self.preprocessor, Recipe) else None
+            if outcome_col is None:
+                outcome_col = outcome_col_global or self._detect_outcome(group_data_no_group)
+
+            # Fit based on preprocessing strategy
+            if use_group_recipe:
+                # Prep recipe on THIS group's data only
+                try:
+                    needs_outcome = self._recipe_requires_outcome(self.preprocessor)
+
+                    if needs_outcome:
+                        group_recipe = self.preprocessor.prep(group_data_no_group)
+                    else:
+                        predictors = group_data_no_group.drop(columns=[outcome_col])
+                        group_recipe = self.preprocessor.prep(predictors)
+                except Exception as e:
+                    import warnings
+                    warnings.warn(
+                        f"Recipe prep failed for group '{group}': {str(e)}\n"
+                        f"Falling back to global recipe for this group.",
+                        UserWarning
+                    )
+                    group_recipe = global_recipe
+
+                # Bake data with group's recipe
+                processed_data = self._prep_and_bake_with_outcome(
+                    group_recipe,
+                    group_data_no_group,
+                    outcome_col
+                )
+
+                # Build formula
+                predictor_cols = [
+                    col for col in processed_data.columns
+                    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
+                ]
+                formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
+
+                # Fit model
+                model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
+
+                # Set model names
+                if self.model_name is not None or self.model_group_name is not None:
+                    model_fit = replace(
+                        model_fit,
+                        model_name=self.model_name if self.model_name is not None else model_fit.model_name,
+                        model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
+                    )
+
+                # Wrap in WorkflowFit
+                group_fit = WorkflowFit(
+                    workflow=self,
+                    pre=group_recipe,
+                    fit=model_fit,
+                    post=self.post,
+                    formula=formula,
+                    recipe_prepped_without_outcome=True
+                )
+
+            elif per_group_prep:
+                # Small group - use global recipe
+                group_recipe = global_recipe
+
+                # Bake data with global recipe
+                processed_data = self._prep_and_bake_with_outcome(
+                    global_recipe,
+                    group_data_no_group,
+                    outcome_col
+                )
+
+                # Build formula
+                predictor_cols = [
+                    col for col in processed_data.columns
+                    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
+                ]
+                formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
+
+                # Fit model
+                model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
+
+                # Set model names
+                if self.model_name is not None or self.model_group_name is not None:
+                    model_fit = replace(
+                        model_fit,
+                        model_name=self.model_name if self.model_name is not None else model_fit.model_name,
+                        model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
+                    )
+
+                # Wrap in WorkflowFit
+                group_fit = WorkflowFit(
+                    workflow=self,
+                    pre=global_recipe,
+                    fit=model_fit,
+                    post=self.post,
+                    formula=formula,
+                    recipe_prepped_without_outcome=True
+                )
+
+            else:
+                # Standard shared preprocessing
+                if global_recipe is not None:
+                    # Recipe-based
+                    processed_data = self._prep_and_bake_with_outcome(
+                        global_recipe,
+                        group_data_no_group,
+                        outcome_col
+                    )
+
+                    # Build formula
+                    predictor_cols = [
+                        col for col in processed_data.columns
+                        if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
+                    ]
+                    formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
+
+                    # Fit model
+                    model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
+
+                    # Set model names
+                    if self.model_name is not None or self.model_group_name is not None:
+                        model_fit = replace(
+                            model_fit,
+                            model_name=self.model_name if self.model_name is not None else model_fit.model_name,
+                            model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
+                        )
+
+                    # Wrap in WorkflowFit
+                    from py_workflows.workflow import WorkflowFit
+                    group_fit = WorkflowFit(
+                        workflow=self,
+                        pre=global_recipe,
+                        fit=model_fit,
+                        post=self.post,
+                        formula=formula
+                    )
+                    group_recipe = global_recipe
+                else:
+                    # Formula-based
+                    group_fit = self.fit(group_data_no_group)
+                    group_recipe = None
+
+            return (group_fit, group_recipe, group_train_data, None)
+
+        except Exception as e:
+            error_msg = f"Group '{group}' failed with error: {str(e)}"
+            return (None, None, None, error_msg)
+
     def fit_nested(
         self,
         data: pd.DataFrame,
         group_col: str,
         per_group_prep: bool = True,
-        min_group_size: int = 30
+        min_group_size: int = 30,
+        n_jobs: Optional[int] = None,
+        verbose: bool = False
     ) -> "NestedWorkflowFit":
         """
         Fit separate models for each group in the data (panel/grouped modeling).
@@ -528,6 +735,9 @@ class Workflow:
             min_group_size: Minimum samples required for per-group preprocessing.
                            Groups smaller than this use global recipe (if per_group_prep=True).
                            Default: 30.
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
 
         Returns:
             NestedWorkflowFit containing dict of fitted models per group
@@ -544,6 +754,9 @@ class Workflow:
             ... )
             >>> nested_fit = wf.fit_nested(data, group_col="store_id")
             >>>
+            >>> # Fit with parallel execution
+            >>> nested_fit = wf.fit_nested(data, group_col="store_id", n_jobs=-1, verbose=True)
+            >>>
             >>> # Fit with per-group feature engineering (e.g., PCA)
             >>> wf_pca = (
             ...     workflow()
@@ -553,7 +766,8 @@ class Workflow:
             >>> nested_fit = wf_pca.fit_nested(
             ...     data,
             ...     group_col="store_id",
-            ...     per_group_prep=True  # Each group gets own PCA components
+            ...     per_group_prep=True,  # Each group gets own PCA components
+            ...     n_jobs=4  # Use 4 cores
             ... )
             >>>
             >>> # Predict for all groups
@@ -583,6 +797,7 @@ class Workflow:
 
         # Prep global/shared recipe if needed
         global_recipe = None
+        outcome_col_global = None
         if per_group_prep or isinstance(self.preprocessor, Recipe):
             # Detect outcome column from full data
             # For supervised feature selection, get outcome from recipe; otherwise auto-detect
@@ -607,191 +822,70 @@ class Workflow:
         group_recipes = {} if per_group_prep else None
         group_train_data = {}  # Store original training data per group (for date extraction)
 
-        for group in groups:
-            group_data = data[data[group_col] == group].copy()
+        # Prepare list of group data
+        group_data_list = [(group, data[data[group_col] == group].copy()) for group in groups]
 
-            # Store original group training data (BEFORE removing group column)
-            # This preserves date column for later extraction in extract_outputs()
-            group_train_data[group] = group_data.copy()
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(groups), verbose=verbose)
 
-            # Determine if we should use per-group preprocessing for this group
-            use_group_recipe = per_group_prep and len(group_data) >= min_group_size
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
 
-            if not use_group_recipe and per_group_prep and len(group_data) < min_group_size:
-                import warnings
-                warnings.warn(
-                    f"Group '{group}' has only {len(group_data)} samples "
-                    f"(minimum: {min_group_size}). Using global recipe instead.",
-                    UserWarning
+        # Decide between sequential and parallel execution
+        if effective_n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                info = format_parallel_info(1, len(groups), "groups")
+                print(f"{info}...")
+
+            results = []
+            for i, (group, group_data) in enumerate(group_data_list):
+                result = self._fit_single_group(
+                    group, group_data, group_col, per_group_prep,
+                    min_group_size, global_recipe, outcome_col_global
                 )
+                results.append((group, result))
+                if verbose:
+                    print(f"  Group {i+1}/{len(groups)} ({group}) complete")
+        else:
+            # Parallel execution
+            if verbose:
+                info = format_parallel_info(effective_n_jobs, len(groups), "groups")
+                print(f"{info}...")
 
-            # For recursive models, set date as index if needed
-            is_recursive = self.spec and self.spec.model_type == "recursive_reg"
-            if is_recursive and "date" in group_data.columns and not isinstance(group_data.index, pd.DatetimeIndex):
-                # Set date as index before removing group column (recursive models need this)
-                group_data = group_data.set_index("date")
-                group_data_no_group = group_data.drop(columns=[group_col])
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            parallel_results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_group)(
+                    group, group_data, group_col, per_group_prep,
+                    min_group_size, global_recipe, outcome_col_global
+                )
+                for group, group_data in group_data_list
+            )
+            results = list(zip([g for g, _ in group_data_list], parallel_results))
+
+        # Process results
+        errors = []
+        for group, (group_fit, group_recipe, g_train_data, error_msg) in results:
+            if error_msg:
+                errors.append(error_msg)
             else:
-                # Remove group column before fitting (it's not a predictor)
-                group_data_no_group = group_data.drop(columns=[group_col])
-
-            # Detect outcome column (before preprocessing)
-            # For supervised feature selection, get outcome from recipe; otherwise auto-detect
-            outcome_col = self._get_outcome_from_recipe(self.preprocessor)
-            if outcome_col is None:
-                outcome_col = self._detect_outcome(group_data_no_group)
-
-            # Fit based on preprocessing strategy
-            if use_group_recipe:
-                # Prep recipe on THIS group's data only
-                try:
-                    # Check if recipe needs outcome during prep
-                    needs_outcome = self._recipe_requires_outcome(self.preprocessor)
-
-                    # DEBUG
-                    import sys
-                    if hasattr(sys, '_workflow_debug'):
-                        print(f"\n[DEBUG] Prepping recipe for group '{group}':")
-                        print(f"        needs_outcome={needs_outcome}")
-                        print(f"        group_data_no_group columns={list(group_data_no_group.columns)}")
-
-                    if needs_outcome:
-                        # Prep with outcome included (for supervised feature selection)
-                        group_recipe = self.preprocessor.prep(group_data_no_group)
-                    else:
-                        # Prep on predictors only (excluding outcome)
-                        predictors = group_data_no_group.drop(columns=[outcome_col])
-                        group_recipe = self.preprocessor.prep(predictors)
-
+                group_fits[group] = group_fit
+                if per_group_prep and group_recipe is not None:
                     group_recipes[group] = group_recipe
+                if g_train_data is not None:
+                    group_train_data[group] = g_train_data
 
-                    # DEBUG
-                    if hasattr(sys, '_workflow_debug'):
-                        print(f"        recipe prepped successfully")
-                except Exception as e:
-                    import warnings
-                    warnings.warn(
-                        f"Recipe prep failed for group '{group}': {str(e)}\n"
-                        f"Falling back to global recipe for this group.",
-                        UserWarning
-                    )
-                    # Fallback to global recipe
-                    group_recipes[group] = global_recipe
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
 
-                # Bake data with group's recipe (preserving outcome)
-                processed_data = self._prep_and_bake_with_outcome(
-                    group_recipes[group],
-                    group_data_no_group,
-                    outcome_col
-                )
+        if verbose:
+            print(f"✓ Nested fitting complete: {len(group_fits)} successful groups")
 
-                # Build formula from processed data
-                predictor_cols = [
-                    col for col in processed_data.columns
-                    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
-                ]
-                formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
-
-                # Fit model directly
-                model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
-
-                # Set model_name and model_group_name from workflow if provided
-                if self.model_name is not None or self.model_group_name is not None:
-                    model_fit = replace(
-                        model_fit,
-                        model_name=self.model_name if self.model_name is not None else model_fit.model_name,
-                        model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
-                    )
-
-                # Wrap in WorkflowFit
-                group_fits[group] = WorkflowFit(
-                    workflow=self,
-                    pre=group_recipes[group],
-                    fit=model_fit,
-                    post=self.post,
-                    formula=formula,
-                    recipe_prepped_without_outcome=True  # Per-group recipe prepped on predictors only
-                )
-
-            elif per_group_prep:
-                # Small group - use global recipe
-                group_recipes[group] = global_recipe
-
-                # Bake data with global recipe (preserving outcome)
-                processed_data = self._prep_and_bake_with_outcome(
-                    global_recipe,
-                    group_data_no_group,
-                    outcome_col
-                )
-
-                # Build formula from processed data
-                predictor_cols = [
-                    col for col in processed_data.columns
-                    if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
-                ]
-                formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
-
-                # Fit model directly
-                model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
-
-                # Set model_name and model_group_name from workflow if provided
-                if self.model_name is not None or self.model_group_name is not None:
-                    model_fit = replace(
-                        model_fit,
-                        model_name=self.model_name if self.model_name is not None else model_fit.model_name,
-                        model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
-                    )
-
-                # Wrap in WorkflowFit
-                group_fits[group] = WorkflowFit(
-                    workflow=self,
-                    pre=global_recipe,
-                    fit=model_fit,
-                    post=self.post,
-                    formula=formula,
-                    recipe_prepped_without_outcome=True  # Global recipe also prepped on predictors only
-                )
-
-            else:
-                # Standard shared preprocessing
-                if global_recipe is not None:
-                    # Recipe-based: use shared prepped recipe (preserving outcome)
-                    processed_data = self._prep_and_bake_with_outcome(
-                        global_recipe,
-                        group_data_no_group,
-                        outcome_col
-                    )
-
-                    # Build formula from processed data
-                    predictor_cols = [
-                        col for col in processed_data.columns
-                        if col != outcome_col and not pd.api.types.is_datetime64_any_dtype(processed_data[col])
-                    ]
-                    formula = f"{outcome_col} ~ {' + '.join(predictor_cols)}"
-
-                    # Fit model directly
-                    model_fit = self.spec.fit(processed_data, formula, original_training_data=group_data_no_group)
-
-                    # Set model_name and model_group_name from workflow if provided
-                    if self.model_name is not None or self.model_group_name is not None:
-                        model_fit = replace(
-                            model_fit,
-                            model_name=self.model_name if self.model_name is not None else model_fit.model_name,
-                            model_group_name=self.model_group_name if self.model_group_name is not None else model_fit.model_group_name
-                        )
-
-                    # Wrap in WorkflowFit
-                    group_fits[group] = WorkflowFit(
-                        workflow=self,
-                        pre=global_recipe,
-                        fit=model_fit,
-                        post=self.post,
-                        formula=formula
-                    )
-                else:
-                    # Formula-based: fit normally (formula applied per group)
-                    group_fits[group] = self.fit(group_data_no_group)
-
+        # Skip the original loop code below (lines 820-1001)
+        # Return early to avoid duplicate processing
         return NestedWorkflowFit(
             workflow=self,
             group_col=group_col,

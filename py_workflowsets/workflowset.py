@@ -10,8 +10,16 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+from .parallel_utils import (
+    validate_n_jobs,
+    get_joblib_backend,
+    check_windows_compatibility,
+    format_parallel_info
+)
 
 
 @dataclass
@@ -226,10 +234,57 @@ class WorkflowSet:
         else:
             raise ValueError(f"Unknown function: {fn}")
 
+    def _fit_single_workflow_resamples(self, wf_id: str, wf: Any, resamples: Any,
+                                        metrics: Any, control: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow across all resamples.
+
+        Helper function for parallel execution in fit_resamples.
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            resamples: Resampling object
+            metrics: Metric set
+            control: Control parameters
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        from py_tune import fit_resamples as fit_resamples_fn
+
+        try:
+            # Fit resamples for this workflow (n_jobs=1 to avoid nested parallelism)
+            tune_results = fit_resamples_fn(
+                wf,
+                resamples,
+                metrics=metrics,
+                control=control,
+                n_jobs=1
+            )
+
+            # Collect metrics
+            metrics_df = tune_results.collect_metrics()
+            metrics_df["wflow_id"] = wf_id
+
+            result = {
+                "wflow_id": wf_id,
+                "tune_results": tune_results,
+                "metrics": metrics_df
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}' failed: {str(e)}"
+            return (None, error_msg)
+
     def fit_resamples(self,
                       resamples: Any,
                       metrics: Any = None,
-                      control: Optional[Dict[str, Any]] = None) -> "WorkflowSetResults":
+                      control: Optional[Dict[str, Any]] = None,
+                      n_jobs: Optional[int] = None,
+                      verbose: bool = False) -> "WorkflowSetResults":
         """
         Fit all workflows to all resamples and evaluate.
 
@@ -237,6 +292,9 @@ class WorkflowSet:
             resamples: Resampling object (VFoldCV, TimeSeriesCV, etc.)
             metrics: Metric set for evaluation
             control: Control parameters (e.g., {'save_pred': True})
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
 
         Returns:
             WorkflowSetResults containing metrics and predictions
@@ -244,34 +302,69 @@ class WorkflowSet:
         Examples:
             >>> folds = vfold_cv(data, v=5)
             >>> metrics = metric_set(rmse, mae, r_squared)
+            >>>
+            >>> # Sequential execution
             >>> results = wf_set.fit_resamples(folds, metrics)
+            >>>
+            >>> # Parallel execution
+            >>> results = wf_set.fit_resamples(folds, metrics, n_jobs=-1, verbose=True)
             >>> results.rank_results("rmse")
         """
-        from py_tune import fit_resamples as fit_resamples_fn
-
         control = control or {}
-        all_results = []
 
-        for wf_id, wf in self.workflows.items():
-            print(f"Fitting {wf_id}...")
+        # Prepare work items
+        work_items = [(wf_id, wf, resamples, metrics, control)
+                      for wf_id, wf in self.workflows.items()]
 
-            # Fit resamples for this workflow
-            tune_results = fit_resamples_fn(
-                wf,
-                resamples,
-                metrics=metrics,
-                control=control
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
+        # Sequential or parallel execution
+        if effective_n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                info = format_parallel_info(1, len(work_items), "workflows")
+                print(f"{info}...")
+
+            results = []
+            for i, (wf_id, wf, resamples, metrics, control) in enumerate(work_items):
+                if verbose:
+                    print(f"  [{i+1}/{len(work_items)}] Fitting {wf_id}...")
+                result = self._fit_single_workflow_resamples(wf_id, wf, resamples, metrics, control)
+                results.append(result)
+        else:
+            # Parallel execution
+            if verbose:
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflows")
+                print(f"{info}...")
+
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_workflow_resamples)(wf_id, wf, resamples, metrics, control)
+                for wf_id, wf, resamples, metrics, control in work_items
             )
 
-            # Collect metrics
-            metrics_df = tune_results.collect_metrics()
-            metrics_df["wflow_id"] = wf_id
+        # Process results
+        all_results = []
+        errors = []
 
-            all_results.append({
-                "wflow_id": wf_id,
-                "tune_results": tune_results,
-                "metrics": metrics_df
-            })
+        for result_dict, error_msg in results:
+            if error_msg:
+                errors.append(error_msg)
+            else:
+                all_results.append(result_dict)
+
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
+
+        if verbose:
+            print(f"✓ Workflow evaluation complete: {len(all_results)} successful")
 
         return WorkflowSetResults(
             results=all_results,
@@ -339,11 +432,68 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def _fit_single_workflow_nested(self, wf_id: str, wf: Any, data: pd.DataFrame,
+                                     group_col: str, per_group_prep: bool,
+                                     min_group_size: int) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow across all groups.
+
+        Helper function for parallel execution in fit_nested.
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            data: Training data
+            group_col: Group column name
+            per_group_prep: Per-group preprocessing flag
+            min_group_size: Minimum group size
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        try:
+            # Fit nested workflow (n_jobs=1 to avoid nested parallelism)
+            nested_fit = wf.fit_nested(
+                data,
+                group_col=group_col,
+                per_group_prep=per_group_prep,
+                min_group_size=min_group_size,
+                n_jobs=1
+            )
+
+            # Extract outputs with group column
+            outputs, coefs, stats = nested_fit.extract_outputs()
+
+            result = {
+                "wflow_id": wf_id,
+                "nested_fit": nested_fit,
+                "outputs": outputs,
+                "coefs": coefs,
+                "stats": stats
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}' failed: {str(e)}"
+            # Return error result with NaN metrics
+            result = {
+                "wflow_id": wf_id,
+                "nested_fit": None,
+                "outputs": None,
+                "coefs": None,
+                "stats": None,
+                "error": str(e)
+            }
+            return (result, error_msg)
+
     def fit_nested(self,
                    data: pd.DataFrame,
                    group_col: str,
                    per_group_prep: bool = False,
-                   min_group_size: int = 30) -> "WorkflowSetNestedResults":
+                   min_group_size: int = 30,
+                   n_jobs: Optional[int] = None,
+                   verbose: bool = False) -> "WorkflowSetNestedResults":
         """
         Fit all workflows across all groups independently (nested/panel modeling).
 
@@ -356,6 +506,9 @@ class WorkflowSet:
             group_col: Column name identifying groups
             per_group_prep: If True, fit separate recipe for each group (default: False)
             min_group_size: Minimum samples for group-specific prep (default: 30)
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
 
         Returns:
             WorkflowSetNestedResults with group-aware metrics and outputs
@@ -367,8 +520,11 @@ class WorkflowSet:
             ...     models=[linear_reg(), rand_forest()]
             ... )
             >>>
-            >>> # Fit all workflows on all groups
+            >>> # Fit all workflows on all groups (sequential)
             >>> results = wf_set.fit_nested(train_data, group_col='country')
+            >>>
+            >>> # Fit with parallel execution
+            >>> results = wf_set.fit_nested(train_data, group_col='country', n_jobs=-1, verbose=True)
             >>>
             >>> # Get metrics by workflow and group
             >>> metrics = results.collect_metrics(by_group=True)
@@ -379,43 +535,59 @@ class WorkflowSet:
             >>> # Get best workflow per group
             >>> best_by_group = results.extract_best_workflow('rmse', by_group=True)
         """
+        # Prepare work items
+        work_items = [(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                      for wf_id, wf in self.workflows.items()]
+
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
+        # Sequential or parallel execution
+        if effective_n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                info = format_parallel_info(1, len(work_items), "workflows")
+                print(f"{info} across all groups...")
+
+            results = []
+            for i, (wf_id, wf, data, group_col, per_group_prep, min_group_size) in enumerate(work_items):
+                if verbose:
+                    print(f"  [{i+1}/{len(work_items)}] Fitting {wf_id} across all groups...")
+                result = self._fit_single_workflow_nested(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                results.append(result)
+        else:
+            # Parallel execution
+            if verbose:
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflows")
+                print(f"{info} across all groups...")
+
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_workflow_nested)(wf_id, wf, data, group_col, per_group_prep, min_group_size)
+                for wf_id, wf, data, group_col, per_group_prep, min_group_size in work_items
+            )
+
+        # Process results
         all_results = []
+        errors = []
 
-        for wf_id, wf in self.workflows.items():
-            print(f"Fitting {wf_id} across all groups...")
+        for result_dict, error_msg in results:
+            all_results.append(result_dict)
+            if error_msg:
+                errors.append(error_msg)
 
-            try:
-                # Fit nested workflow
-                nested_fit = wf.fit_nested(
-                    data,
-                    group_col=group_col,
-                    per_group_prep=per_group_prep,
-                    min_group_size=min_group_size
-                )
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
 
-                # Extract outputs with group column
-                outputs, coefs, stats = nested_fit.extract_outputs()
-
-                # Store results
-                all_results.append({
-                    "wflow_id": wf_id,
-                    "nested_fit": nested_fit,
-                    "outputs": outputs,
-                    "coefs": coefs,
-                    "stats": stats
-                })
-
-            except Exception as e:
-                print(f"  ⚠ Error fitting {wf_id}: {e}")
-                # Store error result with NaN metrics
-                all_results.append({
-                    "wflow_id": wf_id,
-                    "nested_fit": None,
-                    "outputs": None,
-                    "coefs": None,
-                    "stats": None,
-                    "error": str(e)
-                })
+        if verbose:
+            successful = len([r for r in all_results if r.get("nested_fit") is not None])
+            print(f"✓ Nested fitting complete: {successful}/{len(all_results)} workflows successful")
 
         return WorkflowSetNestedResults(
             results=all_results,
@@ -490,10 +662,79 @@ class WorkflowSet:
             metrics=None
         )
 
+    def _fit_single_workflow_group_resamples(self, wf_id: str, wf: Any, group_name: str,
+                                              cv_splits: Any, group_col: str,
+                                              metrics: Any) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow on single group's CV splits.
+
+        Helper function for parallel execution in fit_nested_resamples.
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            group_name: Group name
+            cv_splits: CV splits for this group
+            group_col: Group column name
+            metrics: Metric set
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        try:
+            # Drop group column from CV splits to prevent it from being passed to models
+            # This is critical for supervised feature selection steps
+            from py_rsample import Split, RSplit
+
+            cv_splits_no_group = []
+            for rsplit in cv_splits:
+                # Get original data and drop group column
+                data_no_group = rsplit._split.data.drop(columns=[group_col])
+
+                # Create new Split with modified data (same indices)
+                new_split = Split(
+                    data=data_no_group,
+                    in_id=rsplit._split.in_id,
+                    out_id=rsplit._split.out_id,
+                    id=rsplit._split.id
+                )
+
+                # Wrap in RSplit
+                cv_splits_no_group.append(RSplit(new_split))
+
+            # Evaluate workflow on this group's CV splits (without group column, n_jobs=1 to avoid nested parallelism)
+            from py_tune import fit_resamples as tune_fit_resamples
+            cv_results = tune_fit_resamples(wf, resamples=cv_splits_no_group, metrics=metrics, n_jobs=1)
+
+            # Extract metrics (fold-level)
+            fold_metrics = cv_results.collect_metrics()
+
+            # Add metadata columns
+            fold_metrics['wflow_id'] = wf_id
+            fold_metrics['group'] = group_name
+
+            # Add fold column if not present
+            if 'fold' not in fold_metrics.columns and 'id' in fold_metrics.columns:
+                fold_metrics['fold'] = fold_metrics['id']
+
+            result = {
+                "wflow_id": wf_id,
+                "group": group_name,
+                "cv_results": cv_results,
+                "fold_metrics": fold_metrics
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}', Group '{group_name}' failed: {str(e)}"
+            return (None, error_msg)
+
     def fit_nested_resamples(self,
                             resamples: Dict[str, Any],
                             group_col: str,
                             metrics: Optional[Any] = None,
+                            n_jobs: Optional[int] = None,
                             verbose: bool = False) -> "WorkflowSetNestedResamples":
         """
         Fit all workflows per group using pre-defined CV splits.
@@ -507,6 +748,8 @@ class WorkflowSet:
                       Example: {'USA': cv_usa, 'Germany': cv_germany, ...}
             group_col: Name of the column identifying groups
             metrics: Metric set for evaluation
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
             verbose: If True, print detailed progress (workflow, group, fold)
 
         Returns:
@@ -526,12 +769,21 @@ class WorkflowSet:
             ...         assess='1 year'
             ...     )
             >>>
-            >>> # Evaluate all workflows on each group's CV splits
+            >>> # Evaluate all workflows on each group's CV splits (sequential)
             >>> results = wf_set.fit_nested_resamples(
             ...     resamples=cv_by_group,
             ...     group_col='country',
             ...     metrics=metric_set(rmse, mae),
-            ...     verbose=True  # Show detailed progress
+            ...     verbose=True
+            ... )
+            >>>
+            >>> # Parallel execution
+            >>> results = wf_set.fit_nested_resamples(
+            ...     resamples=cv_by_group,
+            ...     group_col='country',
+            ...     metrics=metric_set(rmse, mae),
+            ...     n_jobs=-1,
+            ...     verbose=True
             ... )
             >>>
             >>> # Collect and analyze results
@@ -544,80 +796,82 @@ class WorkflowSet:
             metrics = metric_set(rmse, mae, r_squared)
 
         groups = list(resamples.keys())
-        print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV...")
-        if verbose:
-            total_folds = sum(len(cv_splits) for cv_splits in resamples.values())
-            print(f"Total evaluations: {len(self.workflows)} workflows × {len(groups)} groups × avg {total_folds // len(groups)} folds")
-        print()
 
-        # Store results by (workflow, group)
-        all_cv_results = []
+        # Prepare work items (flatten workflows × groups)
+        work_items = [
+            (wf_id, wf, group_name, cv_splits, group_col, metrics)
+            for wf_id, wf in self.workflows.items()
+            for group_name, cv_splits in resamples.items()
+        ]
 
-        for wf_idx, (wf_id, wf) in enumerate(self.workflows.items(), 1):
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
+        # Sequential or parallel execution
+        if effective_n_jobs == 1:
+            # Sequential execution
             if verbose:
-                print(f"\n[{wf_idx}/{len(self.workflows)}] Workflow: {wf_id}")
+                total_folds = sum(len(cv_splits) for cv_splits in resamples.values())
+                print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV...")
+                print(f"Total evaluations: {len(self.workflows)} workflows × {len(groups)} groups × avg {total_folds // len(groups)} folds")
             else:
-                print(f"Evaluating {wf_id} across groups...")
+                print(f"Fitting {len(self.workflows)} workflows across {len(groups)} groups with CV (sequential)...")
 
-            for group_idx, (group_name, cv_splits) in enumerate(resamples.items(), 1):
+            results = []
+            for i, (wf_id, wf, group_name, cv_splits, group_col, metrics) in enumerate(work_items):
                 if verbose:
+                    wf_idx = (i // len(groups)) + 1
+                    group_idx = (i % len(groups)) + 1
+                    if group_idx == 1:
+                        print(f"\n[{wf_idx}/{len(self.workflows)}] Workflow: {wf_id}")
                     print(f"  [{group_idx}/{len(groups)}] Group: {group_name} ({len(cv_splits)} folds)", end="", flush=True)
 
-                try:
-                    # Drop group column from CV splits to prevent it from being passed to models
-                    # This is critical for supervised feature selection steps
-                    from py_rsample import Split, RSplit
+                result = self._fit_single_workflow_group_resamples(wf_id, wf, group_name, cv_splits, group_col, metrics)
+                results.append(result)
 
-                    cv_splits_no_group = []
-                    for rsplit in cv_splits:
-                        # Get original data and drop group column
-                        data_no_group = rsplit._split.data.drop(columns=[group_col])
-
-                        # Create new Split with modified data (same indices)
-                        new_split = Split(
-                            data=data_no_group,
-                            in_id=rsplit._split.in_id,
-                            out_id=rsplit._split.out_id,
-                            id=rsplit._split.id
-                        )
-
-                        # Wrap in RSplit
-                        cv_splits_no_group.append(RSplit(new_split))
-
-                    # Evaluate workflow on this group's CV splits (without group column)
-                    from py_tune import fit_resamples as tune_fit_resamples
-                    cv_results = tune_fit_resamples(wf, resamples=cv_splits_no_group, metrics=metrics)
-
-                    if verbose:
+                if verbose:
+                    if result[1] is None:  # No error
                         print(" ✓")
-
-                    # Extract metrics (fold-level)
-                    fold_metrics = cv_results.collect_metrics()
-
-                    # Add metadata columns
-                    fold_metrics['wflow_id'] = wf_id
-                    fold_metrics['group'] = group_name
-
-                    # Add fold column if not present
-                    if 'fold' not in fold_metrics.columns and 'id' in fold_metrics.columns:
-                        fold_metrics['fold'] = fold_metrics['id']
-
-                    all_cv_results.append({
-                        "wflow_id": wf_id,
-                        "group": group_name,
-                        "cv_results": cv_results,
-                        "fold_metrics": fold_metrics
-                    })
-
-                except Exception as e:
-                    if verbose:
-                        print(f" ✗")
-                        print(f"    ⚠ Error: {e}")
                     else:
-                        print(f"  ⚠ Error with {wf_id} for {group_name}: {e}")
-                    continue
+                        print(" ✗")
+        else:
+            # Parallel execution
+            if verbose:
+                total_folds = sum(len(cv_splits) for cv_splits in resamples.values())
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflow-group combinations")
+                print(f"{info} with CV...")
+                print(f"Total evaluations: {len(work_items)} (workflows × groups)")
+            else:
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflow-group combinations")
+                print(f"{info} with CV...")
 
-        print("\n✓ CV evaluation complete")
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_workflow_group_resamples)(wf_id, wf, group_name, cv_splits, group_col, metrics)
+                for wf_id, wf, group_name, cv_splits, group_col, metrics in work_items
+            )
+
+        # Process results
+        all_cv_results = []
+        errors = []
+
+        for result_dict, error_msg in results:
+            if error_msg:
+                errors.append(error_msg)
+            else:
+                all_cv_results.append(result_dict)
+
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
+
+        if verbose or n_jobs != 1:
+            print(f"\n✓ CV evaluation complete: {len(all_cv_results)}/{len(work_items)} successful")
 
         return WorkflowSetNestedResamples(
             results=all_cv_results,
@@ -626,11 +880,86 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def _fit_single_workflow_group_global(self, wf_id: str, wf, group_name: str,
+                                           cv_splits, data: pd.DataFrame, group_col: str,
+                                           metrics):
+        """
+        Fit single global workflow on single group's CV splits.
+
+        Helper function for parallel execution in fit_global_resamples().
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            group_name: Name of the group
+            cv_splits: CV split object for this group
+            data: Full training data
+            group_col: Column name identifying groups
+            metrics: Metric set for evaluation
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        try:
+            # Get group data
+            group_data = data[data[group_col] == group_name].copy()
+
+            # For each fold, fit global model and evaluate
+            fold_results = []
+            for fold_num, split in enumerate(cv_splits.splits):
+                # Extract train/test indices from RSplit object
+                train_idx = split._split.in_id
+                test_idx = split._split.out_id
+
+                # Get fold data (with group_col)
+                fold_train = group_data.iloc[train_idx].copy()
+                fold_test = group_data.iloc[test_idx].copy()
+
+                # Fit global workflow on training fold
+                fold_fit = wf.fit_global(fold_train, group_col=group_col)
+
+                # Predict on test fold
+                predictions = fold_fit.predict(fold_test)
+
+                # Calculate metrics
+                from py_yardstick import rmse, mae, r_squared
+                truth = fold_test[fold_fit.extract_formula().split('~')[0].strip()]
+
+                for metric_fn in [rmse, mae, r_squared]:
+                    result_df = metric_fn(truth, predictions['.pred'])
+                    metric_name = result_df.iloc[0]['metric']
+                    metric_value = result_df.iloc[0]['value']
+
+                    fold_results.append({
+                        'wflow_id': wf_id,
+                        'group': group_name,
+                        'fold': fold_num + 1,
+                        'metric': metric_name,
+                        'value': metric_value
+                    })
+
+            fold_metrics_df = pd.DataFrame(fold_results)
+
+            result = {
+                "wflow_id": wf_id,
+                "group": group_name,
+                "cv_results": None,  # Not using standard fit_resamples
+                "fold_metrics": fold_metrics_df
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}', Group '{group_name}' failed: {str(e)}"
+            return (None, error_msg)
+
     def fit_global_resamples(self,
                             data: pd.DataFrame,
                             resamples: Dict[str, Any],
                             group_col: str,
-                            metrics: Optional[Any] = None) -> "WorkflowSetNestedResamples":
+                            metrics: Optional[Any] = None,
+                            n_jobs: Optional[int] = None,
+                            verbose: bool = False) -> "WorkflowSetNestedResamples":
         """
         Fit all workflows globally (with group as feature) using pre-defined per-group CV.
 
@@ -643,6 +972,9 @@ class WorkflowSet:
                       Example: {'USA': cv_usa, 'Germany': cv_germany, ...}
             group_col: Column name identifying groups
             metrics: Metric set for evaluation
+            n_jobs: Number of parallel jobs. None or 1 for sequential,
+                   -1 for all cores, or positive integer for specific cores.
+            verbose: If True, display progress messages
 
         Returns:
             WorkflowSetNestedResamples with per-group CV results for global models
@@ -661,12 +993,22 @@ class WorkflowSet:
             ...         assess='1 year'
             ...     )
             >>>
-            >>> # Evaluate global workflows per-group
+            >>> # Evaluate global workflows per-group (sequential)
             >>> results = wf_set.fit_global_resamples(
             ...     data=data,
             ...     resamples=cv_by_group,
             ...     group_col='country',
             ...     metrics=metric_set(rmse, mae)
+            ... )
+            >>>
+            >>> # Evaluate global workflows per-group (parallel)
+            >>> results = wf_set.fit_global_resamples(
+            ...     data=data,
+            ...     resamples=cv_by_group,
+            ...     group_col='country',
+            ...     metrics=metric_set(rmse, mae),
+            ...     n_jobs=4,
+            ...     verbose=True
             ... )
             >>>
             >>> # Compare performance across groups
@@ -677,15 +1019,20 @@ class WorkflowSet:
             metrics = metric_set(rmse, mae, r_squared)
 
         groups = list(resamples.keys())
-        print(f"Fitting {len(self.workflows)} global workflows with per-group CV across {len(groups)} groups...")
-        print()
 
-        # Store results by (workflow, group)
-        all_cv_results = []
+        # Prepare work items: workflows × groups
+        work_items = [
+            (wf_id, wf, group_name, resamples[group_name], data, group_col, metrics)
+            for wf_id, wf in self.workflows.items()
+            for group_name in groups
+        ]
 
-        for wf_id, wf in self.workflows.items():
-            print(f"Evaluating {wf_id} globally...")
+        # Validate and resolve n_jobs with warnings
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
 
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
             for group_name, cv_splits in resamples.items():
                 try:
                     # For each fold, fit global model and evaluate
@@ -733,11 +1080,57 @@ class WorkflowSet:
                         "fold_metrics": fold_metrics_df
                     })
 
-                except Exception as e:
-                    print(f"  ⚠ Error with {wf_id} for {group_name}: {e}")
-                    continue
+        # Sequential or parallel execution
+        if effective_n_jobs == 1:
+            if verbose:
+                info = format_parallel_info(1, len(work_items), "global workflow evaluations")
+                print(f"{info} with per-group CV across {len(groups)} groups...")
+                print(f"Total evaluations: {len(work_items)} (workflows × groups)")
+                print()
 
-        print("\n✓ Global CV evaluation complete")
+            results = []
+            for i, (wf_id, wf, group_name, cv_splits, data_item, group_col_item, metrics_item) in enumerate(work_items):
+                result = self._fit_single_workflow_group_global(
+                    wf_id, wf, group_name, cv_splits, data_item, group_col_item, metrics_item
+                )
+                results.append(result)
+
+                if verbose:
+                    workflow_num = i // len(groups) + 1
+                    group_num = i % len(groups) + 1
+                    print(f"  [{workflow_num}/{len(self.workflows)}] {wf_id} - [{group_num}/{len(groups)}] {group_name} ✓")
+        else:
+            if verbose:
+                info = format_parallel_info(effective_n_jobs, len(work_items), "global workflow evaluations")
+                print(f"{info} with per-group CV across {len(groups)} groups...")
+                print(f"Total evaluations: {len(work_items)} (workflows × groups)")
+                print()
+
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_workflow_group_global)(
+                    wf_id, wf, group_name, cv_splits, data_item, group_col_item, metrics_item
+                )
+                for wf_id, wf, group_name, cv_splits, data_item, group_col_item, metrics_item in work_items
+            )
+
+        # Process results
+        all_cv_results = []
+        errors = []
+
+        for result, error_msg in results:
+            if error_msg:
+                errors.append(error_msg)
+            else:
+                all_cv_results.append(result)
+
+        # Print errors if any
+        for error in errors:
+            print(f"⚠ Warning: {error}")
+
+        if verbose:
+            print(f"\n✓ Global CV evaluation complete: {len(all_cv_results)} successful")
 
         return WorkflowSetNestedResamples(
             results=all_cv_results,
