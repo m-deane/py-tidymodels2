@@ -250,7 +250,6 @@ class TestNestedTreeModels:
         unique_groups = test_stats['group'].nunique()
         assert unique_groups == len(train['country'].unique())
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_nested_boost_tree(self, gas_demand_small_groups, train_test_split_by_group):
         """Test nested gradient boosting."""
         train, test = train_test_split_by_group(gas_demand_small_groups, 'country')
@@ -370,7 +369,6 @@ class TestNestedComplexPipelines:
         preds = fit_nested.predict(test)
         assert len(preds) == len(test)
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_nested_selection_boosting(self, refinery_data_small_groups, train_test_split_by_group):
         """Test nested boosting with feature selection."""
         train, test = train_test_split_by_group(refinery_data_small_groups, 'country')

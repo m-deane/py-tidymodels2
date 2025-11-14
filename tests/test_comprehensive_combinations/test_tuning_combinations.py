@@ -178,7 +178,6 @@ class TestTreeModelTuning:
         best = results.select_best('rmse', maximize=False)
         assert best is not None
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_tune_boost_tree_learning_rate(self, refinery_data_ungrouped, metric_set_basic):
         """Test tuning boosting learning rate and tree depth."""
         spec = boost_tree(
@@ -382,7 +381,6 @@ class TestTuningWithTimeSeriesCV:
         best = results.select_best('rmse', maximize=False)
         assert best is not None
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_tune_boosting_with_ts_cv(self, gas_demand_ungrouped, metric_set_basic):
         """Test tuning boosting with time series CV."""
         spec = boost_tree(
@@ -459,7 +457,6 @@ class TestRandomGridTuning:
         best = results.select_best('rmse', maximize=False)
         assert best is not None
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_random_grid_multiple_params(self, gas_demand_ungrouped, metric_set_basic):
         """Test random grid with multiple parameters."""
         spec = boost_tree(

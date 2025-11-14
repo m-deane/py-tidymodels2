@@ -376,7 +376,6 @@ class TestTreeBasedModelWorkflows:
         _, _, stats = eval_fit.extract_outputs()
         assert stats[(stats['split'] == 'test') & (stats['metric'] == 'rmse')]['value'].iloc[0] > 0
 
-    @pytest.mark.skip(reason="boost_tree requires xgboost which is not installed")
     def test_boost_tree_with_pca(self, refinery_data_ungrouped, train_test_split_80_20):
         """Test gradient boosting with PCA."""
         # Rename first numeric column to 'target' for auto-detection
