@@ -295,7 +295,45 @@ class ForecastAgent:
         )
 
         # Execute workflow creation
-        namespace = {'pd': pd}
+        # Import all required modules for workflow execution
+        from py_workflows import workflow
+        from py_recipes import recipe, all_numeric_predictors, all_nominal_predictors
+        from py_recipes.selectors import all_numeric, all_nominal, all_predictors
+        import py_parsnip
+
+        namespace = {
+            'pd': pd,
+            'data': data,  # Add data to namespace
+            'formula': formula or self._infer_formula(data, value_col, date_col),  # Add formula to namespace
+            'workflow': workflow,
+            'recipe': recipe,
+            'all_numeric': all_numeric,
+            'all_nominal': all_nominal,
+            'all_numeric_predictors': all_numeric_predictors,
+            'all_nominal_predictors': all_nominal_predictors,
+            'all_predictors': all_predictors,
+            'py_parsnip': py_parsnip,
+            # Import all model functions from py_parsnip
+            'linear_reg': py_parsnip.linear_reg,
+            'arima_reg': py_parsnip.arima_reg,
+            'prophet_reg': py_parsnip.prophet_reg,
+            'rand_forest': py_parsnip.rand_forest,
+            'boost_tree': py_parsnip.boost_tree,
+            'exp_smoothing': py_parsnip.exp_smoothing,
+            'seasonal_reg': py_parsnip.seasonal_reg,
+            'varmax_reg': py_parsnip.varmax_reg,
+            'recursive_reg': py_parsnip.recursive_reg,
+            'hybrid_model': py_parsnip.hybrid_model,
+            'decision_tree': py_parsnip.decision_tree,
+            'nearest_neighbor': py_parsnip.nearest_neighbor,
+            'svm_rbf': py_parsnip.svm_rbf,
+            'svm_linear': py_parsnip.svm_linear,
+            'mlp': py_parsnip.mlp,
+            'null_model': py_parsnip.null_model,
+            'naive_reg': py_parsnip.naive_reg,
+            'arima_boost': py_parsnip.arima_boost,
+            'prophet_boost': py_parsnip.prophet_boost,
+        }
         exec(workflow_code, namespace)
 
         if 'wf' not in namespace:

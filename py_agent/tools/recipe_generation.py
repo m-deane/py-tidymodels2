@@ -376,7 +376,7 @@ def _generate_recipe_code(template: Dict) -> str:
         "from py_recipes.selectors import all_numeric, all_nominal, all_numeric_predictors, all_nominal_predictors, all_predictors",
         "",
         "# Create preprocessing recipe",
-        "rec = (recipe(data, formula)"
+        "rec = (recipe(data)"
     ]
 
     # Add steps
