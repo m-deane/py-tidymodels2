@@ -30,19 +30,24 @@ CONFORMAL_NOTEBOOKS = [
     "24b_timeseries_conformal_enbpi.ipynb",
     "24c_feature_selection_conformal.ipynb",
     "24e_per_group_conformal.ipynb",
+    "24f_comprehensive_conformal_integration.ipynb",  # Comprehensive showcase
 
     # Priority 2: Real-world applications (existing)
     "23a_european_gas_conformal.ipynb",
     "23b_refinery_workflowset_conformal.ipynb",
     "23c_crude_production_method_comparison.ipynb",
 
-    # Priority 3: Advanced (if created)
+    # Priority 3: Advanced (if created in future)
     "24d_conformal_calibration_strategies.ipynb",
-    "24f_conformal_with_recipes.ipynb",
     "24g_multiple_confidence_levels.ipynb",
     "24h_cv_conformal_integration.ipynb",
     "24i_production_conformal_workflow.ipynb",
 ]
+
+# Notebooks requiring optional dependencies
+OPTIONAL_DEPENDENCIES = {
+    "24f_comprehensive_conformal_integration.ipynb": ["plotly"],
+}
 
 def check_mapie_installation():
     """Check if MAPIE is correctly installed."""
@@ -56,6 +61,34 @@ def check_mapie_installation():
         return result.returncode == 0 and "OK" in result.stdout
     except Exception as e:
         return False
+
+def check_optional_dependencies(notebook_name):
+    """
+    Check if optional dependencies for a notebook are installed.
+
+    Returns:
+        tuple: (all_installed: bool, missing: list)
+    """
+    if notebook_name not in OPTIONAL_DEPENDENCIES:
+        return True, []
+
+    required_packages = OPTIONAL_DEPENDENCIES[notebook_name]
+    missing = []
+
+    for package in required_packages:
+        try:
+            result = subprocess.run(
+                ["python", "-c", f"import {package}; print('OK')"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode != 0 or "OK" not in result.stdout:
+                missing.append(package)
+        except Exception:
+            missing.append(package)
+
+    return len(missing) == 0, missing
 
 def test_notebook(notebook_path):
     """
@@ -74,6 +107,19 @@ def test_notebook(notebook_path):
             "notebook": notebook_path.name,
             "status": "SKIP",
             "reason": "File not found",
+            "error": None,
+            "time": 0
+        }
+
+    # Check optional dependencies
+    deps_installed, missing_deps = check_optional_dependencies(notebook_path.name)
+    if not deps_installed:
+        print(f"⚠️  SKIP: Missing optional dependencies: {', '.join(missing_deps)}")
+        print(f"   Install with: pip install {' '.join(missing_deps)}")
+        return {
+            "notebook": notebook_path.name,
+            "status": "SKIP",
+            "reason": f"Missing optional dependencies: {', '.join(missing_deps)}",
             "error": None,
             "time": 0
         }
@@ -116,6 +162,9 @@ def test_notebook(notebook_path):
             if "MapieRegressor" in error_msg or "mapie.regression" in error_msg:
                 error_type = "MAPIE_IMPORT_ERROR"
                 reason = "MAPIE installation issue"
+            elif "plotly" in error_msg and "ModuleNotFoundError" in error_msg:
+                error_type = "OPTIONAL_DEPENDENCY"
+                reason = "Missing optional dependency: plotly"
             elif "FileNotFoundError" in error_msg:
                 error_type = "FILE_NOT_FOUND"
                 reason = "Missing data file"
@@ -252,6 +301,12 @@ def generate_report(results, mapie_ok):
             print("🔍 Conformal Prediction Failures:")
             print("   This may be caused by MAPIE issues (see above)")
             print("   Or insufficient calibration data per group\n")
+
+        if any(r.get("error_type") == "OPTIONAL_DEPENDENCY" for r in results):
+            print("📦 Optional Dependencies Missing:")
+            print("   Some notebooks require optional packages:")
+            print("   - plotly: pip install plotly")
+            print("   These notebooks will be skipped if dependencies not installed\n")
 
     # Success message
     if passed == total:
