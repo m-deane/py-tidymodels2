@@ -46,7 +46,7 @@ pip install -e . --force-reinstall --no-deps
 # Activate venv first
 source py-tidymodels2/bin/activate
 
-# All tests (762+ tests passing as of 2025-11-09)
+# All tests (800+ tests passing as of 2025-11-14)
 python -m pytest tests/ -v
 
 # Specific test modules
@@ -160,7 +160,7 @@ The project follows a layered architecture inspired by R's tidymodels:
    - Consistent across all model types
    - Inspired by R's broom package (`tidy()`, `glance()`, `augment()`)
 
-**Implemented Models (23 Total):**
+**Implemented Models (24 Total):**
 
 **Baseline Models (2):**
 - `null_model()` - Mean/median baseline (strategy: mean, median, last)
@@ -217,6 +217,25 @@ The project follows a layered architecture inspired by R's tidymodels:
   - Useful for comparing with external forecasts (Excel, R, SAS, etc.)
   - Incorporating domain expert knowledge
   - Creating baselines for benchmarking
+
+**Panel/Hierarchical Models (1):**
+- `panel_reg()` - Panel regression with mixed linear effects (statsmodels MixedLM)
+  - Random intercepts: Each group has its own baseline level
+  - Random slopes: Each group has its own slope for specified variable (via `slope_var` parameter)
+  - Random intercepts + slopes: Combined group-specific intercepts and slopes (`random_effects="both"`)
+  - **NOT for time series forecasting** - use for cross-sectional panel data analysis
+  - Use with `fit_global(data, group_col='...')` to specify group column
+  - Returns ICC (Intraclass Correlation Coefficient) and variance components
+  - Full statistical inference: fixed effects + random variance components + residual diagnostics
+  - Graceful handling of singular covariance matrices (fallback to fixed effects)
+  - Example use cases:
+    - Multi-store sales: Understanding price sensitivity across stores
+    - Clinical trials: Patient-specific treatment responses
+    - Education: School-level effects on student outcomes
+    - Finance: Firm-specific effects in panel data
+  - **Key difference from nested modeling:**
+    - `fit_nested()`: Separate models per group (for forecasting future time periods)
+    - `panel_reg()`: Single model with random effects (for understanding relationships)
 
 **Parameter Translation:**
 - Tidymodels naming → Engine-specific naming
@@ -1343,14 +1362,29 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 
 ## Project Status and Planning
 
-**Current Status:** All Issues Complete (1-8), 782+ Tests Passing, WorkflowSet Grouped Modeling COMPLETE
-**Last Updated:** 2025-11-11 (Latest: WorkflowSet grouped/panel modeling support)
-**Total Tests Passing:** 782+ tests across all packages (762 base + 20 WorkflowSet grouped)
-**Total Models:** 23 production-ready models (21 fitted + 1 hybrid + 1 manual)
-**Total Engines:** 30+ engine implementations
+**Current Status:** All Issues Complete (1-8), 820+ Tests Passing, Panel Regression COMPLETE
+**Last Updated:** 2025-11-14 (Latest: Panel regression with mixed linear effects)
+**Total Tests Passing:** 820+ tests across all packages (762 base + 20 WorkflowSet + 38 panel_reg)
+**Total Models:** 24 production-ready models (21 fitted + 1 hybrid + 1 manual + 1 panel)
+**Total Engines:** 31+ engine implementations
 **All Issues Completed:** ✅ Issues 1-8 from backlog
 
-**Recent Enhancements (2025-11-11):**
+**Recent Enhancements (2025-11-14):**
+- ✅ **panel_reg**: Panel regression with mixed linear effects (statsmodels MixedLM)
+  - Random intercepts: Group-specific baseline levels
+  - Random slopes: Group-specific slopes for specified variables
+  - Random intercepts + slopes: Combined (`random_effects="both"`)
+  - ICC (Intraclass Correlation Coefficient) calculation
+  - Full variance components: fixed effects, random intercept/slope variance, residual variance
+  - Graceful singular covariance handling (fallback to fixed effects)
+  - Confidence interval predictions using t-distribution
+  - Works with `fit_global(data, group_col='...')`
+  - 38 comprehensive tests (100% passing)
+  - 4 example notebooks validated
+  - Code: `py_parsnip/models/panel_reg.py`, `py_parsnip/engines/statsmodels_panel.py`
+  - Docs: `.claude_plans/PANEL_REG_TESTING_COMPLETE.md`
+
+**Previous Enhancements (2025-11-11):**
 - ✅ **WorkflowSet grouped modeling**: `fit_nested()` and `fit_global()` for multi-model comparison across groups
   - Fit ALL workflows across ALL groups with single method call
   - `WorkflowSetNestedResults` with 5 key methods (collect_metrics, rank_results, extract_best_workflow, collect_outputs, autoplot)

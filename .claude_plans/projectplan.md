@@ -1,10 +1,117 @@
 # py-tidymodels Project Plan
-**Version:** 3.8
-**Date:** 2025-11-11
-**Last Updated:** 2025-11-11 (WorkflowSet Grouped Modeling COMPLETE)
-**Status:** WorkflowSet Grouped Modeling COMPLETE ✅ - Added `fit_nested()` and `fit_global()` methods for multi-model comparison across groups. 20 new tests passing (40/40 total). Three demonstration notebooks updated. Phase 3 COMPLETE - All 7 advanced selection steps implemented and tested. Phase 6 Planning COMPLETE - As-of-date backtesting architecture documented.
+**Version:** 3.9
+**Date:** 2025-11-14
+**Last Updated:** 2025-11-14 (Panel Regression COMPLETE)
+**Status:** Panel Regression COMPLETE ✅ - Implemented `panel_reg()` with mixed linear effects (random intercepts/slopes). 38 tests passing (100%). 4 example notebooks validated. 24th model complete. 820+ total tests passing.
 
-## Recent Work (2025-11-11 - Part 2): WorkflowSet Grouped Modeling COMPLETE ✅
+## Recent Work (2025-11-14): Panel Regression COMPLETE ✅
+
+**Summary:** Successfully implemented and tested `panel_reg()` for panel data analysis with mixed linear effects using statsmodels MixedLM. Enables modeling of hierarchical/grouped data with random intercepts and random slopes. Includes ICC calculation, variance components, and graceful singular covariance handling. **NOT for time series forecasting** - use for cross-sectional panel data analysis.
+
+### What Was Completed:
+
+**Core Implementation** (Commits cc112cc, 435483b, 31389d5):
+1. **`panel_reg()` Model Specification** (`py_parsnip/models/panel_reg.py`, 115 lines)
+   - `random_effects` parameter: "intercept" (default), "slope", "both"
+   - `slope_var` parameter: Variable name for random slopes
+   - `penalty` parameter: Reserved for future regularized mixed models
+   - Uses `fit_global(data, group_col='...')` for group column specification
+
+2. **Statsmodels MixedLM Engine** (`py_parsnip/engines/statsmodels_panel.py`, 850+ lines)
+   - Random intercepts: Group-specific baseline levels
+   - Random slopes: Group-specific slopes via `exog_re` parameter
+   - Random intercepts + slopes: Combined mixed effects model
+   - ICC (Intraclass Correlation Coefficient) calculation
+   - Variance components: fixed effects + random intercept/slope variance + residual variance
+   - Graceful singular covariance handling (fallback to fixed effects)
+   - Confidence interval predictions using t-distribution
+   - Full statistical inference: coefficients, std errors, p-values, CIs
+   - Residual diagnostics: Durbin-Watson, Shapiro-Wilk, Ljung-Box, Breusch-Pagan
+
+3. **Comprehensive Test Suite** (`tests/test_parsnip/test_panel_reg.py`, 850+ lines)
+   - 38 tests covering: specification, fit, predict, extract_outputs, integration, edge cases
+   - 100% pass rate after fixing 10 initial failures
+   - Singular covariance matrix handling
+   - Unbalanced panels, categorical groups, many groups
+   - Recipe and WorkflowSet integration
+
+4. **Example Notebooks** (`_md/22-25_panel_regression_*.ipynb`)
+   - 22_panel_regression_basics.ipynb - Multi-store sales, random intercepts, ICC
+   - 23_panel_regression_random_slopes.ipynb - Patient trials, random slopes, variance components
+   - 24_panel_regression_workflowset.ipynb - Multi-country economics, WorkflowSet comparison
+   - 25_panel_regression_cv_tuning.ipynb - Multi-factory production, diagnostics, best practices
+   - All 4 notebooks validated successfully
+
+**Files Created**:
+- `py_parsnip/models/panel_reg.py` (115 lines)
+- `py_parsnip/engines/statsmodels_panel.py` (850+ lines)
+- `tests/test_parsnip/test_panel_reg.py` (850+ lines, 38 tests)
+- `_md/22_panel_regression_basics.ipynb` (38 KB)
+- `_md/23_panel_regression_random_slopes.ipynb` (34 KB)
+- `_md/24_panel_regression_workflowset.ipynb` (28 KB)
+- `_md/25_panel_regression_cv_tuning.ipynb` (32 KB)
+
+**Files Modified**:
+- `py_parsnip/__init__.py` - Added panel_reg import
+- `py_parsnip/engines/__init__.py` - Added statsmodels_panel import
+- `py_workflows/workflow.py` - Modified fit_global() to exclude group from formula for panel models
+- `py_hardhat/forge.py` - Skip group column validation for panel models
+- `CLAUDE.md` - Updated with panel_reg documentation, 24 models, 820+ tests
+
+**Documentation Files**:
+- `.claude_plans/PANEL_REG_IMPLEMENTATION_PLAN.md` - Research and planning (46 KB)
+- `.claude_plans/PANEL_REG_RESEARCH_SUMMARY.json` - Structured research data (10 KB)
+- `.claude_plans/PANEL_REG_QUICK_REFERENCE.md` - Quick reference guide (10 KB)
+- `.claude_plans/PANEL_REG_IMPLEMENTATION_COMPLETE.md` - Implementation summary (12 KB)
+- `.claude_plans/PANEL_REG_NEXT_STEPS.md` - Testing roadmap (10 KB)
+- `.claude_plans/PANEL_REG_TESTING_COMPLETE.md` - Final testing summary (11 KB)
+- `.claude_debugging/PANEL_REG_TEST_FIXES_2025_11_14.md` - Test fix details
+
+**Test Results**:
+- ✅ 38/38 panel_reg tests passing (100%)
+- ✅ 820+ total tests across all packages (762 base + 20 WorkflowSet + 38 panel_reg)
+- ✅ All 4 example notebooks validated
+
+**Key Features**:
+1. **Random Effects Modeling**: Group-specific intercepts and slopes
+2. **ICC Calculation**: Measure of between-group vs within-group variance
+3. **Variance Components**: Fixed, random intercept, random slope, residual variances
+4. **Statistical Inference**: Full inferential statistics for all parameters
+5. **Residual Diagnostics**: 4 diagnostic tests (autocorrelation, normality, heteroskedasticity)
+6. **Robust Error Handling**: Singular covariance, unbalanced panels, new groups
+7. **Integration**: Works with workflows, recipes, and workflowsets
+
+**Key Distinction**:
+- ❌ **NOT for time series forecasting** - panel_reg models cross-sectional panel data relationships
+- ✅ **Use for panel data analysis** - understanding relationships in hierarchical/grouped data
+- ✅ **For forecasting**: Use `prophet_reg`, `arima_reg`, `recursive_reg` with `fit_nested()`
+
+**Usage Pattern**:
+```python
+# Multi-store panel data
+spec = panel_reg(random_effects="both").set_args(slope_var='time')
+wf = workflow().add_formula("sales ~ price + advertising + time").add_model(spec)
+fit = wf.fit_global(multi_store_data, group_col='store_id')
+
+# Extract variance components and ICC
+outputs, coefficients, stats = fit.extract_outputs()
+icc = stats[stats['metric'] == 'icc'].iloc[0]['value']
+```
+
+**Total New Code**:
+- Implementation: ~2,500 lines (model + engine + infrastructure fixes)
+- Tests: ~850 lines
+- Notebooks: ~132 KB (4 notebooks)
+- Documentation: ~100 KB
+- Total: ~3,350 lines + 232 KB docs
+
+**Model Count**: 24 total models (21 fitted + 1 hybrid + 1 manual + 1 panel)
+**Engine Count**: 31+ total engines
+**Test Count**: 820+ tests across all packages
+
+---
+
+## Earlier Work (2025-11-11 - Part 2): WorkflowSet Grouped Modeling COMPLETE ✅
 
 **Summary:** Successfully implemented grouped/panel modeling support for WorkflowSet, enabling users to fit ALL workflows across ALL groups simultaneously, compare performance group-wise, and select best workflows either overall or per-group. This completes the multi-model comparison framework for panel data.
 
