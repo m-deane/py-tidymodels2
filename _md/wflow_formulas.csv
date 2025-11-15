@@ -179,78 +179,78 @@ rec_anova_boost_tree_3,Romania,target ~ urals_cracking_med + x30_70_wcs_bakken_c
 rec_anova_boost_tree_3,Russian Federation,target ~ x50_50_hls_lls_cracking_usgc + urals_cracking_med + urals_cracking_nw_europe + x30_70_wcs_bakken_cracking_usmc + es_sider_hydroskimming_med + bakken_coking_usmc + dubai_hydroskimming_singapore + tapis_hydroskimming_singapore,8,recipe,boost_tree
 rec_anova_boost_tree_3,Turkey,target ~ urals_cracking_nw_europe + tapis_hydroskimming_singapore + es_sider_cracking_med + urals_cracking_med + dubai + brent_cracking_nw_europe + brent + urals_hydroskimming_med,8,recipe,boost_tree
 rec_anova_boost_tree_3,United Kingdom,target ~ x50_50_hls_lls_cracking_usgc + urals_cracking_med + wti + tapis_hydroskimming_singapore + urals_cracking_nw_europe + brent + dubai + es_sider_hydroskimming_med,8,recipe,boost_tree
-rec_rf_linear_reg_1,Algeria,target ~ brent + dubai + x30_70_wcs_bakken_cracking_usmc,3,recipe,linear_reg
-rec_rf_linear_reg_1,Denmark,target ~ dubai + brent + bakken_coking_usmc,3,recipe,linear_reg
+rec_rf_linear_reg_1,Algeria,target ~ brent + dubai + es_sider_hydroskimming_med,3,recipe,linear_reg
+rec_rf_linear_reg_1,Denmark,target ~ dubai + brent + urals_cracking_med,3,recipe,linear_reg
 rec_rf_linear_reg_1,Germany,target ~ urals_cracking_med + dubai + brent,3,recipe,linear_reg
-rec_rf_linear_reg_1,Italy,target ~ dubai + brent + x50_50_hls_lls_cracking_usgc,3,recipe,linear_reg
+rec_rf_linear_reg_1,Italy,target ~ urals_cracking_med + dubai + brent,3,recipe,linear_reg
 rec_rf_linear_reg_1,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc,3,recipe,linear_reg
-rec_rf_linear_reg_1,Norway,target ~ brent + dubai + brent_cracking_nw_europe,3,recipe,linear_reg
-rec_rf_linear_reg_1,Romania,target ~ brent + dubai + urals_cracking_med,3,recipe,linear_reg
-rec_rf_linear_reg_1,Russian Federation,target ~ dubai + urals_cracking_med + x50_50_hls_lls_cracking_usgc,3,recipe,linear_reg
-rec_rf_linear_reg_1,Turkey,target ~ brent + dubai + es_sider_cracking_med,3,recipe,linear_reg
-rec_rf_linear_reg_1,United Kingdom,target ~ brent + x50_50_hls_lls_cracking_usgc + wti,3,recipe,linear_reg
-rec_rf_rand_forest_2,Algeria,target ~ brent + x50_50_hls_lls_cracking_usgc + bakken_coking_usmc,3,recipe,rand_forest
-rec_rf_rand_forest_2,Denmark,target ~ dubai + brent + urals_cracking_nw_europe,3,recipe,rand_forest
-rec_rf_rand_forest_2,Germany,target ~ dubai + urals_cracking_med + urals_cracking_nw_europe,3,recipe,rand_forest
-rec_rf_rand_forest_2,Italy,target ~ dubai + brent + urals_cracking_med,3,recipe,rand_forest
+rec_rf_linear_reg_1,Norway,target ~ dubai + brent + brent_hydroskimming_nw_europe,3,recipe,linear_reg
+rec_rf_linear_reg_1,Romania,target ~ urals_cracking_med + brent + dubai,3,recipe,linear_reg
+rec_rf_linear_reg_1,Russian Federation,target ~ x50_50_hls_lls_cracking_usgc + brent + urals_cracking_med,3,recipe,linear_reg
+rec_rf_linear_reg_1,Turkey,target ~ brent + dubai + urals_cracking_nw_europe,3,recipe,linear_reg
+rec_rf_linear_reg_1,United Kingdom,target ~ x50_50_hls_lls_cracking_usgc + brent + urals_cracking_med,3,recipe,linear_reg
+rec_rf_rand_forest_2,Algeria,target ~ dubai + brent + bakken_coking_usmc,3,recipe,rand_forest
+rec_rf_rand_forest_2,Denmark,target ~ dubai + brent + bakken_coking_usmc,3,recipe,rand_forest
+rec_rf_rand_forest_2,Germany,target ~ urals_cracking_med + dubai + brent,3,recipe,rand_forest
+rec_rf_rand_forest_2,Italy,target ~ urals_cracking_med + dubai + brent,3,recipe,rand_forest
 rec_rf_rand_forest_2,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc,3,recipe,rand_forest
-rec_rf_rand_forest_2,Norway,target ~ brent + dubai + brent_cracking_nw_europe,3,recipe,rand_forest
-rec_rf_rand_forest_2,Romania,target ~ dubai + brent + urals_cracking_med,3,recipe,rand_forest
+rec_rf_rand_forest_2,Norway,target ~ brent + dubai + brent_hydroskimming_nw_europe,3,recipe,rand_forest
+rec_rf_rand_forest_2,Romania,target ~ brent + dubai + urals_cracking_med,3,recipe,rand_forest
 rec_rf_rand_forest_2,Russian Federation,target ~ dubai + x50_50_hls_lls_cracking_usgc + urals_cracking_med,3,recipe,rand_forest
 rec_rf_rand_forest_2,Turkey,target ~ dubai + brent + urals_cracking_nw_europe,3,recipe,rand_forest
-rec_rf_rand_forest_2,United Kingdom,target ~ brent + x50_50_hls_lls_cracking_usgc + dubai,3,recipe,rand_forest
-rec_rf_boost_tree_3,Algeria,target ~ brent + bakken_coking_usmc + x50_50_hls_lls_cracking_usgc,3,recipe,boost_tree
-rec_rf_boost_tree_3,Denmark,target ~ dubai + brent + dubai_cracking_singapore,3,recipe,boost_tree
+rec_rf_rand_forest_2,United Kingdom,target ~ brent + x50_50_hls_lls_cracking_usgc + urals_cracking_med,3,recipe,rand_forest
+rec_rf_boost_tree_3,Algeria,target ~ brent + dubai + x30_70_wcs_bakken_cracking_usmc,3,recipe,boost_tree
+rec_rf_boost_tree_3,Denmark,target ~ dubai + brent + urals_cracking_med,3,recipe,boost_tree
 rec_rf_boost_tree_3,Germany,target ~ urals_cracking_med + dubai + brent,3,recipe,boost_tree
-rec_rf_boost_tree_3,Italy,target ~ dubai + brent + urals_cracking_med,3,recipe,boost_tree
+rec_rf_boost_tree_3,Italy,target ~ dubai + urals_cracking_med + brent,3,recipe,boost_tree
 rec_rf_boost_tree_3,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc,3,recipe,boost_tree
 rec_rf_boost_tree_3,Norway,target ~ brent + dubai + brent_hydroskimming_nw_europe,3,recipe,boost_tree
-rec_rf_boost_tree_3,Romania,target ~ dubai + urals_cracking_med + brent,3,recipe,boost_tree
-rec_rf_boost_tree_3,Russian Federation,target ~ urals_cracking_med + x50_50_hls_lls_cracking_usgc + dubai,3,recipe,boost_tree
+rec_rf_boost_tree_3,Romania,target ~ urals_cracking_med + dubai + brent,3,recipe,boost_tree
+rec_rf_boost_tree_3,Russian Federation,target ~ x50_50_hls_lls_cracking_usgc + urals_cracking_med + dubai,3,recipe,boost_tree
 rec_rf_boost_tree_3,Turkey,target ~ brent + dubai + es_sider_cracking_med,3,recipe,boost_tree
-rec_rf_boost_tree_3,United Kingdom,target ~ brent + wti + urals_cracking_med,3,recipe,boost_tree
-rec_rf_imp_linear_reg_1,Algeria,target ~ dubai + es_sider_hydroskimming_med + brent + bakken_coking_usmc + x50_50_hls_lls_cracking_usgc,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Denmark,target ~ dubai + brent + dubai_cracking_singapore + urals_cracking_nw_europe + urals_hydroskimming_nw_europe,5,recipe,linear_reg
+rec_rf_boost_tree_3,United Kingdom,target ~ x50_50_hls_lls_cracking_usgc + brent + urals_cracking_med,3,recipe,boost_tree
+rec_rf_imp_linear_reg_1,Algeria,target ~ brent + dubai + bakken_coking_usmc + x30_70_wcs_bakken_cracking_usmc + es_sider_hydroskimming_med,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Denmark,target ~ dubai + brent + bakken_coking_usmc + urals_cracking_nw_europe + dubai_cracking_singapore,5,recipe,linear_reg
 rec_rf_imp_linear_reg_1,Germany,target ~ urals_cracking_med + dubai + brent + urals_cracking_nw_europe + x50_50_hls_lls_cracking_usgc,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Italy,target ~ dubai + urals_cracking_med + x50_50_hls_lls_cracking_usgc + brent + tapis_hydroskimming_singapore,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Netherlands,target ~ dubai + brent + x50_50_hls_lls_cracking_usgc + es_sider_hydroskimming_med + wti,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Norway,target ~ brent + dubai + es_sider_hydroskimming_med + dubai_cracking_singapore + wti,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Romania,target ~ dubai + brent + urals_cracking_med + bakken_coking_usmc + x30_70_wcs_bakken_cracking_usmc,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Russian Federation,target ~ urals_cracking_med + x50_50_hls_lls_cracking_usgc + brent + dubai + wti,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,Turkey,target ~ brent + dubai + urals_cracking_nw_europe + es_sider_cracking_med + wti,5,recipe,linear_reg
-rec_rf_imp_linear_reg_1,United Kingdom,target ~ wti + brent + x50_50_hls_lls_cracking_usgc + dubai + urals_cracking_med,5,recipe,linear_reg
-rec_rf_imp_rand_forest_2,Algeria,target ~ brent + dubai + bakken_coking_usmc + x30_70_wcs_bakken_cracking_usmc + x50_50_hls_lls_cracking_usgc,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Denmark,target ~ dubai + brent + dubai_cracking_singapore + urals_cracking_nw_europe + urals_cracking_med,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Germany,target ~ urals_cracking_med + brent + dubai + urals_cracking_nw_europe + es_sider_hydroskimming_med,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Italy,target ~ dubai + x50_50_hls_lls_cracking_usgc + urals_cracking_med + brent + wti,5,recipe,rand_forest
+rec_rf_imp_linear_reg_1,Italy,target ~ dubai + brent + x50_50_hls_lls_cracking_usgc + urals_cracking_med + x30_70_wcs_bakken_cracking_usmc,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc + tapis_hydroskimming_singapore + brent_hydroskimming_nw_europe,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Norway,target ~ brent + dubai + urals_hydroskimming_med + brent_hydroskimming_nw_europe + urals_hydroskimming_nw_europe,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Romania,target ~ urals_cracking_med + dubai + brent + bakken_coking_usmc + x30_70_wcs_bakken_cracking_usmc,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Russian Federation,target ~ urals_cracking_med + x50_50_hls_lls_cracking_usgc + dubai + brent + wti,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,Turkey,target ~ brent + dubai + urals_cracking_nw_europe + urals_cracking_med + es_sider_cracking_med,5,recipe,linear_reg
+rec_rf_imp_linear_reg_1,United Kingdom,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc + urals_cracking_med + wti,5,recipe,linear_reg
+rec_rf_imp_rand_forest_2,Algeria,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc + es_sider_hydroskimming_med + es_sider_cracking_med,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Denmark,target ~ dubai + brent + x30_70_wcs_bakken_cracking_usmc + bakken_coking_usmc + urals_cracking_med,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Germany,target ~ urals_cracking_med + dubai + brent + x50_50_hls_lls_cracking_usgc + urals_cracking_nw_europe,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Italy,target ~ brent + urals_cracking_med + dubai + x50_50_hls_lls_cracking_usgc + x30_70_wcs_bakken_cracking_usmc,5,recipe,rand_forest
 rec_rf_imp_rand_forest_2,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc + urals_cracking_med + brent_hydroskimming_nw_europe,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Norway,target ~ brent + dubai + urals_hydroskimming_med + brent_hydroskimming_nw_europe + bakken_coking_usmc,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Romania,target ~ dubai + brent + urals_cracking_med + x30_70_wcs_bakken_cracking_usmc + bakken_coking_usmc,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Russian Federation,target ~ dubai + x50_50_hls_lls_cracking_usgc + brent + urals_cracking_med + wti,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,Turkey,target ~ dubai + brent + urals_cracking_nw_europe + wti + urals_cracking_med,5,recipe,rand_forest
-rec_rf_imp_rand_forest_2,United Kingdom,target ~ brent + x50_50_hls_lls_cracking_usgc + wti + urals_cracking_med + dubai,5,recipe,rand_forest
-rec_rf_imp_boost_tree_3,Algeria,target ~ bakken_coking_usmc + dubai + brent + es_sider_hydroskimming_med + x30_70_wcs_bakken_cracking_usmc,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Denmark,target ~ dubai + brent + bakken_coking_usmc + dubai_cracking_singapore + urals_cracking_med,5,recipe,boost_tree
+rec_rf_imp_rand_forest_2,Norway,target ~ brent + dubai + es_sider_hydroskimming_med + brent_hydroskimming_nw_europe + es_sider_cracking_med,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Romania,target ~ urals_cracking_med + dubai + brent + x30_70_wcs_bakken_cracking_usmc + urals_cracking_nw_europe,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Russian Federation,target ~ x50_50_hls_lls_cracking_usgc + dubai + brent + urals_cracking_med + wti,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,Turkey,target ~ dubai + brent + urals_cracking_med + es_sider_cracking_med + wti,5,recipe,rand_forest
+rec_rf_imp_rand_forest_2,United Kingdom,target ~ urals_cracking_med + brent + dubai + wti + x50_50_hls_lls_cracking_usgc,5,recipe,rand_forest
+rec_rf_imp_boost_tree_3,Algeria,target ~ brent + dubai + x30_70_wcs_bakken_cracking_usmc + es_sider_hydroskimming_med + bakken_coking_usmc,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Denmark,target ~ dubai + brent + bakken_coking_usmc + urals_cracking_med + urals_hydroskimming_nw_europe,5,recipe,boost_tree
 rec_rf_imp_boost_tree_3,Germany,target ~ urals_cracking_med + dubai + brent + urals_cracking_nw_europe + x50_50_hls_lls_cracking_usgc,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Italy,target ~ dubai + brent + urals_cracking_med + x50_50_hls_lls_cracking_usgc + x30_70_wcs_bakken_cracking_usmc,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Netherlands,target ~ brent + dubai + x50_50_hls_lls_cracking_usgc + urals_cracking_med + urals_hydroskimming_med,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Norway,target ~ brent + dubai + urals_hydroskimming_nw_europe + urals_hydroskimming_med + dubai_cracking_singapore,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Romania,target ~ dubai + urals_cracking_med + brent + urals_cracking_nw_europe + bakken_coking_usmc,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Russian Federation,target ~ dubai + x50_50_hls_lls_cracking_usgc + brent + urals_cracking_med + wti,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,Turkey,target ~ brent + dubai + urals_cracking_nw_europe + urals_cracking_med + es_sider_cracking_med,5,recipe,boost_tree
-rec_rf_imp_boost_tree_3,United Kingdom,target ~ wti + x50_50_hls_lls_cracking_usgc + urals_cracking_med + brent + dubai,5,recipe,boost_tree
-rec_mi_linear_reg_1,Algeria,target ~ dubai + wti + brent + dubai_hydroskimming_singapore + x30_70_wcs_bakken_cracking_usmc + x50_50_hls_lls_cracking_usgc,6,recipe,linear_reg
+rec_rf_imp_boost_tree_3,Italy,target ~ brent + dubai + urals_cracking_med + x50_50_hls_lls_cracking_usgc + x30_70_wcs_bakken_cracking_usmc,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Netherlands,target ~ brent + dubai + urals_cracking_med + x50_50_hls_lls_cracking_usgc + tapis_hydroskimming_singapore,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Norway,target ~ brent + dubai + brent_cracking_nw_europe + es_sider_hydroskimming_med + bakken_coking_usmc,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Romania,target ~ dubai + brent + urals_cracking_med + x30_70_wcs_bakken_cracking_usmc + urals_cracking_nw_europe,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Russian Federation,target ~ urals_cracking_med + x50_50_hls_lls_cracking_usgc + dubai + brent + urals_cracking_nw_europe,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,Turkey,target ~ dubai + brent + es_sider_cracking_med + urals_cracking_nw_europe + wti,5,recipe,boost_tree
+rec_rf_imp_boost_tree_3,United Kingdom,target ~ brent + x50_50_hls_lls_cracking_usgc + urals_cracking_med + dubai + tapis_hydroskimming_singapore,5,recipe,boost_tree
+rec_mi_linear_reg_1,Algeria,target ~ dubai + brent + wti + dubai_hydroskimming_singapore + x30_70_wcs_bakken_cracking_usmc + bakken_coking_usmc,6,recipe,linear_reg
 rec_mi_linear_reg_1,Denmark,target ~ urals_cracking_med + brent + wti + es_sider_hydroskimming_med + urals_hydroskimming_med + dubai,6,recipe,linear_reg
-rec_mi_linear_reg_1,Germany,target ~ urals_cracking_med + wti + es_sider_cracking_med + urals_cracking_nw_europe + es_sider_hydroskimming_med + dubai,6,recipe,linear_reg
+rec_mi_linear_reg_1,Germany,target ~ urals_cracking_med + wti + es_sider_cracking_med + urals_cracking_nw_europe + dubai + es_sider_hydroskimming_med,6,recipe,linear_reg
 rec_mi_linear_reg_1,Italy,target ~ dubai + brent + wti + x30_70_wcs_bakken_cracking_usmc + bakken_coking_usmc + urals_cracking_med,6,recipe,linear_reg
 rec_mi_linear_reg_1,Netherlands,target ~ dubai + urals_cracking_med + es_sider_cracking_med + es_sider_hydroskimming_med + x50_50_hls_lls_cracking_usgc + wti,6,recipe,linear_reg
-rec_mi_linear_reg_1,Norway,target ~ brent + urals_cracking_med + dubai + wti + es_sider_cracking_med + urals_hydroskimming_med,6,recipe,linear_reg
+rec_mi_linear_reg_1,Norway,target ~ brent + urals_cracking_med + dubai + wti + es_sider_cracking_med + urals_cracking_nw_europe,6,recipe,linear_reg
 rec_mi_linear_reg_1,Romania,target ~ brent + dubai + wti + urals_cracking_med + urals_cracking_nw_europe + brent_hydroskimming_nw_europe,6,recipe,linear_reg
 rec_mi_linear_reg_1,Russian Federation,target ~ brent + dubai + wti + urals_hydroskimming_med + x50_50_hls_lls_cracking_usgc + urals_cracking_med,6,recipe,linear_reg
 rec_mi_linear_reg_1,Turkey,target ~ brent + dubai + es_sider_cracking_med + brent_cracking_nw_europe + tapis_hydroskimming_singapore + urals_cracking_nw_europe,6,recipe,linear_reg
 rec_mi_linear_reg_1,United Kingdom,target ~ brent + dubai + wti + urals_cracking_nw_europe + x50_50_hls_lls_cracking_usgc + tapis_hydroskimming_singapore,6,recipe,linear_reg
-rec_mi_rand_forest_2,Algeria,target ~ dubai + wti + brent + dubai_hydroskimming_singapore + x30_70_wcs_bakken_cracking_usmc + x50_50_hls_lls_cracking_usgc,6,recipe,rand_forest
-rec_mi_rand_forest_2,Denmark,target ~ urals_cracking_med + brent + wti + es_sider_hydroskimming_med + urals_hydroskimming_med + urals_hydroskimming_nw_europe,6,recipe,rand_forest
+rec_mi_rand_forest_2,Algeria,target ~ dubai + brent + wti + dubai_hydroskimming_singapore + x30_70_wcs_bakken_cracking_usmc + x50_50_hls_lls_cracking_usgc,6,recipe,rand_forest
+rec_mi_rand_forest_2,Denmark,target ~ urals_cracking_med + brent + wti + es_sider_hydroskimming_med + urals_hydroskimming_med + dubai,6,recipe,rand_forest
 rec_mi_rand_forest_2,Germany,target ~ urals_cracking_med + wti + es_sider_cracking_med + urals_cracking_nw_europe + es_sider_hydroskimming_med + dubai,6,recipe,rand_forest
 rec_mi_rand_forest_2,Italy,target ~ dubai + brent + wti + x30_70_wcs_bakken_cracking_usmc + bakken_coking_usmc + urals_cracking_med,6,recipe,rand_forest
 rec_mi_rand_forest_2,Netherlands,target ~ dubai + urals_cracking_med + es_sider_cracking_med + es_sider_hydroskimming_med + x50_50_hls_lls_cracking_usgc + wti,6,recipe,rand_forest
@@ -258,7 +258,7 @@ rec_mi_rand_forest_2,Norway,target ~ brent + urals_cracking_med + dubai + wti + 
 rec_mi_rand_forest_2,Romania,target ~ brent + dubai + wti + urals_cracking_med + urals_cracking_nw_europe + brent_hydroskimming_nw_europe,6,recipe,rand_forest
 rec_mi_rand_forest_2,Russian Federation,target ~ brent + dubai + wti + urals_hydroskimming_med + x50_50_hls_lls_cracking_usgc + urals_cracking_med,6,recipe,rand_forest
 rec_mi_rand_forest_2,Turkey,target ~ brent + dubai + es_sider_cracking_med + brent_cracking_nw_europe + tapis_hydroskimming_singapore + urals_cracking_nw_europe,6,recipe,rand_forest
-rec_mi_rand_forest_2,United Kingdom,target ~ brent + dubai + wti + urals_cracking_nw_europe + x50_50_hls_lls_cracking_usgc + urals_cracking_med,6,recipe,rand_forest
+rec_mi_rand_forest_2,United Kingdom,target ~ brent + dubai + wti + urals_cracking_nw_europe + x50_50_hls_lls_cracking_usgc + tapis_hydroskimming_singapore,6,recipe,rand_forest
 rec_mi_boost_tree_3,Algeria,target ~ dubai + wti + brent + dubai_hydroskimming_singapore + x30_70_wcs_bakken_cracking_usmc + x50_50_hls_lls_cracking_usgc,6,recipe,boost_tree
 rec_mi_boost_tree_3,Denmark,target ~ urals_cracking_med + brent + wti + es_sider_hydroskimming_med + urals_hydroskimming_med + dubai,6,recipe,boost_tree
 rec_mi_boost_tree_3,Germany,target ~ urals_cracking_med + wti + es_sider_cracking_med + urals_cracking_nw_europe + es_sider_hydroskimming_med + dubai,6,recipe,boost_tree
