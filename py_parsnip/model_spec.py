@@ -652,6 +652,121 @@ class ModelFit:
 
         return outputs, coefficients, stats
 
+    def explain(
+        self,
+        data: pd.DataFrame,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None,
+        check_additivity: bool = True
+    ) -> pd.DataFrame:
+        """
+        Compute SHAP values to explain model predictions.
+
+        Uses SHAP (SHapley Additive exPlanations) to compute feature contributions
+        for each observation. Auto-selects best explainer based on model type.
+
+        Args:
+            data: Data to explain (must contain all features used in model)
+            method: Explainer method:
+                - "auto": Auto-select based on model type (default)
+                - "tree": TreeExplainer (for tree-based models)
+                - "linear": LinearExplainer (for linear models)
+                - "kernel": KernelExplainer (model-agnostic, slower)
+            background_size: Number of background samples for KernelExplainer
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (overrides background_size)
+            check_additivity: Verify SHAP values sum to prediction - base_value
+
+        Returns:
+            DataFrame with SHAP values per variable per observation.
+            Columns: observation_id, variable, shap_value, abs_shap, feature_value,
+                     base_value, prediction, model, model_group_name
+
+        Examples:
+            >>> # Auto-select best explainer
+            >>> shap_df = fit.explain(test_data)
+            >>>
+            >>> # Global feature importance
+            >>> importance = shap_df.groupby("variable")["abs_shap"].mean()
+            >>>
+            >>> # Force specific method
+            >>> shap_df = fit.explain(test_data, method="kernel")
+        """
+        from py_interpret import ShapEngine
+
+        return ShapEngine.explain(
+            fit=self,
+            data=data,
+            method=method,
+            background_size=background_size,
+            background=background,
+            background_data=background_data,
+            check_additivity=check_additivity
+        )
+
+    def save_mlflow(
+        self,
+        path: str,
+        conda_env: Optional[Any] = None,
+        signature: Optional[Any] = None,
+        input_example: Optional[pd.DataFrame] = None,
+        registered_model_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Save model to MLflow format for versioning and deployment.
+
+        This method provides a convenient way to persist the ModelFit object
+        using MLflow's model format, which enables:
+        - Model versioning and lineage tracking
+        - Deployment to various serving platforms
+        - Model registry integration
+        - Reproducible model artifacts
+
+        Args:
+            path: Directory path where model will be saved
+            conda_env: Conda environment specification (optional)
+            signature: Model signature for input/output schema validation.
+                      Use "auto" to infer from input_example.
+            input_example: Example input DataFrame for signature inference (optional)
+            registered_model_name: Name to register model in MLflow Model Registry (optional)
+            metadata: Additional custom metadata dict (optional)
+
+        Returns:
+            None
+
+        Examples:
+            >>> # Basic save
+            >>> fit = spec.fit(train_data, "y ~ x1 + x2")
+            >>> fit.save_mlflow("models/my_model")
+            >>>
+            >>> # Save with auto signature and registry
+            >>> fit.save_mlflow(
+            ...     path="models/my_model",
+            ...     input_example=train_data.head(5),
+            ...     signature="auto",
+            ...     registered_model_name="MyModel"
+            ... )
+            >>>
+            >>> # Load later
+            >>> from py_mlflow import load_model
+            >>> loaded = load_model("models/my_model")
+            >>> predictions = loaded.predict(test_data)
+        """
+        from py_mlflow import save_model
+
+        save_model(
+            model=self,
+            path=path,
+            conda_env=conda_env,
+            signature=signature,
+            input_example=input_example,
+            registered_model_name=registered_model_name,
+            metadata=metadata
+        )
+
 
 @dataclass
 class NestedModelFit:
@@ -896,3 +1011,138 @@ class NestedModelFit:
         combined_stats = reorder_stats_columns(combined_stats, group_col=self.group_col)
 
         return combined_outputs, combined_coefficients, combined_stats
+
+    def explain(
+        self,
+        data: pd.DataFrame,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None,
+        check_additivity: bool = True
+    ) -> pd.DataFrame:
+        """
+        Compute SHAP values for all group models.
+
+        Computes SHAP values separately for each group and combines results
+        with group column for comparison across groups.
+
+        Args:
+            data: Data to explain (must include group column)
+            method: Explainer method ("auto", "tree", "linear", or "kernel")
+            background_size: Number of background samples for KernelExplainer
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (overrides background_size)
+            check_additivity: Verify SHAP values sum to prediction - base_value
+
+        Returns:
+            DataFrame with SHAP values per variable per observation per group.
+            Includes "group" column to identify which group each row belongs to.
+
+        Examples:
+            >>> # Compute SHAP for all groups
+            >>> shap_df = nested_fit.explain(test_data)
+            >>>
+            >>> # Compare feature importance across groups
+            >>> importance_by_group = shap_df.groupby(["group", "variable"])["abs_shap"].mean()
+            >>> print(importance_by_group.unstack())
+            >>>
+            >>> # Filter to specific group
+            >>> group_a_shap = shap_df[shap_df["group"] == "A"]
+        """
+        from py_interpret import ShapEngine
+
+        if self.group_col not in data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in data")
+
+        # Compute SHAP for each group
+        all_shap = []
+
+        for group, group_fit in self.group_fits.items():
+            # Filter data for this group
+            group_data = data[data[self.group_col] == group].copy()
+
+            if len(group_data) == 0:
+                continue  # Skip groups not in data
+
+            # Remove group column before SHAP computation
+            group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Compute SHAP for this group's model
+            group_shap = ShapEngine.explain(
+                fit=group_fit,
+                data=group_data_no_group,
+                method=method,
+                background_size=background_size,
+                background=background,
+                background_data=background_data,
+                check_additivity=check_additivity
+            )
+
+            # Add group column
+            group_shap[self.group_col] = group
+
+            all_shap.append(group_shap)
+
+        if len(all_shap) == 0:
+            raise ValueError("No matching groups found in data")
+
+        # Combine SHAP values from all groups
+        combined_shap = pd.concat(all_shap, ignore_index=True)
+
+        # Rename group_col to "group" for consistency with extract_outputs()
+        combined_shap = combined_shap.rename(columns={self.group_col: "group"})
+
+        return combined_shap
+
+    def save_mlflow(
+        self,
+        path: str,
+        conda_env: Optional[Any] = None,
+        signature: Optional[Any] = None,
+        input_example: Optional[pd.DataFrame] = None,
+        registered_model_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Save nested model (per-group models) to MLflow format.
+
+        This method saves all group models into a single MLflow model package,
+        preserving the grouped structure for later restoration.
+
+        Args:
+            path: Directory path where model will be saved
+            conda_env: Conda environment specification (optional)
+            signature: Model signature for input/output schema validation.
+                      Use "auto" to infer from input_example.
+            input_example: Example input DataFrame for signature inference (optional)
+            registered_model_name: Name to register model in MLflow Model Registry (optional)
+            metadata: Additional custom metadata dict (optional)
+
+        Returns:
+            None
+
+        Examples:
+            >>> # Fit nested model
+            >>> spec = linear_reg()
+            >>> nested_fit = spec.fit_nested(data, "sales ~ date", group_col="store_id")
+            >>>
+            >>> # Save nested model
+            >>> nested_fit.save_mlflow("models/store_models")
+            >>>
+            >>> # Load and predict
+            >>> from py_mlflow import load_model
+            >>> loaded = load_model("models/store_models")
+            >>> predictions = loaded.predict(test_data)  # Routes to correct group models
+        """
+        from py_mlflow import save_model
+
+        save_model(
+            model=self,
+            path=path,
+            conda_env=conda_env,
+            signature=signature,
+            input_example=input_example,
+            registered_model_name=registered_model_name,
+            metadata=metadata
+        )

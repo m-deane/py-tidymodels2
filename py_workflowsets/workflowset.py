@@ -432,6 +432,217 @@ class WorkflowSet:
             metrics=metrics
         )
 
+    def _fit_single_workflow_backtest(self, wf_id: str, wf: Any, resamples: Any,
+                                        metrics: Any) -> Tuple[Dict[str, Any], Optional[str]]:
+        """
+        Fit single workflow across all vintage folds.
+
+        Helper function for fit_backtests().
+
+        Args:
+            wf_id: Workflow ID
+            wf: Workflow object
+            resamples: VintageCV object
+            metrics: Metric set
+
+        Returns:
+            Tuple of (result_dict, error_msg)
+        """
+        try:
+            fold_results = []
+
+            # Fit workflow on each vintage fold
+            for fold_idx, split in enumerate(resamples):
+                # Get training and test data
+                train = split.training()
+                test = split.testing()
+                vintage_info = split.get_vintage_info()
+
+                # Fit workflow on training data
+                fit = wf.fit(train)
+
+                # Predict on test data
+                predictions = fit.predict(test)
+
+                # Evaluate predictions
+                from py_yardstick import metric_set as ms
+                fold_metrics = []
+
+                # Calculate each metric
+                for metric_fn in metrics._metrics:
+                    metric_name = metric_fn.__name__
+
+                    # Find outcome column (first column that's not .pred*)
+                    outcome_col = None
+                    for col in test.columns:
+                        if col not in predictions.columns and not col.startswith('.pred'):
+                            outcome_col = col
+                            break
+
+                    if outcome_col is None:
+                        # Try to get from fit object
+                        from py_workflows.workflow import WorkflowFit
+                        if isinstance(fit, WorkflowFit):
+                            preproc = fit.extract_preprocessor()
+                            if hasattr(preproc, 'blueprint') and hasattr(preproc.blueprint, 'outcome_col'):
+                                outcome_col = preproc.blueprint.outcome_col
+
+                    if outcome_col is not None and outcome_col in test.columns:
+                        # Merge test actuals with predictions
+                        eval_df = test[[outcome_col]].copy()
+                        eval_df['.pred'] = predictions['.pred'].values
+
+                        # Calculate metric
+                        metric_result = metric_fn(eval_df, outcome_col, '.pred')
+                        metric_value = metric_result.iloc[0]['value']
+
+                        fold_metrics.append({
+                            'metric': metric_name,
+                            'value': metric_value
+                        })
+
+                metrics_df = pd.DataFrame(fold_metrics)
+
+                fold_results.append({
+                    "fold_idx": fold_idx,
+                    "vintage_info": vintage_info,
+                    "predictions": predictions,
+                    "metrics": metrics_df
+                })
+
+            result = {
+                "wflow_id": wf_id,
+                "folds": fold_results
+            }
+
+            return (result, None)
+
+        except Exception as e:
+            error_msg = f"Workflow '{wf_id}' failed: {str(e)}"
+            return (None, error_msg)
+
+    def fit_backtests(self,
+                      resamples: Any,
+                      metrics: Any = None,
+                      group_col: Optional[str] = None,
+                      n_jobs: Optional[int] = None,
+                      verbose: bool = False) -> "BacktestResults":
+        """
+        Fit all workflows across vintage folds for backtesting.
+
+        Evaluates all workflows using vintage cross-validation to simulate
+        production forecasting conditions with point-in-time data.
+
+        Args:
+            resamples: VintageCV object with vintage-aware splits
+            metrics: Metric set for evaluation
+            group_col: Optional group column for per-group backtesting (Phase 2)
+            n_jobs: Number of parallel jobs. None or 1 for sequential execution,
+                    -1 for all CPU cores, or positive integer for specific number of cores.
+            verbose: If True, display progress messages
+
+        Returns:
+            BacktestResults object containing vintage-specific analysis methods
+
+        Examples:
+            >>> from py_backtest import VintageCV
+            >>> from py_workflowsets import WorkflowSet
+            >>> from py_yardstick import metric_set, rmse, mae
+            >>>
+            >>> # Create workflow set
+            >>> wf_set = WorkflowSet.from_cross(
+            ...     preproc=["y ~ x1", "y ~ x1 + x2"],
+            ...     models=[linear_reg(), rand_forest().set_mode("regression")]
+            ... )
+            >>>
+            >>> # Create vintage CV
+            >>> vintage_cv = VintageCV(
+            ...     data=vintage_df,
+            ...     as_of_col="as_of_date",
+            ...     date_col="date",
+            ...     initial="2 years",
+            ...     assess="3 months"
+            ... )
+            >>>
+            >>> # Backtest all workflows
+            >>> results = wf_set.fit_backtests(
+            ...     vintage_cv,
+            ...     metrics=metric_set(rmse, mae),
+            ...     verbose=True
+            ... )
+            >>>
+            >>> # Analyze results
+            >>> top_models = results.rank_results("rmse", n=5)
+            >>> drift = results.analyze_vintage_drift("rmse")
+        """
+        from py_backtest import BacktestResults
+
+        if metrics is None:
+            from py_yardstick import metric_set, rmse, mae, r_squared
+            metrics = metric_set(rmse, mae, r_squared)
+
+        if group_col is not None:
+            raise NotImplementedError(
+                "Grouped backtesting (group_col parameter) is not yet implemented. "
+                "This feature will be added in Phase 2."
+            )
+
+        # Prepare work items
+        work_items = [(wf_id, wf, resamples, metrics)
+                      for wf_id, wf in self.workflows.items()]
+
+        # Validate and resolve n_jobs
+        effective_n_jobs = validate_n_jobs(n_jobs, len(work_items), verbose=verbose)
+
+        # Windows compatibility check
+        if effective_n_jobs > 1:
+            check_windows_compatibility(verbose=verbose and n_jobs is not None)
+
+        # Sequential or parallel execution
+        if effective_n_jobs == 1:
+            # Sequential execution
+            if verbose:
+                info = format_parallel_info(1, len(work_items), "workflows")
+                print(f"Backtesting {info}...")
+
+            results = []
+            for i, (wf_id, wf, resamples, metrics) in enumerate(work_items):
+                if verbose:
+                    print(f"  [{i+1}/{len(work_items)}] Backtesting {wf_id}...")
+                result = self._fit_single_workflow_backtest(wf_id, wf, resamples, metrics)
+                results.append(result)
+        else:
+            # Parallel execution
+            if verbose:
+                info = format_parallel_info(effective_n_jobs, len(work_items), "workflows")
+                print(f"Backtesting {info}...")
+
+            joblib_verbose = 10 if verbose else 0
+            backend = get_joblib_backend()
+            results = Parallel(n_jobs=effective_n_jobs, verbose=joblib_verbose, backend=backend)(
+                delayed(self._fit_single_workflow_backtest)(wf_id, wf, resamples, metrics)
+                for wf_id, wf, resamples, metrics in work_items
+            )
+
+        # Process results
+        backtest_results = {}
+        errors = []
+
+        for result_dict, error_msg in results:
+            if error_msg:
+                errors.append(error_msg)
+            else:
+                backtest_results[result_dict["wflow_id"]] = result_dict
+
+        # Print errors
+        for error in errors:
+            print(f"Warning: {error}")
+
+        if verbose:
+            print(f"✓ Backtest evaluation complete: {len(backtest_results)} successful")
+
+        return BacktestResults(results=backtest_results)
+
     def _fit_single_workflow_nested(self, wf_id: str, wf: Any, data: pd.DataFrame,
                                      group_col: str, per_group_prep: bool,
                                      min_group_size: int) -> Tuple[Dict[str, Any], Optional[str]]:
@@ -1033,52 +1244,6 @@ class WorkflowSet:
         # Windows compatibility check
         if effective_n_jobs > 1:
             check_windows_compatibility(verbose=verbose and n_jobs is not None)
-            for group_name, cv_splits in resamples.items():
-                try:
-                    # For each fold, fit global model and evaluate
-                    fold_results = []
-                    for fold_num, split in enumerate(cv_splits.splits):
-                        # Extract train/test indices from RSplit object
-                        # NOTE: These indices are for the FULL dataset, not group-specific
-                        train_idx = split._split.in_id
-                        test_idx = split._split.out_id
-
-                        # Get fold data using global indices (NOT group-filtered data)
-                        # Global CV splits are on the full dataset, not per-group
-                        fold_train = data.iloc[train_idx].copy()
-                        fold_test = data.iloc[test_idx].copy()
-
-                        # Fit global workflow on training fold
-                        fold_fit = wf.fit_global(fold_train, group_col=group_col)
-
-                        # Predict on test fold
-                        predictions = fold_fit.predict(fold_test)
-
-                        # Calculate metrics
-                        from py_yardstick import rmse, mae, r_squared
-                        truth = fold_test[fold_fit.extract_formula().split('~')[0].strip()]
-
-                        for metric_fn in [rmse, mae, r_squared]:
-                            result_df = metric_fn(truth, predictions['.pred'])
-                            metric_name = result_df.iloc[0]['metric']
-                            metric_value = result_df.iloc[0]['value']
-
-                            fold_results.append({
-                                'wflow_id': wf_id,
-                                'group': group_name,
-                                'fold': fold_num + 1,
-                                'metric': metric_name,
-                                'value': metric_value
-                            })
-
-                    fold_metrics_df = pd.DataFrame(fold_results)
-
-                    all_cv_results.append({
-                        "wflow_id": wf_id,
-                        "group": group_name,
-                        "cv_results": None,  # Not using standard fit_resamples
-                        "fold_metrics": fold_metrics_df
-                    })
 
         # Sequential or parallel execution
         if effective_n_jobs == 1:

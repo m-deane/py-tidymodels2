@@ -6,7 +6,7 @@ with model specifications into complete pipelines.
 """
 
 from dataclasses import dataclass, replace, field
-from typing import Any, Optional, Tuple, Union, Dict
+from typing import Any, Optional, Tuple, Union, Dict, Literal
 from datetime import datetime
 import pandas as pd
 from joblib import Parallel, delayed
@@ -1282,6 +1282,119 @@ class WorkflowFit:
         else:
             raise ValueError(f"Unknown preprocessor type: {type(self.pre)}")
 
+    def explain(
+        self,
+        data: pd.DataFrame,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None,
+        check_additivity: bool = True
+    ) -> pd.DataFrame:
+        """
+        Compute SHAP values to explain workflow predictions.
+
+        Automatically applies recipe preprocessing before computing SHAP values.
+
+        Args:
+            data: Data to explain (unprocessed, will be preprocessed by recipe)
+            method: Explainer method ("auto", "tree", "linear", or "kernel")
+            background_size: Number of background samples for KernelExplainer
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (overrides background_size)
+            check_additivity: Verify SHAP values sum to prediction - base_value
+
+        Returns:
+            DataFrame with SHAP values per variable per observation.
+            Variables are the PREPROCESSED features (after recipe transformation).
+
+        Examples:
+            >>> # Workflow with recipe
+            >>> from py_recipes import recipe
+            >>> rec = recipe().step_normalize().step_pca(num_comp=5)
+            >>> wf = workflow().add_recipe(rec).add_model(linear_reg())
+            >>> wf_fit = wf.fit(train_data)
+            >>>
+            >>> # SHAP on transformed features (PCA components)
+            >>> shap_df = wf_fit.explain(test_data)
+            >>> print(shap_df["variable"].unique())  # ['PC1', 'PC2', ...]
+        """
+        from py_interpret import ShapEngine
+
+        # Apply preprocessing to data
+        processed_data = self.extract_preprocessed_data(data)
+
+        # Compute SHAP on preprocessed data
+        # Note: We pass the ModelFit directly, which will use forge() internally
+        shap_df = ShapEngine.explain(
+            fit=self.fit,
+            data=processed_data,
+            method=method,
+            background_size=background_size,
+            background=background,
+            background_data=background_data,
+            check_additivity=check_additivity
+        )
+
+        return shap_df
+
+    def save_mlflow(
+        self,
+        path: str,
+        conda_env: Optional[Any] = None,
+        signature: Optional[Any] = None,
+        input_example: Optional[pd.DataFrame] = None,
+        registered_model_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Save workflow (preprocessing + model) to MLflow format.
+
+        This method saves the complete workflow including recipe/formula
+        preprocessing and fitted model to MLflow's standard format.
+
+        Args:
+            path: Directory path where model will be saved
+            conda_env: Conda environment specification (optional)
+            signature: Model signature for input/output schema validation.
+                      Use "auto" to infer from input_example.
+            input_example: Example input DataFrame for signature inference (optional)
+            registered_model_name: Name to register model in MLflow Model Registry (optional)
+            metadata: Additional custom metadata dict (optional)
+
+        Returns:
+            None
+
+        Examples:
+            >>> # Workflow with recipe
+            >>> rec = recipe().step_normalize().step_pca(num_comp=5)
+            >>> wf = workflow().add_recipe(rec).add_model(linear_reg())
+            >>> wf_fit = wf.fit(train_data)
+            >>>
+            >>> # Save full pipeline
+            >>> wf_fit.save_mlflow(
+            ...     path="models/my_pipeline",
+            ...     input_example=train_data.head(5),
+            ...     signature="auto"
+            ... )
+            >>>
+            >>> # Load and predict (recipe applied automatically)
+            >>> from py_mlflow import load_model
+            >>> loaded = load_model("models/my_pipeline")
+            >>> predictions = loaded.predict(test_data)
+        """
+        from py_mlflow import save_model
+
+        save_model(
+            model=self,
+            path=path,
+            conda_env=conda_env,
+            signature=signature,
+            input_example=input_example,
+            registered_model_name=registered_model_name,
+            metadata=metadata
+        )
+
 
 @dataclass
 class NestedWorkflowFit:
@@ -1924,6 +2037,142 @@ class NestedWorkflowFit:
             for grp, group_fit in self.group_fits.items():
                 model_fits[grp] = group_fit.extract_fit_parsnip()
             return model_fits
+
+    def explain(
+        self,
+        data: pd.DataFrame,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None,
+        check_additivity: bool = True
+    ) -> pd.DataFrame:
+        """
+        Compute SHAP values for all group models.
+
+        Computes SHAP values separately for each group's workflow and combines
+        results with group column for comparison across groups.
+
+        Args:
+            data: Data to explain (must include group column, unprocessed)
+            method: Explainer method ("auto", "tree", "linear", or "kernel")
+            background_size: Number of background samples for KernelExplainer
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (overrides background_size)
+            check_additivity: Verify SHAP values sum to prediction - base_value
+
+        Returns:
+            DataFrame with SHAP values per variable per observation per group.
+            Includes "group" column to identify which group each row belongs to.
+            Variables are the PREPROCESSED features (after recipe transformation).
+
+        Examples:
+            >>> # Fit nested workflow with recipe
+            >>> from py_recipes import recipe
+            >>> rec = recipe().step_normalize().step_pca(num_comp=5)
+            >>> wf = workflow().add_recipe(rec).add_model(linear_reg())
+            >>> nested_fit = wf.fit_nested(train_data, group_col='country')
+            >>>
+            >>> # Compute SHAP for all groups
+            >>> shap_df = nested_fit.explain(test_data)
+            >>>
+            >>> # Compare feature importance across groups
+            >>> importance_by_group = shap_df.groupby(["group", "variable"])["abs_shap"].mean()
+            >>> print(importance_by_group.unstack())
+            >>>
+            >>> # Filter to specific group
+            >>> usa_shap = shap_df[shap_df["group"] == "USA"]
+        """
+        if self.group_col not in data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in data")
+
+        # Compute SHAP for each group
+        all_shap = []
+
+        for group, group_fit in self.group_fits.items():
+            # Filter data for this group
+            group_data = data[data[self.group_col] == group].copy()
+
+            if len(group_data) == 0:
+                continue  # Skip groups not in data
+
+            # Remove group column before SHAP computation
+            group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Compute SHAP for this group's workflow
+            group_shap = group_fit.explain(
+                data=group_data_no_group,
+                method=method,
+                background_size=background_size,
+                background=background,
+                background_data=background_data,
+                check_additivity=check_additivity
+            )
+
+            # Add group column
+            group_shap["group"] = group
+
+            all_shap.append(group_shap)
+
+        if len(all_shap) == 0:
+            raise ValueError("No matching groups found in data")
+
+        # Combine SHAP values from all groups
+        combined_shap = pd.concat(all_shap, ignore_index=True)
+
+        return combined_shap
+
+    def save_mlflow(
+        self,
+        path: str,
+        conda_env: Optional[Any] = None,
+        signature: Optional[Any] = None,
+        input_example: Optional[pd.DataFrame] = None,
+        registered_model_name: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """
+        Save nested workflow (per-group workflows) to MLflow format.
+
+        This method saves all group workflows into a single MLflow model package,
+        preserving the grouped structure for later restoration.
+
+        Args:
+            path: Directory path where model will be saved
+            conda_env: Conda environment specification (optional)
+            signature: Model signature for input/output schema validation.
+                      Use "auto" to infer from input_example.
+            input_example: Example input DataFrame for signature inference (optional)
+            registered_model_name: Name to register model in MLflow Model Registry (optional)
+            metadata: Additional custom metadata dict (optional)
+
+        Returns:
+            None
+
+        Examples:
+            >>> # Fit nested workflow
+            >>> wf = workflow().add_formula("sales ~ date").add_model(linear_reg())
+            >>> nested_fit = wf.fit_nested(data, group_col="store_id")
+            >>>
+            >>> # Save nested workflow
+            >>> nested_fit.save_mlflow("models/store_workflows")
+            >>>
+            >>> # Load and predict
+            >>> from py_mlflow import load_model
+            >>> loaded = load_model("models/store_workflows")
+            >>> predictions = loaded.predict(test_data)  # Routes to correct group workflows
+        """
+        from py_mlflow import save_model
+
+        save_model(
+            model=self,
+            path=path,
+            conda_env=conda_env,
+            signature=signature,
+            input_example=input_example,
+            registered_model_name=registered_model_name,
+            metadata=metadata
+        )
 
 
 def workflow() -> Workflow:
