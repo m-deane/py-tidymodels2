@@ -1,8 +1,8 @@
 # Complete py_tune Hyperparameter Tuning Reference
 
-**Version:** py-tidymodels v1.0
-**Module:** `py_tune`
-**Last Updated:** 2025-11-09
+**py-tidymodels Hyperparameter Optimization Guide**
+
+*Last Updated: 2025-11-15 | Library Version: 782+ tests, 28 models, 51 recipe steps*
 
 ---
 
@@ -14,8 +14,11 @@
 4. [Grid Generation](#grid-generation)
 5. [Tuning Functions](#tuning-functions)
 6. [Results Analysis](#results-analysis)
-7. [Complete Workflow Examples](#complete-workflow-examples)
-8. [Best Practices](#best-practices)
+7. [WorkflowSet Integration](#workflowset-integration)
+8. [Parallel Tuning Considerations](#parallel-tuning-considerations)
+9. [Complete Workflow Examples](#complete-workflow-examples)
+10. [Best Practices](#best-practices)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -1706,7 +1709,619 @@ with open('final_model.pkl', 'wb') as f:
 
 ---
 
-## Common Patterns Cheat Sheet
+## WorkflowSet Integration
+
+**NEW (2025-11-11):** py_tune integrates seamlessly with WorkflowSet for multi-model comparison with hyperparameter tuning.
+
+### Overview
+
+WorkflowSet allows you to tune multiple workflows simultaneously:
+- Test different preprocessing strategies
+- Compare multiple model types
+- Find best preprocessing + model + hyperparameters combination
+- Efficient parallel evaluation
+
+### Basic Usage
+
+```python
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg, rand_forest
+from py_tune import tune, grid_regular
+from py_rsample import vfold_cv
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Define multiple formulas (preprocessing strategies)
+formulas = [
+    'y ~ x1 + x2',
+    'y ~ x1 + x2 + x3',
+    'y ~ x1 + x2 + I(x1*x2)',  # Interaction term
+]
+
+# Define tunable models
+models = [
+    linear_reg(penalty=tune(), mixture=tune()),
+    rand_forest(trees=tune(), min_n=tune()).set_mode('regression')
+]
+
+# Create all combinations (3 formulas × 2 models = 6 workflows)
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Create CV folds
+folds = vfold_cv(train_data, v=5)
+
+# Define parameter grids per model
+param_info_linear = {
+    'penalty': {'range': (0.001, 1.0), 'trans': 'log'},
+    'mixture': {'range': (0, 1)}
+}
+
+param_info_rf = {
+    'trees': {'range': (100, 500), 'type': 'int'},
+    'min_n': {'range': (2, 10), 'type': 'int'}
+}
+
+# Note: Currently must tune each workflow manually
+# Future: WorkflowSet may support automatic grid-based tuning
+```
+
+### Manual Multi-Workflow Tuning
+
+Current best practice is to tune each workflow separately:
+
+```python
+from py_tune import tune_grid
+
+results_dict = {}
+
+for wf_id in wf_set.workflow_ids:
+    wf = wf_set[wf_id]
+
+    # Get model type to select appropriate grid
+    model_type = wf.extract_spec_parsnip().model_type
+
+    if model_type == 'linear_reg':
+        param_info = param_info_linear
+        grid = grid_regular(param_info, levels=5)
+    elif model_type == 'rand_forest':
+        param_info = param_info_rf
+        grid = grid_regular(param_info, levels=3)
+    else:
+        continue  # Skip models without tune() markers
+
+    # Tune this workflow
+    results = tune_grid(wf, folds, grid=grid, metrics=metric_set(rmse, mae))
+    results_dict[wf_id] = results
+
+    print(f"Tuned {wf_id}")
+
+# Compare best configurations across all workflows
+comparison = []
+for wf_id, results in results_dict.items():
+    best = results.select_best('rmse', maximize=False)
+    best_metrics = results.show_best('rmse', n=1, maximize=False)
+
+    comparison.append({
+        'workflow': wf_id,
+        'best_rmse': best_metrics.iloc[0]['mean'],
+        'best_params': best
+    })
+
+comparison_df = pd.DataFrame(comparison).sort_values('best_rmse')
+print("\nBest Tuned Workflows:")
+print(comparison_df)
+
+# Select overall best workflow
+best_wf_id = comparison_df.iloc[0]['workflow']
+best_params = comparison_df.iloc[0]['best_params']
+
+# Finalize and fit
+from py_tune import finalize_workflow
+best_wf = wf_set[best_wf_id]
+final_wf = finalize_workflow(best_wf, best_params)
+final_fit = final_wf.fit(train_data)
+```
+
+### With Recipes
+
+Tune recipe parameters alongside model parameters:
+
+```python
+from py_recipes import recipe
+from py_tune import tune
+
+# Define tunable recipe
+rec = (
+    recipe()
+    .step_normalize()
+    .step_pca(n_components=tune(id='pca_components'))
+)
+
+# Define tunable model
+spec = linear_reg(penalty=tune(id='penalty'))
+
+# Create workflow
+wf = workflow().add_recipe(rec).add_model(spec)
+
+# Define parameter grid (includes both recipe and model params)
+param_info = {
+    'pca_components': {'range': (2, 10), 'type': 'int'},
+    'penalty': {'range': (0.001, 1.0), 'trans': 'log'}
+}
+
+# Tune (tunes both recipe and model together)
+results = tune_grid(wf, folds, grid=4, param_info=param_info)
+best = results.select_best('rmse', maximize=False)
+# Returns: {'pca_components': 5, 'penalty': 0.0316}
+```
+
+### Grouped/Panel Data Tuning
+
+Combine tuning with grouped modeling:
+
+```python
+from py_workflowsets import WorkflowSet
+from py_tune import tune, tune_grid
+
+# Define tunable model
+spec = linear_reg(penalty=tune(), mixture=tune())
+
+formulas = ['y ~ x1', 'y ~ x1 + x2']
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=[spec])
+
+# Tune each workflow on full training data
+param_info = {
+    'penalty': {'range': (0.001, 1.0), 'trans': 'log'},
+    'mixture': {'range': (0, 1)}
+}
+
+tuned_workflows = {}
+for wf_id in wf_set.workflow_ids:
+    wf = wf_set[wf_id]
+    results = tune_grid(wf, folds, grid=5, param_info=param_info)
+    best = results.select_best('rmse', maximize=False)
+    tuned_workflows[wf_id] = finalize_workflow(wf, best)
+
+# Now fit each tuned workflow on grouped data
+for wf_id, tuned_wf in tuned_workflows.items():
+    nested_fit = tuned_wf.fit_nested(train_data, group_col='store_id')
+    # Each store gets model with best hyperparameters
+```
+
+---
+
+## Parallel Tuning Considerations
+
+### Current Limitations
+
+**py_tune does not currently support parallel execution.**
+
+Each model fit happens sequentially:
+- Grid search: fits `(grid size) × (n_folds)` models sequentially
+- Example: 25 configs × 5 folds = 125 sequential fits
+
+### Manual Parallelization
+
+You can parallelize across **different tuning experiments** using Python's multiprocessing:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
+
+def tune_single_workflow(wf_id, wf_set, folds, param_info):
+    """Tune a single workflow"""
+    wf = wf_set[wf_id]
+    results = tune_grid(wf, folds, grid=5, param_info=param_info)
+    best = results.select_best('rmse', maximize=False)
+    return (wf_id, best, results.show_best('rmse', n=1, maximize=False))
+
+# Tune multiple workflows in parallel
+workflow_ids = wf_set.workflow_ids
+
+with ProcessPoolExecutor(max_workers=4) as executor:
+    tune_func = partial(
+        tune_single_workflow,
+        wf_set=wf_set,
+        folds=folds,
+        param_info=param_info
+    )
+    results = list(executor.map(tune_func, workflow_ids))
+
+# Process results
+for wf_id, best_params, best_metrics in results:
+    print(f"{wf_id}: RMSE={best_metrics.iloc[0]['mean']:.4f}, Params={best_params}")
+```
+
+### Performance Tips
+
+**1. Use Random Grids for Large Parameter Spaces**
+
+```python
+# Instead of: 10 × 10 × 10 = 1000 configs
+grid_full = grid_regular(param_info, levels=10)
+
+# Use: 50 random samples
+grid_random = grid_random(param_info, size=50, seed=42)
+
+# Reduction: 1000 → 50 configs (20× faster)
+```
+
+**2. Reduce CV Folds When Appropriate**
+
+```python
+# For large datasets, 3-5 folds may be sufficient
+folds = vfold_cv(train_data, v=3)  # Instead of v=10
+
+# Time savings: 10 folds → 3 folds (~3.3× faster)
+```
+
+**3. Use Early Stopping (for Tree Models)**
+
+```python
+# XGBoost with early stopping
+spec = boost_tree(
+    trees=1000,  # High limit
+    early_stop=10  # Stop if no improvement for 10 rounds
+).set_engine('xgboost')
+
+# Saves time by not fitting all 1000 trees
+```
+
+**4. Tune on Sample, Finalize on Full Data**
+
+```python
+# Tune on 20% sample
+sample_data = train_data.sample(frac=0.2, random_state=42)
+folds_sample = vfold_cv(sample_data, v=5)
+
+results = tune_grid(wf, folds_sample, grid=grid)
+best = results.select_best('rmse', maximize=False)
+
+# Finalize and fit on full data
+final_wf = finalize_workflow(wf, best)
+final_fit = final_wf.fit(train_data)  # Full data
+```
+
+**5. Profile Your Tuning Time**
+
+```python
+import time
+
+start = time.time()
+results = tune_grid(wf, folds, grid=grid)
+elapsed = time.time() - start
+
+n_configs = len(results.grid)
+n_folds = len(folds)
+total_fits = n_configs * n_folds
+
+print(f"Total time: {elapsed:.1f} seconds")
+print(f"Total fits: {total_fits}")
+print(f"Time per fit: {elapsed / total_fits:.2f} seconds")
+print(f"Est. time for 2× configs: {elapsed * 2:.1f} seconds")
+```
+
+### Future Enhancements
+
+**Potential future features** (not yet implemented):
+- Built-in parallel grid search
+- Distributed tuning across multiple machines
+- Bayesian optimization (beyond grid search)
+- Automatic early stopping based on learning curves
+
+---
+
+## Troubleshooting
+
+### Issue 1: KeyError with Metric Names
+
+**Problem:**
+```python
+results = tune_grid(wf, folds, grid=grid)
+top_5 = results.show_best('RMSE', n=5, maximize=False)
+# KeyError: 'RMSE'
+```
+
+**Cause:** Metric names are case-sensitive and lowercase.
+
+**Solution:**
+```python
+# Correct metric names (all lowercase)
+top_5 = results.show_best('rmse', n=5, maximize=False)  # ✓
+top_5 = results.show_best('mae', n=5, maximize=False)   # ✓
+top_5 = results.show_best('r_squared', n=5, maximize=False)  # ✓
+
+# Wrong: capitalized
+top_5 = results.show_best('RMSE', n=5, maximize=False)  # ✗
+```
+
+**Available Metrics:**
+- Regression: `'rmse'`, `'mae'`, `'mape'`, `'smape'`, `'r_squared'`, `'adj_r_squared'`, `'rse'`
+- Classification: `'accuracy'`, `'precision'`, `'recall'`, `'f1'`, `'specificity'`
+
+---
+
+### Issue 2: Empty Grid DataFrame
+
+**Problem:**
+```python
+grid = grid_regular(param_info, levels=5)
+results = tune_grid(wf, folds, grid=grid)
+# len(results.grid) == 0
+```
+
+**Cause:** `param_info` parameter names don't match `tune()` marker IDs.
+
+**Solution:**
+```python
+# Ensure parameter names match
+spec = linear_reg(penalty=tune(id='penalty'), mixture=tune(id='mixture'))
+
+# param_info keys must match tune IDs
+param_info = {
+    'penalty': {'range': (0.001, 1.0), 'trans': 'log'},  # ✓ Matches
+    'mixture': {'range': (0, 1)}                         # ✓ Matches
+}
+
+# Wrong: mismatched names
+param_info = {
+    'alpha': {'range': (0.001, 1.0), 'trans': 'log'},   # ✗ No match
+    'l1_ratio': {'range': (0, 1)}                       # ✗ No match
+}
+```
+
+---
+
+### Issue 3: tune_grid() Returns Constant Metrics
+
+**Problem:**
+```python
+results = tune_grid(wf, folds, grid=grid)
+all_results = results.show_best('rmse', n=len(results.grid), maximize=False)
+# All configs have same RMSE (0.523)
+```
+
+**Cause:** Workflow has no `tune()` markers, or grid doesn't vary the tuned parameters.
+
+**Solution:**
+```python
+# Check 1: Verify tune() markers exist
+spec = linear_reg(penalty=tune(), mixture=tune())  # ✓ Has tune()
+
+# Check 2: Verify grid has variation
+grid = grid_regular(param_info, levels=5)
+print(grid)
+#    penalty  mixture
+# 0  0.001    0.0
+# 1  0.001    0.25
+# 2  0.001    0.5
+# ...  (should have different values)
+
+# Check 3: Verify grid applied correctly
+results = tune_grid(wf, folds, grid=grid)
+print(results.grid)  # Should match input grid
+
+# Common mistake: using fit_resamples() instead of tune_grid()
+# fit_resamples() evaluates single config (no tuning)
+```
+
+---
+
+### Issue 4: ValueError - Grid and tune() Mismatch
+
+**Problem:**
+```python
+spec = linear_reg(penalty=tune())  # Only 1 parameter
+param_info = {
+    'penalty': {'range': (0.001, 1.0), 'trans': 'log'},
+    'mixture': {'range': (0, 1)}  # Extra parameter
+}
+grid = grid_regular(param_info, levels=5)
+results = tune_grid(wf, folds, grid=grid)
+# ValueError or unexpected behavior
+```
+
+**Cause:** Grid includes parameters not marked with `tune()`.
+
+**Solution:**
+```python
+# Option 1: Add tune() for all grid parameters
+spec = linear_reg(penalty=tune(), mixture=tune())  # ✓ Both tuned
+
+# Option 2: Remove extra parameters from grid
+param_info = {'penalty': {'range': (0.001, 1.0), 'trans': 'log'}}  # ✓ Only tuned param
+```
+
+---
+
+### Issue 5: Memory Issues with Large Grids
+
+**Problem:**
+```python
+# 10 × 10 × 10 × 10 = 10,000 configs
+results = tune_grid(wf, folds, grid=10, param_info=param_info_4d)
+# MemoryError or very slow
+```
+
+**Cause:** Exponential growth of grid size with number of parameters.
+
+**Solution:**
+```python
+# Use random grid instead
+from py_tune import grid_random
+
+# Only 100 random samples instead of 10,000
+grid = grid_random(param_info_4d, size=100, seed=42)
+results = tune_grid(wf, folds, grid=grid)
+
+# Or reduce levels
+grid = grid_regular(param_info_4d, levels=3)  # 3^4 = 81 configs
+```
+
+---
+
+### Issue 6: Tuning Takes Too Long
+
+**Problem:**
+```python
+# Estimated 2 hours for tuning
+results = tune_grid(wf, folds, grid=grid)
+```
+
+**Cause:** Large grid × many folds × complex model.
+
+**Solutions:**
+
+**1. Reduce grid size:**
+```python
+# Use fewer levels or random grid
+grid = grid_random(param_info, size=20, seed=42)  # Instead of 100
+```
+
+**2. Reduce number of folds:**
+```python
+# 3 folds instead of 10
+folds = vfold_cv(train_data, v=3)
+```
+
+**3. Tune on sample:**
+```python
+# Tune on 20% sample
+sample = train_data.sample(frac=0.2, random_state=42)
+folds_sample = vfold_cv(sample, v=5)
+results = tune_grid(wf, folds_sample, grid=grid)
+
+# Finalize and fit on full data
+best = results.select_best('rmse', maximize=False)
+final_wf = finalize_workflow(wf, best)
+final_fit = final_wf.fit(train_data)  # Full data
+```
+
+**4. Use simpler model for initial tuning:**
+```python
+# Start with linear model to find good preprocessing
+spec_simple = linear_reg(penalty=tune())
+wf_simple = workflow().add_formula("y ~ .").add_model(spec_simple)
+results_simple = tune_grid(wf_simple, folds, grid=10)
+
+# Then use complex model with narrowed search
+spec_complex = boost_tree(trees=tune())
+wf_complex = workflow().add_formula("y ~ .").add_model(spec_complex)
+# Use insights from simple model to narrow grid
+```
+
+---
+
+### Issue 7: Different Results Each Run
+
+**Problem:**
+```python
+# Run 1
+results1 = tune_grid(wf, folds, grid=grid_random(param_info, size=20))
+best1 = results1.select_best('rmse', maximize=False)
+
+# Run 2 (different results!)
+results2 = tune_grid(wf, folds, grid=grid_random(param_info, size=20))
+best2 = results2.select_best('rmse', maximize=False)
+
+# best1 != best2
+```
+
+**Cause:** Random grid generation without seed.
+
+**Solution:**
+```python
+# Set seed for reproducibility
+grid = grid_random(param_info, size=20, seed=42)  # ✓ Reproducible
+
+# Also set seeds for CV folds and models if applicable
+from py_rsample import vfold_cv
+folds = vfold_cv(train_data, v=5, seed=42)
+
+# For models with randomness (e.g., rand_forest)
+import numpy as np
+np.random.seed(42)
+```
+
+---
+
+### Issue 8: select_by_one_std_err() Returns Same as select_best()
+
+**Problem:**
+```python
+best = results.select_best('rmse', maximize=False)
+simple = results.select_by_one_std_err('rmse', maximize=False)
+# best == simple (always)
+```
+
+**Cause:** All configurations have very different performance (large separation).
+
+**Solution:**
+```python
+# Check metric distribution
+all_results = results.show_best('rmse', n=len(results.grid), maximize=False)
+print(all_results['mean'].describe())
+
+# If std is large relative to mean, one-SE rule has no effect
+# This is expected when configurations are very different
+
+# Interpretation: The best model is clearly best (not within 1 SE of others)
+# Use select_best() in this case - simplicity doesn't trade off performance
+```
+
+---
+
+### Issue 9: No Improvement Over Baseline
+
+**Problem:**
+```python
+# Baseline model (no tuning)
+baseline = linear_reg().fit(train_data, "y ~ .")
+baseline_rmse = 0.523
+
+# Tuned model
+results = tune_grid(wf, folds, grid=grid)
+best = results.select_best('rmse', maximize=False)
+final_wf = finalize_workflow(wf, best)
+final_fit = final_wf.fit(train_data)
+tuned_rmse = 0.522  # Barely better!
+```
+
+**Causes & Solutions:**
+
+**1. Parameter ranges too narrow:**
+```python
+# Too narrow (little variation)
+param_info = {'penalty': {'range': (0.09, 0.11), 'trans': 'log'}}
+
+# Better (wide range)
+param_info = {'penalty': {'range': (0.001, 1.0), 'trans': 'log'}}
+```
+
+**2. Model not sensitive to parameters:**
+```python
+# Some models don't benefit much from tuning (e.g., simple linear regression)
+# Try different model types:
+models = [linear_reg(), rand_forest(), boost_tree()]
+```
+
+**3. Need feature engineering, not just tuning:**
+```python
+# Add recipe preprocessing
+from py_recipes import recipe
+
+rec = (
+    recipe()
+    .step_normalize()
+    .step_poly(degree=2)  # Add polynomial features
+    .step_interact()      # Add interactions
+)
+
+wf = workflow().add_recipe(rec).add_model(spec)
+```
+
+---
+
+### Common Patterns Cheat Sheet
 
 ### Pattern 1: Quick Tuning Pipeline
 
@@ -1770,4 +2385,59 @@ results = tune_grid(wf, ts_folds, grid=grid)
 
 ---
 
-**End of Complete Tuning Reference**
+## Related Guides
+
+**Core References:**
+- [COMPLETE_MODEL_REFERENCE.md](./COMPLETE_MODEL_REFERENCE.md) - All 28 models, many support hyperparameter tuning
+- [COMPLETE_WORKFLOW_REFERENCE.md](./COMPLETE_WORKFLOW_REFERENCE.md) - Workflow composition for tuning pipelines
+- [COMPLETE_WORKFLOWSET_REFERENCE.md](./COMPLETE_WORKFLOWSET_REFERENCE.md) - Multi-model comparison framework
+- [COMPLETE_RECIPE_REFERENCE.md](./COMPLETE_RECIPE_REFERENCE.md) - 51 preprocessing steps (some tunable)
+
+**Advanced Topics:**
+- [COMPLETE_PANEL_GROUPED_GUIDE.md](./COMPLETE_PANEL_GROUPED_GUIDE.md) - Tuning with grouped/panel data
+- [FORECASTING_GROUPED_ANALYSIS.md](./FORECASTING_GROUPED_ANALYSIS.md) - Time series tuning workflows
+
+**Getting Started:**
+- [REFERENCE_DOCUMENTATION_SUMMARY.md](./REFERENCE_DOCUMENTATION_SUMMARY.md) - Documentation index
+
+**Example Notebooks:**
+- `examples/10_tune_demo.ipynb` - Hyperparameter tuning demonstration
+- `examples/11_workflowsets_demo.ipynb` - Multi-model comparison with tuning
+
+---
+
+## Summary Statistics
+
+**Library Coverage:**
+- ✅ 782+ tests passing (36 tuning tests, all passing)
+- ✅ 28 production models (most support hyperparameter tuning)
+- ✅ 10 tuning functions and methods
+- ✅ 2 grid generation strategies (regular and random)
+- ✅ 4 TuneResults selection methods
+
+**Key Features:**
+- Declarative parameter marking with `tune()`
+- Regular and random grid generation
+- Cross-validation with `tune_grid()` and `fit_resamples()`
+- Three selection strategies: best, one-SE, custom
+- Integration with WorkflowSet for multi-model tuning
+- Comprehensive troubleshooting (9 common issues documented)
+
+**Recent Features (2025-11-11 to 2025-11-15):**
+- WorkflowSet integration examples
+- Parallel tuning considerations
+- Grouped/panel data tuning patterns
+- Recipe parameter tuning
+- Performance optimization tips
+
+**Code References:**
+- Parameter marking: `py_tune/tune.py:tune()`, `TuneParameter`
+- Grid generation: `py_tune/tune.py:grid_regular()`, `grid_random()`
+- Tuning functions: `py_tune/tune.py:tune_grid()`, `fit_resamples()`
+- Results analysis: `py_tune/tune.py:TuneResults`
+- Selection methods: `show_best()`, `select_best()`, `select_by_one_std_err()`
+- Finalization: `py_tune/tune.py:finalize_workflow()`
+
+---
+
+**End of Guide** | *Complete Hyperparameter Tuning Reference* | py-tidymodels v2025.11
