@@ -2,8 +2,9 @@
 
 **Module:** `py_workflowsets`
 **Purpose:** Multi-model comparison framework for efficiently evaluating multiple preprocessing strategies and model specifications
-**Documentation Date:** 2025-11-09
+**Documentation Date:** 2025-11-15
 **Version:** Current (py-tidymodels)
+**Library Status:** 782+ tests passing | 72 workflowset tests | 4 classes documented
 
 ---
 
@@ -12,10 +13,12 @@
 1. [Overview](#overview)
 2. [WorkflowSet Class](#workflowset-class)
 3. [WorkflowSetResults Class](#workflowsetresults-class)
-4. [Complete Usage Patterns](#complete-usage-patterns)
-5. [Integration with Other Modules](#integration-with-other-modules)
-6. [Best Practices](#best-practices)
-7. [Common Patterns](#common-patterns)
+4. [WorkflowSetNestedResults Class](#workflowsetnestedresults-class) ⭐ NEW
+5. [WorkflowSetNestedResamples Class](#workflowsetnestedresamples-class) ⭐ NEW
+6. [Complete Usage Patterns](#complete-usage-patterns)
+7. [Integration with Other Modules](#integration-with-other-modules)
+8. [Best Practices](#best-practices)
+9. [Common Patterns](#common-patterns)
 
 ---
 
@@ -922,6 +925,509 @@ plt.show()
 fig = results.autoplot()  # Uses first metric
 plt.show()
 ```
+
+---
+
+## WorkflowSetNestedResults Class
+
+**Purpose:** Results from fitting all workflows across all groups (panel/grouped data).
+
+**New in 2025-11-11:** This class enables fitting ALL workflows across ALL groups simultaneously, making it easy to compare models across different groups and identify heterogeneous patterns.
+
+### Class Definition
+
+```python
+@dataclass
+class WorkflowSetNestedResults:
+    """
+    Results from WorkflowSet.fit_nested() or fit_global().
+
+    Attributes:
+        workflow_set: Original WorkflowSet
+        group_col: Column name containing group identifiers
+        nested_results: Dict mapping workflow IDs to NestedWorkflowFit objects
+        fit_type: "nested" or "global" indicating fitting approach
+    """
+    workflow_set: WorkflowSet
+    group_col: str
+    nested_results: Dict[str, NestedWorkflowFit]
+    fit_type: str  # "nested" or "global"
+```
+
+### Methods
+
+#### `collect_metrics(by_group: bool = False, split: str = "test") -> pd.DataFrame`
+
+Collect metrics from all workflows and groups.
+
+**Parameters:**
+- `by_group` (bool): If True, return per-group metrics; if False, average across groups (default: False)
+- `split` (str): Which split to collect metrics from: "train", "test", or "all" (default: "test")
+
+**Returns:** DataFrame with metrics for each workflow (and group if `by_group=True`)
+
+**Examples:**
+```python
+# Average metrics across groups
+metrics_avg = results.collect_metrics(by_group=False, split='test')
+print(metrics_avg)
+#   wflow_id             metric      mean       std  n_groups
+# 0 prep_1_linear_reg_1    rmse    45.2      8.3         10
+# 1 prep_1_linear_reg_1     mae    32.1      5.7         10
+# 2 prep_2_rand_forest_1   rmse    38.9      6.1         10
+
+# Per-group metrics
+metrics_by_group = results.collect_metrics(by_group=True, split='test')
+print(metrics_by_group)
+#   wflow_id             metric  group   value
+# 0 prep_1_linear_reg_1    rmse    USA    42.3
+# 1 prep_1_linear_reg_1    rmse Germany  48.1
+# 2 prep_1_linear_reg_1    rmse  Japan   45.2
+```
+
+---
+
+#### `rank_results(metric: str, split: str = "test", by_group: bool = False, n: int = 5) -> pd.DataFrame`
+
+Rank workflows by performance on specified metric.
+
+**Parameters:**
+- `metric` (str): Metric to rank by (e.g., "rmse", "mae", "r_squared")
+- `split` (str): Split to use: "train", "test", or "all" (default: "test")
+- `by_group` (bool): Rank separately per group (default: False)
+- `n` (int): Number of top workflows to return (default: 5)
+
+**Returns:** DataFrame with top n workflows ranked by metric
+
+**Examples:**
+```python
+# Overall ranking (averaged across groups)
+top_models = results.rank_results("rmse", n=5)
+print(top_models)
+#   rank             wflow_id  rmse_mean  rmse_std  n_groups
+# 0    1  prep_2_rand_forest_1      38.9       6.1        10
+# 1    2    prep_3_xgboost_1        40.2       5.8        10
+# 2    3  prep_1_linear_reg_1      45.2       8.3        10
+
+# Per-group ranking
+top_by_group = results.rank_results("rmse", by_group=True, n=3)
+print(top_by_group)
+#    group  rank             wflow_id   rmse
+# 0    USA     1  prep_2_rand_forest_1   35.2
+# 1    USA     2    prep_3_xgboost_1     37.1
+# 2    USA     3  prep_1_linear_reg_1   42.3
+# 3 Germany     1    prep_3_xgboost_1     42.1
+# 4 Germany     2  prep_2_rand_forest_1   43.5
+```
+
+**Use Case:** Identify if different groups prefer different models (heterogeneous patterns).
+
+---
+
+#### `extract_best_workflow(metric: str, split: str = "test", by_group: bool = False) -> Union[str, pd.DataFrame]`
+
+Extract the best workflow ID(s) based on specified metric.
+
+**Parameters:**
+- `metric` (str): Metric to optimize (e.g., "rmse", "mae", "r_squared")
+- `split` (str): Split to use (default: "test")
+- `by_group` (bool): Return best per group (default: False)
+
+**Returns:**
+- If `by_group=False`: Best workflow ID (str)
+- If `by_group=True`: DataFrame with best workflow per group
+
+**Examples:**
+```python
+# Overall best workflow
+best_wf_id = results.extract_best_workflow("rmse")
+print(best_wf_id)  # "prep_2_rand_forest_1"
+
+# Best workflow per group
+best_by_group = results.extract_best_workflow("rmse", by_group=True)
+print(best_by_group)
+#    group             wflow_id   rmse
+# 0    USA  prep_2_rand_forest_1   35.2
+# 1 Germany    prep_3_xgboost_1     42.1
+# 2  Japan   prep_1_linear_reg_1   40.5
+```
+
+**Use Case:** Select different models for different groups when heterogeneous patterns exist.
+
+---
+
+#### `collect_outputs() -> pd.DataFrame`
+
+Collect all observation-level outputs (predictions, actuals, forecasts) from all workflows and groups.
+
+**Returns:** Combined outputs DataFrame with columns:
+- All standard output columns (actuals, fitted, forecast, residuals, split)
+- `wflow_id`: Workflow identifier
+- `group`: Group identifier (from `group_col`)
+- Model tracking columns
+
+**Examples:**
+```python
+all_outputs = results.collect_outputs()
+print(all_outputs.shape)  # (20000, 12) - e.g., 10 groups × 200 obs × 10 workflows
+
+# Filter to specific workflow and group
+usa_rf_preds = all_outputs[
+    (all_outputs['wflow_id'] == 'prep_2_rand_forest_1') &
+    (all_outputs['group'] == 'USA')
+]
+
+# Compare predictions across workflows for one group
+germany_preds = all_outputs[all_outputs['group'] == 'Germany']
+```
+
+**Use Case:** Detailed analysis of predictions, creating ensemble forecasts, or diagnostic plots.
+
+---
+
+#### `autoplot(metric: str, split: str = "test", by_group: bool = False, top_n: int = 10) -> matplotlib.figure.Figure`
+
+Create visualization comparing workflow performance.
+
+**Parameters:**
+- `metric` (str): Metric to visualize
+- `split` (str): Split to use (default: "test")
+- `by_group` (bool): Show per-group results (default: False)
+- `top_n` (int): Number of workflows to show (default: 10)
+
+**Returns:** Matplotlib Figure object
+
+**Examples:**
+```python
+# Average with error bars (standard deviation across groups)
+fig = results.autoplot("rmse", by_group=False, top_n=10)
+fig.show()
+
+# Per-group comparison (faceted plot)
+fig = results.autoplot("rmse", by_group=True, top_n=5)
+fig.show()
+
+# Customize after creation
+fig = results.autoplot("r_squared", top_n=8)
+ax = fig.gca()
+ax.set_title("Model Performance by R²")
+fig.savefig("group_comparison.png", dpi=300)
+```
+
+**Visualization Types:**
+- `by_group=False`: Bar plot with error bars (mean ± std across groups)
+- `by_group=True`: Faceted subplot showing each group separately
+
+---
+
+### Complete Example: Grouped Model Comparison
+
+```python
+from py_workflowsets import WorkflowSet
+from py_workflows import workflow
+from py_parsnip import linear_reg, rand_forest, boost_tree
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Define preprocessing strategies
+formulas = [
+    "sales ~ price + advertising",
+    "sales ~ price + advertising + I(price**2)",
+    "sales ~ price * advertising"  # Interaction
+]
+
+# Define models
+models = [
+    linear_reg(),
+    rand_forest(trees=100).set_mode('regression'),
+    boost_tree(trees=50).set_engine('xgboost').set_mode('regression')
+]
+
+# Create all combinations (3 formulas × 3 models = 9 workflows)
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Fit ALL workflows across ALL groups (9 workflows × 10 stores = 90 models)
+results = wf_set.fit_nested(train_data, group_col='store_id')
+
+# Analyze results
+# 1. Overall best model
+best_overall = results.extract_best_workflow('rmse')
+print(f"Best overall: {best_overall}")
+
+# 2. Best per group (heterogeneous patterns?)
+best_by_store = results.extract_best_workflow('rmse', by_group=True)
+print("Best model per store:")
+print(best_by_store)
+
+# 3. Rank all workflows
+ranked = results.rank_results('rmse', n=9)
+print("\nOverall ranking:")
+print(ranked)
+
+# 4. Visualize comparison
+fig = results.autoplot('rmse', by_group=False, top_n=9)
+fig.savefig('store_comparison.png')
+
+# 5. Get all predictions for ensemble
+all_outputs = results.collect_outputs()
+```
+
+**Key Insight:** If `best_by_store` shows different workflows for different stores, you have heterogeneous patterns and should use per-group models instead of a global model.
+
+---
+
+## WorkflowSetNestedResamples Class
+
+**Purpose:** Results from cross-validation evaluation of all workflows across all groups.
+
+**New in 2025-11-12:** This class enables robust per-group CV evaluation with automatic group column exclusion to prevent errors with supervised feature selection steps.
+
+### Class Definition
+
+```python
+@dataclass
+class WorkflowSetNestedResamples:
+    """
+    Results from WorkflowSet.fit_nested_resamples() or fit_global_resamples().
+
+    Attributes:
+        workflow_set: Original WorkflowSet
+        group_col: Column name containing group identifiers
+        cv_results: Dict mapping (workflow_id, group) to CV results
+        fit_type: "nested" or "global" indicating fitting approach
+        metrics: Metric set used for evaluation
+    """
+    workflow_set: WorkflowSet
+    group_col: str
+    cv_results: Dict[Tuple[str, str], Any]
+    fit_type: str
+    metrics: Any
+```
+
+### Methods
+
+#### `collect_metrics(by_group: bool = False, summarize: bool = True) -> pd.DataFrame`
+
+Collect CV metrics from all workflows and groups.
+
+**Parameters:**
+- `by_group` (bool): Return per-group metrics (default: False)
+- `summarize` (bool): If True, return mean/std across CV folds; if False, return all folds (default: True)
+
+**Returns:** DataFrame with CV metrics
+
+**Examples:**
+```python
+# Averaged across groups and CV folds
+metrics_avg = results.collect_metrics(by_group=False, summarize=True)
+print(metrics_avg)
+#   wflow_id             metric  mean_cv  std_cv  n_groups  n_folds
+# 0 prep_1_linear_reg_1    rmse     47.3     3.2        10        5
+
+# Per-group, summarized across folds
+metrics_by_group = results.collect_metrics(by_group=True, summarize=True)
+print(metrics_by_group)
+#   wflow_id             metric  group  mean_cv  std_cv  n_folds
+# 0 prep_1_linear_reg_1    rmse    USA     43.2     2.1        5
+# 1 prep_1_linear_reg_1    rmse Germany    51.4     4.3        5
+
+# All individual fold results
+all_folds = results.collect_metrics(by_group=True, summarize=False)
+print(all_folds)
+#   wflow_id             metric  group  fold  value
+# 0 prep_1_linear_reg_1    rmse    USA     1   42.1
+# 1 prep_1_linear_reg_1    rmse    USA     2   44.3
+```
+
+---
+
+#### `rank_results(metric: str, by_group: bool = False, n: int = 5) -> pd.DataFrame`
+
+Rank workflows by CV performance.
+
+**Parameters:**
+- `metric` (str): Metric to rank by
+- `by_group` (bool): Rank separately per group (default: False)
+- `n` (int): Number of top workflows to return (default: 5)
+
+**Returns:** DataFrame with top n workflows
+
+**Examples:**
+```python
+# Overall ranking (most reliable - uses CV)
+top_models_cv = results.rank_results("rmse", n=5)
+print(top_models_cv)
+#   rank             wflow_id  rmse_cv_mean  rmse_cv_std  n_groups
+# 0    1  prep_2_rand_forest_1          40.1          2.8        10
+# 1    2    prep_3_xgboost_1            42.3          3.1        10
+```
+
+---
+
+#### `extract_best_workflow(metric: str, by_group: bool = False) -> Union[str, pd.DataFrame]`
+
+Extract best workflow based on CV performance.
+
+**Parameters:**
+- `metric` (str): Metric to optimize
+- `by_group` (bool): Return best per group (default: False)
+
+**Returns:**
+- If `by_group=False`: Best workflow ID (str)
+- If `by_group=True`: DataFrame with best workflow per group
+
+---
+
+#### `compare_train_cv(train_stats: pd.DataFrame, metrics: Optional[List[str]] = None) -> pd.DataFrame`
+
+**New in 2025-11-12:** Compare training vs CV performance to detect overfitting.
+
+**Purpose:** Identify which workflows are overfitting by comparing their training performance with cross-validation performance.
+
+**Parameters:**
+- `train_stats` (pd.DataFrame): Training statistics from `fit_nested().extract_outputs()[2]`
+- `metrics` (Optional[List[str]]): Metrics to compare (default: all common metrics)
+
+**Returns:** DataFrame with train/CV comparison and overfitting indicators
+
+**Columns:**
+- `wflow_id`, `group`: Identifiers
+- `{metric}_train`, `{metric}_cv`: Training and CV values
+- `{metric}_diff`: Difference (train - CV)
+- `{metric}_overfit_ratio`: Ratio of train to CV (closer to 1 = less overfit)
+- `{metric}_status`: Status flag (🟢 Good, 🟡 Moderate Overfit, 🔴 Severe Overfit)
+
+**Examples:**
+```python
+# 1. Fit on full training data
+train_results = wf_set.fit_nested(train_data, group_col='country')
+outputs, coeffs, train_stats = train_results.extract_outputs()
+
+# 2. Evaluate with CV
+from py_rsample import time_series_nested_cv
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='country',
+    date_column='date',
+    initial='18 months',
+    assess='3 months'
+)
+
+cv_results = wf_set.fit_nested_resamples(
+    cv_folds,
+    group_col='country',
+    metrics=metric_set(rmse, mae, r_squared)
+)
+
+# 3. Compare (ONE LINE!)
+comparison = cv_results.compare_train_cv(train_stats)
+
+print(comparison)
+#   wflow_id    group  rmse_train  rmse_cv  rmse_diff  rmse_overfit_ratio rmse_status
+# 0 prep_1_lr     USA        35.2     43.1        7.9                0.82  🟡 Moderate
+# 1 prep_2_rf     USA        28.1     40.5       12.4                0.69  🔴 Severe
+# 2 prep_3_xgb    USA        31.4     39.8        8.4                0.79  🟡 Moderate
+
+# Find overfitting workflows
+overfit = comparison[comparison['rmse_overfit_ratio'] < 0.75]
+print("Overfitting workflows:")
+print(overfit[['wflow_id', 'group', 'rmse_train', 'rmse_cv', 'rmse_status']])
+
+# Best per group (using CV, not train)
+best_cv = comparison.sort_values('rmse_cv').groupby('group').first()
+print("\nBest workflow per group (CV performance):")
+print(best_cv[['wflow_id', 'rmse_cv', 'rmse_status']])
+```
+
+**Automatic Format Detection:**
+- Handles both long-format (metric/value columns) and wide-format (metrics as columns)
+- Works with `fit_nested()` or `fit_global()` training stats
+- Automatically aligns workflow IDs and groups
+
+**Overfitting Thresholds:**
+- **🟢 Good:** overfit_ratio > 0.90 (train and CV very similar)
+- **🟡 Moderate Overfit:** 0.75 < overfit_ratio ≤ 0.90 (some overfitting)
+- **🔴 Severe Overfit:** overfit_ratio ≤ 0.75 (significant overfitting)
+
+**Use Cases:**
+- Model selection: Choose models with good CV performance, not just training performance
+- Regularization tuning: Identify when more regularization is needed
+- Complexity assessment: Simpler models may generalize better despite lower training performance
+- Production readiness: Only deploy models with 🟢 Good status
+
+**Code References:**
+- Implementation: `py_workflowsets/workflowset.py` (compare_train_cv method)
+- Tests: `tests/test_workflowsets/test_compare_train_cv.py` (5 tests, all passing)
+- Documentation: `.claude_debugging/COMPARE_TRAIN_CV_HELPER.md`
+
+---
+
+### Complete Example: CV Evaluation with Overfitting Detection
+
+```python
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg, rand_forest
+from py_rsample import time_series_nested_cv
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Setup
+formulas = ["sales ~ price", "sales ~ price + advertising"]
+models = [linear_reg(), rand_forest(trees=100).set_mode('regression')]
+wf_set = WorkflowSet.from_cross(formulas, models)
+
+# Step 1: Fit on full training data
+train_results = wf_set.fit_nested(train_data, group_col='store_id')
+outputs, coeffs, train_stats = train_results.extract_outputs()
+
+# Step 2: Create per-group CV folds
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='store_id',
+    date_column='date',
+    initial='2 years',
+    assess='3 months',
+    skip='1 month'
+)
+
+# Step 3: Evaluate with CV (verbose progress)
+cv_results = wf_set.fit_nested_resamples(
+    cv_folds,
+    group_col='store_id',
+    metrics=metric_set(rmse, mae, r_squared),
+    verbose=True  # Shows: Workflow 1/4, Group 1/10, Folds
+)
+
+# Step 4: Compare train vs CV
+comparison = cv_results.compare_train_cv(train_stats)
+
+# Step 5: Select best models
+# Sort by CV performance (most reliable)
+best_models = comparison.sort_values('rmse_cv')
+
+# Filter out overfitting models
+production_ready = comparison[comparison['rmse_status'] == '🟢 Good']
+
+print("Production-ready models:")
+print(production_ready[['wflow_id', 'group', 'rmse_cv', 'rmse_status']])
+```
+
+**Key Benefit:** The `compare_train_cv()` method makes it trivial to identify overfitting with a single line of code, preventing deployment of models that perform well in training but poorly in production.
+
+---
+
+### Supervised Selection Fix (2025-11-12)
+
+**Problem Solved:** Supervised feature selection steps (step_select_permutation, step_select_shap) failed when group column was present, causing errors like "could not convert string to float: 'Algeria'".
+
+**Solution:** `fit_nested_resamples()` and `fit_global_resamples()` automatically exclude the group column from CV splits before evaluation.
+
+**Technical Details:**
+- Group column removed from RSplit objects before passing to evaluation
+- Creates new Split objects with modified data (same train/test indices)
+- Supervised selection steps only see numeric features
+- Group information preserved separately for results/metrics
+- Code: `py_workflowsets/workflowset.py:561-584`
+
+**Impact:** Supervised feature selection now works seamlessly with grouped data.
 
 ---
 
@@ -1896,25 +2402,70 @@ with open('workflow_comparison_report.json', 'w') as f:
 
 **Key Classes:**
 - **WorkflowSet**: Collection of workflows for comparison
-- **WorkflowSetResults**: Results with metrics, predictions, and analysis methods
+- **WorkflowSetResults**: CV evaluation results with metrics and analysis methods
+- **WorkflowSetNestedResults**: Grouped/panel model comparison results (NEW - 2025-11-11)
+- **WorkflowSetNestedResamples**: Grouped CV evaluation with overfitting detection (NEW - 2025-11-12)
 
-**Key Methods:**
+**Standard Workflow Methods:**
 - `from_cross()`: Create cross-product of preprocessors and models
 - `from_workflows()`: Create from explicit list
-- `fit_resamples()`: Evaluate without tuning
-- `tune_grid()`: Evaluate with hyperparameter tuning
+- `fit_resamples()`: CV evaluation without tuning
+- `tune_grid()`: CV evaluation with hyperparameter tuning
 - `collect_metrics()`: Aggregate metrics across workflows
 - `rank_results()`: Rank workflows by performance
 - `autoplot()`: Automatic visualization
 
-**Typical Workflow:**
+**Grouped Modeling Methods (NEW):**
+- `fit_nested()`: Fit all workflows across all groups (per-group models)
+- `fit_global()`: Fit all workflows with group as feature (global models)
+- `fit_nested_resamples()`: Per-group CV evaluation
+- `fit_global_resamples()`: Global model CV with per-group evaluation
+- `compare_train_cv()`: Detect overfitting by comparing train vs CV performance
+
+**Typical Standard Workflow:**
 1. Define preprocessing strategies and models
 2. Create WorkflowSet via `from_cross()` or `from_workflows()`
-3. Create resampling folds
+3. Create resampling folds (vfold_cv, time_series_cv)
 4. Evaluate with `fit_resamples()` or `tune_grid()`
 5. Analyze with `rank_results()` and `autoplot()`
 6. Select best workflow and finalize on full data
 
+**Typical Grouped Workflow (NEW):**
+1. Create WorkflowSet with multiple preprocessing/model combinations
+2. Fit all workflows on all groups: `results = wf_set.fit_nested(data, group_col='country')`
+3. Identify heterogeneous patterns: `best_by_group = results.extract_best_workflow('rmse', by_group=True)`
+4. For robust selection, use CV: `cv_results = wf_set.fit_nested_resamples(cv_folds, group_col='country')`
+5. Detect overfitting: `comparison = cv_results.compare_train_cv(train_stats)`
+6. Deploy production-ready models with 🟢 Good status
+
 ---
+
+**Related Documentation:**
+- **COMPLETE_MODEL_REFERENCE.md** - All 28 models
+- **COMPLETE_WORKFLOW_REFERENCE.md** - Workflow composition
+- **COMPLETE_PANEL_GROUPED_GUIDE.md** - Comprehensive grouped modeling guide
+- **COMPLETE_TUNING_REFERENCE.md** - Hyperparameter tuning
+- **COMPLETE_RECIPE_REFERENCE.md** - All 51 preprocessing steps
+- **RESAMPLING_GUIDE.md** (planned) - time_series_nested_cv, time_series_global_cv
+
+**Example Notebooks:**
+- examples/11_workflowsets_demo.ipynb - Standard multi-model comparison
+- _md/forecasting_workflowsets_grouped.ipynb - Grouped model comparison
+- _md/forecasting_workflowsets_cv_grouped.ipynb - CV with grouped data
+- _md/forecasting_advanced_workflow_grouped.ipynb - Advanced grouped workflows
+
+**Code References:**
+- `py_workflowsets/workflowset.py:313-1058` - Grouped modeling methods
+- `py_workflowsets/workflowset.py:488-716` - Nested resamples methods
+- `tests/test_workflowsets/test_compare_train_cv.py` - Overfitting detection tests (5)
+- `tests/test_workflowsets/test_fit_nested_resamples.py` - CV evaluation tests (10)
+
+---
+
+**Total Classes Documented:** 4
+**Total Methods:** 25+ across all classes
+**Library Tests:** 72 workflowset tests passing (20 grouped + 10 nested resamples + 42 other)
+**Last Updated:** 2025-11-15
+**Project:** py-tidymodels (Python port of R tidymodels)
 
 **End of Reference Document**
