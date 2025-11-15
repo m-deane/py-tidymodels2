@@ -332,7 +332,9 @@ def fit_resamples(
     metrics=None,
     control: Optional[Dict[str, Any]] = None,
     n_jobs: Optional[int] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    mlflow_tracking: bool = False,
+    mlflow_experiment_name: Optional[str] = None
 ) -> TuneResults:
     """
     Fit a workflow to resamples without tuning.
@@ -348,6 +350,8 @@ def fit_resamples(
         n_jobs: Number of parallel jobs. None or 1 for sequential execution,
                 -1 for all CPU cores, or positive integer for specific number of cores.
         verbose: If True, display progress messages
+        mlflow_tracking: If True, enable MLflow experiment tracking
+        mlflow_experiment_name: Name for MLflow experiment (defaults to "fit_resamples")
 
     Returns:
         TuneResults object with metrics and predictions
@@ -367,9 +371,37 @@ def fit_resamples(
         >>>
         >>> # Parallel execution with all cores
         >>> results = fit_resamples(wf, folds, metrics=my_metrics, n_jobs=-1, verbose=True)
+        >>>
+        >>> # With MLflow tracking
+        >>> results = fit_resamples(wf, folds, metrics=my_metrics,
+        ...                         mlflow_tracking=True, mlflow_experiment_name="cv_evaluation")
     """
     control = control or {}
     save_pred = control.get('save_pred', False)
+
+    # Setup MLflow tracking if enabled
+    mlflow_run = None
+    if mlflow_tracking:
+        try:
+            import mlflow
+            experiment_name = mlflow_experiment_name or "fit_resamples"
+            mlflow.set_experiment(experiment_name)
+            mlflow_run = mlflow.start_run(run_name=f"cv_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
+
+            # Log workflow metadata
+            if hasattr(workflow, 'spec') and workflow.spec:
+                mlflow.log_param("model_type", workflow.spec.model_type)
+                mlflow.log_param("engine", workflow.spec.engine)
+                mlflow.log_param("mode", workflow.spec.mode)
+
+            mlflow.log_param("n_folds", len(list(resamples)))
+
+        except ImportError:
+            warnings.warn("MLflow not installed. Tracking disabled. Install with: pip install mlflow")
+            mlflow_tracking = False
+        except Exception as e:
+            warnings.warn(f"MLflow tracking setup failed: {str(e)}. Continuing without tracking.")
+            mlflow_tracking = False
 
     # Convert resamples to list for iteration
     resample_splits = list(enumerate(resamples))
@@ -443,6 +475,44 @@ def fit_resamples(
     if verbose:
         print(f"✓ Evaluation complete: {len(all_metrics)} successful folds")
 
+    # Log to MLflow if tracking enabled
+    if mlflow_tracking and mlflow_run is not None:
+        try:
+            import mlflow
+
+            # Compute and log aggregated metrics
+            if not metrics_df.empty:
+                # Check format (long vs wide)
+                if 'metric' in metrics_df.columns:
+                    # Long format
+                    for metric_name in metrics_df['metric'].unique():
+                        metric_values = metrics_df[metrics_df['metric'] == metric_name]['value']
+                        mlflow.log_metric(f"{metric_name}_mean", float(metric_values.mean()))
+                        mlflow.log_metric(f"{metric_name}_std", float(metric_values.std()))
+                else:
+                    # Wide format - each column is a metric
+                    for col in metrics_df.columns:
+                        if col not in ['.resample', '.config']:
+                            mlflow.log_metric(f"{col}_mean", float(metrics_df[col].mean()))
+                            mlflow.log_metric(f"{col}_std", float(metrics_df[col].std()))
+
+            # Log metrics as artifact
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                metrics_path = f"{tmpdir}/cv_metrics.csv"
+                metrics_df.to_csv(metrics_path, index=False)
+                mlflow.log_artifact(metrics_path, "metrics")
+
+                if not predictions_df.empty:
+                    preds_path = f"{tmpdir}/cv_predictions.csv"
+                    predictions_df.to_csv(preds_path, index=False)
+                    mlflow.log_artifact(preds_path, "predictions")
+
+        except Exception as e:
+            warnings.warn(f"MLflow logging failed: {str(e)}")
+        finally:
+            mlflow.end_run()
+
     return TuneResults(
         metrics=metrics_df,
         predictions=predictions_df,
@@ -460,7 +530,9 @@ def tune_grid(
     param_info: Optional[Dict[str, Dict[str, Any]]] = None,
     control: Optional[Dict[str, Any]] = None,
     n_jobs: Optional[int] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    mlflow_tracking: bool = False,
+    mlflow_experiment_name: Optional[str] = None
 ) -> TuneResults:
     """
     Tune workflow hyperparameters via grid search.
@@ -475,6 +547,8 @@ def tune_grid(
         n_jobs: Number of parallel jobs. None or 1 for sequential execution,
                 -1 for all CPU cores, or positive integer for specific number of cores.
         verbose: If True, display progress messages
+        mlflow_tracking: If True, enable MLflow experiment tracking
+        mlflow_experiment_name: Name for MLflow experiment (defaults to "tune_grid")
 
     Returns:
         TuneResults object with metrics across all configurations
@@ -497,9 +571,35 @@ def tune_grid(
         >>>
         >>> # Run grid search (parallel)
         >>> results = tune_grid(wf, folds, param_info=param_info, grid=5, n_jobs=-1, verbose=True)
+        >>>
+        >>> # With MLflow tracking
+        >>> results = tune_grid(wf, folds, param_info=param_info, grid=5,
+        ...                     mlflow_tracking=True, mlflow_experiment_name="hyperparameter_tuning")
     """
     control = control or {}
     save_pred = control.get('save_pred', False)
+
+    # Setup MLflow tracking if enabled
+    mlflow_parent_run = None
+    if mlflow_tracking:
+        try:
+            import mlflow
+            experiment_name = mlflow_experiment_name or "tune_grid"
+            mlflow.set_experiment(experiment_name)
+            mlflow_parent_run = mlflow.start_run(run_name=f"tuning_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}")
+
+            # Log workflow metadata
+            if hasattr(workflow, 'spec') and workflow.spec:
+                mlflow.log_param("model_type", workflow.spec.model_type)
+                mlflow.log_param("engine", workflow.spec.engine)
+                mlflow.log_param("mode", workflow.spec.mode)
+
+        except ImportError:
+            warnings.warn("MLflow not installed. Tracking disabled. Install with: pip install mlflow")
+            mlflow_tracking = False
+        except Exception as e:
+            warnings.warn(f"MLflow tracking setup failed: {str(e)}. Continuing without tracking.")
+            mlflow_tracking = False
 
     # Generate grid if not provided
     if grid is None or isinstance(grid, int):
@@ -511,6 +611,16 @@ def tune_grid(
         grid_df = grid.copy()
         if '.config' not in grid_df.columns:
             grid_df['.config'] = [f"config_{i+1:03d}" for i in range(len(grid_df))]
+
+    # Log grid info if tracking enabled
+    if mlflow_tracking and mlflow_parent_run is not None:
+        try:
+            import mlflow
+            mlflow.log_param("n_configs", len(grid_df))
+            mlflow.log_param("n_folds", len(list(resamples)))
+            mlflow.log_param("n_fits", len(grid_df) * len(list(resamples)))
+        except Exception:
+            pass
 
     # Create list of all config × fold combinations
     config_fold_combinations = []
@@ -586,6 +696,82 @@ def tune_grid(
 
     if verbose:
         print(f"✓ Grid search complete: {len(all_metrics)} successful fits")
+
+    # Log to MLflow if tracking enabled
+    if mlflow_tracking and mlflow_parent_run is not None:
+        try:
+            import mlflow
+
+            # Log each configuration as a nested run
+            if not metrics_df.empty:
+                for config_name in grid_df['.config'].values:
+                    with mlflow.start_run(nested=True, run_name=config_name):
+                        # Log parameters for this config
+                        config_params = grid_df[grid_df['.config'] == config_name].iloc[0]
+                        for param_name, param_value in config_params.items():
+                            if param_name != '.config':
+                                mlflow.log_param(param_name, param_value)
+
+                        # Log metrics for this config
+                        if 'metric' in metrics_df.columns:
+                            # Long format
+                            config_metrics = metrics_df[metrics_df['.config'] == config_name]
+                            for metric_name in config_metrics['metric'].unique():
+                                metric_values = config_metrics[config_metrics['metric'] == metric_name]['value']
+                                mlflow.log_metric(f"{metric_name}_mean", float(metric_values.mean()))
+                                mlflow.log_metric(f"{metric_name}_std", float(metric_values.std()))
+                        else:
+                            # Wide format
+                            config_metrics = metrics_df[metrics_df['.config'] == config_name]
+                            for col in config_metrics.columns:
+                                if col not in ['.resample', '.config']:
+                                    mlflow.log_metric(f"{col}_mean", float(config_metrics[col].mean()))
+                                    mlflow.log_metric(f"{col}_std", float(config_metrics[col].std()))
+
+            # Log best results to parent run
+            if not metrics_df.empty:
+                # Use first metric as default for "best"
+                if 'metric' in metrics_df.columns:
+                    first_metric = metrics_df['metric'].iloc[0]
+                    # Determine if higher is better (r_squared) or lower is better (rmse, mae)
+                    maximize = first_metric in ['r_squared', 'accuracy', 'precision', 'recall', 'f1']
+
+                    # Get best config
+                    metric_summary = metrics_df[metrics_df['metric'] == first_metric].groupby('.config')['value'].mean()
+                    best_config_name = metric_summary.idxmax() if maximize else metric_summary.idxmin()
+                    best_value = metric_summary.max() if maximize else metric_summary.min()
+
+                    mlflow.log_metric(f"best_{first_metric}", float(best_value))
+                    mlflow.log_param("best_config", best_config_name)
+
+                    # Log best parameters
+                    best_params = grid_df[grid_df['.config'] == best_config_name].iloc[0]
+                    for param_name, param_value in best_params.items():
+                        if param_name != '.config':
+                            mlflow.log_param(f"best_{param_name}", param_value)
+
+            # Log artifacts
+            import tempfile
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Save all metrics
+                metrics_path = f"{tmpdir}/all_metrics.csv"
+                metrics_df.to_csv(metrics_path, index=False)
+                mlflow.log_artifact(metrics_path, "metrics")
+
+                # Save grid
+                grid_path = f"{tmpdir}/parameter_grid.csv"
+                grid_df.to_csv(grid_path, index=False)
+                mlflow.log_artifact(grid_path, "grid")
+
+                if not predictions_df.empty:
+                    preds_path = f"{tmpdir}/all_predictions.csv"
+                    predictions_df.to_csv(preds_path, index=False)
+                    mlflow.log_artifact(preds_path, "predictions")
+
+        except Exception as e:
+            warnings.warn(f"MLflow logging failed: {str(e)}")
+        finally:
+            mlflow.end_run()
 
     return TuneResults(
         metrics=metrics_df,

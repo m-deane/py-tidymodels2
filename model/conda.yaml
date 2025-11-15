@@ -1,0 +1,14 @@
+channels:
+- conda-forge
+- defaults
+dependencies:
+- python=3.11.14
+- pip:
+  - py-tidymodels==0.1.0
+  - pandas==2.3.3
+  - numpy==2.3.4
+  - scikit-learn==1.7.2
+  - mlflow==3.6.0
+  - cloudpickle>=2.2.0
+  - pyyaml>=6.0
+name: py_tidymodels_env

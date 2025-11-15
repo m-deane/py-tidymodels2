@@ -1,0 +1,22 @@
+flavors:
+  py_tidymodels:
+    engine: sklearn
+    fit_timestamp: '2025-11-15T20:52:20.392760'
+    is_grouped: false
+    is_workflow: false
+    max_py_tidymodels_version: 0.2.0
+    min_py_tidymodels_version: 0.1.0
+    mode: regression
+    model_artifact: model/model.pkl
+    model_type: linear_reg
+    py_tidymodels_version: 0.1.0
+  python_function:
+    data: model
+    env: null
+    loader_module: py_mlflow.flavor
+    python_version: 3.11.14
+mlflow_version: 3.6.0
+model_id: null
+model_uuid: ce5342d9c4df4ca0846327f8d6c627c0
+prompts: null
+utc_time_created: '2025-11-15 20:52:20.391641'

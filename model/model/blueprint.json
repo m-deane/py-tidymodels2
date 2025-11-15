@@ -1,0 +1,49 @@
+{
+  "formula": "y ~ x1 + x2",
+  "roles": {
+    "outcome": [
+      "y"
+    ],
+    "predictor": [
+      "Intercept",
+      "x1",
+      "x2"
+    ]
+  },
+  "factor_levels": {},
+  "column_order": [
+    "Intercept",
+    "x1",
+    "x2"
+  ],
+  "ptypes": {
+    "x1": "float64",
+    "x2": "float64",
+    "x3": "float64",
+    "y": "float64"
+  },
+  "intercept": true,
+  "indicators": "traditional",
+  "design_info": {
+    "column_names": [
+      "Intercept",
+      "x1",
+      "x2"
+    ],
+    "term_names": [
+      "Intercept",
+      "x1",
+      "x2"
+    ],
+    "describe": "1 + x1 + x2"
+  },
+  "outcome_design_info": {
+    "column_names": [
+      "y"
+    ],
+    "term_names": [
+      "y"
+    ],
+    "describe": "y"
+  }
+}
