@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-15T20:09:37.663648",
+  "timestamp": "2025-11-15T20:13:20.376805",
   "summary": {
     "total": 12,
     "passed": 6,
@@ -15,28 +15,28 @@
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 30.489336
+      "time": 31.271415
     },
     {
       "notebook": "24b_timeseries_conformal_enbpi.ipynb",
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 20.793666
+      "time": 21.021917
     },
     {
       "notebook": "24c_feature_selection_conformal.ipynb",
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 13.453943
+      "time": 13.784997
     },
     {
       "notebook": "24e_per_group_conformal.ipynb",
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 10.268159
+      "time": 11.134152
     },
     {
       "notebook": "24f_comprehensive_conformal_integration.ipynb",
@@ -51,21 +51,21 @@
       "reason": "Notebook execution failed",
       "error_type": "EXECUTION_ERROR",
       "error": "  index = \u001b[43m_extract_index\u001b[49m\u001b[43m(\u001b[49m\u001b[43marrays\u001b[49m\u001b[43m)\u001b[49m\n\u001b[32m    115\u001b[39m     \u001b[38;5;28;01melse\u001b[39;00m:\n\u001b[32m    116\u001b[39m         index = ensure_index(index)\n\n\u001b[36mFile \u001b[39m\u001b[32m/usr/local/lib/python3.11/dist-packages/pandas/core/internals/construction.py:677\u001b[39m, in \u001b[36m_extract_index\u001b[39m\u001b[34m(data)\u001b[39m\n\u001b[32m    675\u001b[39m lengths = \u001b[38;5;28mlist\u001b[39m(\u001b[38;5;28mset\u001b[39m(raw_lengths))\n\u001b[32m    676\u001b[39m \u001b[38;5;28;01mif\u001b[39;00m \u001b[38;5;28mlen\u001b[39m(lengths) > \u001b[32m1\u001b[39m:\n\u001b[32m--> \u001b[39m\u001b[32m677\u001b[39m     \u001b[38;5;28;01mraise\u001b[39;00m \u001b[38;5;167;01mValueError\u001b[39;00m(\u001b[33m\"\u001b[39m\u001b[33mAll arrays must be of the same length\u001b[39m\u001b[33m\"\u001b[39m)\n\u001b[32m    679\u001b[39m \u001b[38;5;28;01mif\u001b[39;00m have_dicts:\n\u001b[32m    680\u001b[39m     \u001b[38;5;28;01mraise\u001b[39;00m \u001b[38;5;167;01mValueError\u001b[39;00m(\n\u001b[32m    681\u001b[39m         \u001b[33m\"\u001b[39m\u001b[33mMixing dicts with non-Series may lead to ambiguous ordering.\u001b[39m\u001b[33m\"\u001b[39m\n\u001b[32m    682\u001b[39m     )\n\n\u001b[31mValueError\u001b[39m: All arrays must be of the same length\n\n",
-      "time": 15.858833
+      "time": 15.903102
     },
     {
       "notebook": "23b_refinery_workflowset_conformal.ipynb",
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 14.640897
+      "time": 15.410653
     },
     {
       "notebook": "23c_crude_production_method_comparison.ipynb",
       "status": "PASS",
       "reason": null,
       "error": null,
-      "time": 28.447646
+      "time": 30.703844
     },
     {
       "notebook": "24d_conformal_calibration_strategies.ipynb",
