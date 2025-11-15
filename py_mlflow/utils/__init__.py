@@ -17,6 +17,12 @@ from py_mlflow.utils.artifact_handling import (
     decompress_artifact,
     get_artifact_size_mb
 )
+from py_mlflow.utils.blueprint_utils import (
+    extract_blueprint_metadata,
+    reconstruct_blueprint,
+    save_blueprint_metadata,
+    load_blueprint_metadata
+)
 
 __all__ = [
     "check_version_compatibility",
@@ -28,4 +34,8 @@ __all__ = [
     "compress_artifact",
     "decompress_artifact",
     "get_artifact_size_mb",
+    "extract_blueprint_metadata",
+    "reconstruct_blueprint",
+    "save_blueprint_metadata",
+    "load_blueprint_metadata",
 ]

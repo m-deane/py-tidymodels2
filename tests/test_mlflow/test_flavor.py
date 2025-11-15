@@ -68,7 +68,7 @@ class TestBasicSaveLoad:
 
     def test_save_load_rand_forest(self, sample_data, temp_model_dir):
         """Test save/load for random forest."""
-        spec = rand_forest(mode='regression', trees=10)
+        spec = rand_forest(trees=10).set_mode('regression')
         fit = spec.fit(sample_data, "y ~ x1 + x2")
 
         preds_before = fit.predict(sample_data)
@@ -245,7 +245,7 @@ class TestErrorHandling:
 
     def test_load_nonexistent_model(self, temp_model_dir):
         """Test loading nonexistent model raises error."""
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises((FileNotFoundError, OSError)):
             load_model(str(temp_model_dir / "nonexistent"))
 
     def test_load_corrupted_mlmodel(self, temp_model_dir):

@@ -32,7 +32,11 @@ from py_mlflow.utils import (
     check_version_compatibility,
     get_version_metadata,
     infer_model_signature,
-    get_input_example
+    get_input_example,
+    extract_blueprint_metadata,
+    reconstruct_blueprint,
+    save_blueprint_metadata,
+    load_blueprint_metadata
 )
 
 FLAVOR_NAME = "py_tidymodels"
@@ -103,12 +107,22 @@ def save_model(
         signature = infer_model_signature(input_example, predictions)
 
     # Determine model type and extract metadata
-    is_workflow = hasattr(model, 'preprocessor')
     is_grouped = hasattr(model, 'group_fits')
+    # Check for workflow: WorkflowFit has 'pre' and 'workflow', NestedWorkflowFit has 'workflow'
+    is_workflow = (hasattr(model, 'pre') and hasattr(model, 'workflow')) or \
+                  (is_grouped and hasattr(model, 'workflow'))
 
-    # Get model spec (from direct ModelFit or from WorkflowFit)
+    # Get model spec (from direct ModelFit or from WorkflowFit or NestedWorkflowFit)
     if is_workflow:
-        spec = model.spec
+        if hasattr(model, 'fit') and hasattr(model.fit, 'spec'):
+            # WorkflowFit case
+            spec = model.fit.spec
+        elif is_grouped and model.group_fits:
+            # NestedWorkflowFit case: get spec from first group fit
+            first_group_fit = next(iter(model.group_fits.values()))
+            spec = first_group_fit.fit.spec if hasattr(first_group_fit, 'fit') and hasattr(first_group_fit.fit, 'spec') else None
+        else:
+            spec = None
     else:
         spec = model.spec if hasattr(model, 'spec') else None
 
@@ -116,18 +130,79 @@ def save_model(
     model_data_path = path / "model"
     model_data_path.mkdir(exist_ok=True)
 
-    # Save model artifact using cloudpickle
-    # Note: We use cloudpickle which handles most Python objects better than pickle
+    # Save model artifact with custom blueprint handling
+    # Patsy DesignInfo objects in blueprints cannot be pickled, so we extract
+    # blueprint metadata separately, replace blueprints with None, then reconstruct on load
     model_pkl_path = model_data_path / "model.pkl"
-    try:
-        with open(model_pkl_path, "wb") as f:
-            cloudpickle.dump(model, f)
-    except NotImplementedError as e:
-        # Handle patsy objects which don't support pickling
-        # For now, we'll use dill which can handle more objects
-        import dill
-        with open(model_pkl_path, "wb") as f:
-            dill.dump(model, f)
+    blueprint_json_path = model_data_path / "blueprint.json"
+
+    # Handle blueprint serialization based on model type
+    # Store blueprints separately to avoid mutating the original model
+    saved_blueprints = {}
+
+    if is_grouped:
+        # NestedWorkflowFit/NestedModelFit: Extract blueprints from each group fit
+        group_blueprints = {}
+        for group_name, group_fit in model.group_fits.items():
+            # Check if this is a WorkflowFit (has nested ModelFit with blueprint)
+            if hasattr(group_fit, 'fit') and hasattr(group_fit.fit, 'blueprint'):
+                # NestedWorkflowFit case: blueprint is in group_fit.fit.blueprint
+                group_blueprints[group_name] = extract_blueprint_metadata(group_fit.fit.blueprint)
+                saved_blueprints[group_name] = group_fit.fit.blueprint
+                group_fit.fit.blueprint = None
+            elif hasattr(group_fit, 'blueprint'):
+                # NestedModelFit case: blueprint is directly on group_fit
+                group_blueprints[group_name] = extract_blueprint_metadata(group_fit.blueprint)
+                saved_blueprints[group_name] = group_fit.blueprint
+                group_fit.blueprint = None
+
+        # Save group blueprints as JSON
+        if group_blueprints:
+            with open(blueprint_json_path, 'w') as f:
+                json.dump(group_blueprints, f, indent=2)
+
+    elif is_workflow:
+        # WorkflowFit: May have blueprint in the underlying ModelFit
+        if hasattr(model, 'fit') and hasattr(model.fit, 'blueprint'):
+            blueprint_metadata = extract_blueprint_metadata(model.fit.blueprint)
+            with open(blueprint_json_path, 'w') as f:
+                json.dump(blueprint_metadata, f, indent=2)
+            # Store original blueprint for restoration
+            saved_blueprints['workflow'] = model.fit.blueprint
+            # Temporarily set blueprint to None for pickling
+            model.fit.blueprint = None
+
+    else:
+        # ModelFit: Extract and save blueprint metadata
+        if hasattr(model, 'blueprint'):
+            blueprint_metadata = extract_blueprint_metadata(model.blueprint)
+            with open(blueprint_json_path, 'w') as f:
+                json.dump(blueprint_metadata, f, indent=2)
+            # Store original blueprint for restoration
+            saved_blueprints['model'] = model.blueprint
+            # Temporarily set blueprint to None for pickling
+            model.blueprint = None
+
+    # Pickle the model (cloudpickle handles sklearn models and most Python objects)
+    with open(model_pkl_path, "wb") as f:
+        cloudpickle.dump(model, f)
+
+    # CRITICAL: Restore blueprints to original model to avoid mutating it
+    if is_grouped:
+        for group_name, blueprint in saved_blueprints.items():
+            if group_name in model.group_fits:
+                group_fit = model.group_fits[group_name]
+                # Check if WorkflowFit or ModelFit
+                if hasattr(group_fit, 'fit') and hasattr(group_fit.fit, 'blueprint'):
+                    group_fit.fit.blueprint = blueprint
+                elif hasattr(group_fit, 'blueprint'):
+                    group_fit.blueprint = blueprint
+    elif is_workflow:
+        if 'workflow' in saved_blueprints:
+            model.fit.blueprint = saved_blueprints['workflow']
+    else:
+        if 'model' in saved_blueprints:
+            model.blueprint = saved_blueprints['model']
 
     # Create flavor configuration
     flavor_conf = {
@@ -272,15 +347,42 @@ def load_model(model_uri: str) -> Any:
             "Model may be corrupted."
         )
 
-    # Load model using cloudpickle or dill
-    try:
-        with open(model_path, "rb") as f:
-            model = cloudpickle.load(f)
-    except Exception:
-        # Fallback to dill if cloudpickle fails
-        import dill
-        with open(model_path, "rb") as f:
-            model = dill.load(f)
+    # Load model using cloudpickle
+    with open(model_path, "rb") as f:
+        model = cloudpickle.load(f)
+
+    # Reconstruct blueprints from saved metadata (if present)
+    blueprint_json_path = local_path / "model" / "blueprint.json"
+    if blueprint_json_path.exists():
+        with open(blueprint_json_path, 'r') as f:
+            blueprint_data = json.load(f)
+
+        # Determine model type and reconstruct blueprints
+        is_workflow = flavor_conf.get("is_workflow", False)
+        is_grouped = flavor_conf.get("is_grouped", False)
+
+        if is_grouped:
+            # Reconstruct blueprints for each group
+            for group_name, blueprint_metadata in blueprint_data.items():
+                if group_name in model.group_fits:
+                    group_fit = model.group_fits[group_name]
+                    # Check if WorkflowFit or ModelFit
+                    if hasattr(group_fit, 'fit') and hasattr(group_fit.fit, 'blueprint'):
+                        # NestedWorkflowFit: blueprint in group_fit.fit.blueprint
+                        group_fit.fit.blueprint = reconstruct_blueprint(blueprint_metadata)
+                    elif hasattr(group_fit, 'blueprint'):
+                        # NestedModelFit: blueprint directly on group_fit
+                        group_fit.blueprint = reconstruct_blueprint(blueprint_metadata)
+
+        elif is_workflow:
+            # Reconstruct blueprint in underlying ModelFit
+            if hasattr(model, 'fit') and hasattr(model.fit, 'blueprint'):
+                model.fit.blueprint = reconstruct_blueprint(blueprint_data)
+
+        else:
+            # Reconstruct blueprint in ModelFit
+            if hasattr(model, 'blueprint'):
+                model.blueprint = reconstruct_blueprint(blueprint_data)
 
     return model
 
@@ -380,15 +482,48 @@ def _load_pyfunc(data_path: str) -> _TidymodelsPyFuncWrapper:
     Returns:
         _TidymodelsPyFuncWrapper instance
     """
+    data_path = Path(data_path)
+
     # Load model from pickle
-    model_path = Path(data_path) / "model.pkl"
-    try:
-        with open(model_path, "rb") as f:
-            model = cloudpickle.load(f)
-    except Exception:
-        # Fallback to dill
-        import dill
-        with open(model_path, "rb") as f:
-            model = dill.load(f)
+    model_path = data_path / "model.pkl"
+    with open(model_path, "rb") as f:
+        model = cloudpickle.load(f)
+
+    # Reconstruct blueprints from saved metadata (if present)
+    blueprint_json_path = data_path / "blueprint.json"
+    if blueprint_json_path.exists():
+        with open(blueprint_json_path, 'r') as f:
+            blueprint_data = json.load(f)
+
+        # Load MLmodel metadata to determine model type
+        mlmodel_path = data_path.parent / MLMODEL_FILE_NAME
+        if mlmodel_path.exists():
+            mlflow_model = Model.load(str(mlmodel_path))
+            flavor_conf = mlflow_model.flavors.get(FLAVOR_NAME, {})
+            is_workflow = flavor_conf.get("is_workflow", False)
+            is_grouped = flavor_conf.get("is_grouped", False)
+
+            if is_grouped:
+                # Reconstruct blueprints for each group
+                for group_name, blueprint_metadata in blueprint_data.items():
+                    if group_name in model.group_fits:
+                        group_fit = model.group_fits[group_name]
+                        # Check if WorkflowFit or ModelFit
+                        if hasattr(group_fit, 'fit') and hasattr(group_fit.fit, 'blueprint'):
+                            # NestedWorkflowFit: blueprint in group_fit.fit.blueprint
+                            group_fit.fit.blueprint = reconstruct_blueprint(blueprint_metadata)
+                        elif hasattr(group_fit, 'blueprint'):
+                            # NestedModelFit: blueprint directly on group_fit
+                            group_fit.blueprint = reconstruct_blueprint(blueprint_metadata)
+
+            elif is_workflow:
+                # Reconstruct blueprint in underlying ModelFit
+                if hasattr(model, 'fit') and hasattr(model.fit, 'blueprint'):
+                    model.fit.blueprint = reconstruct_blueprint(blueprint_data)
+
+            else:
+                # Reconstruct blueprint in ModelFit
+                if hasattr(model, 'blueprint'):
+                    model.blueprint = reconstruct_blueprint(blueprint_data)
 
     return _TidymodelsPyFuncWrapper(model)

@@ -97,11 +97,11 @@ class TestWorkflowWithRecipe:
 
     def test_save_load_workflow_recipe(self, sample_data, temp_model_dir):
         """Test save/load workflow with recipe."""
-        # Create workflow with recipe
+        # Create workflow with recipe (auto-detects 'y' as outcome)
         rec = (
             recipe()
             .step_normalize()
-            .step_select_corr(threshold=0.9)
+            .step_select_corr(outcome='y', threshold=0.9)
         )
         wf = workflow().add_recipe(rec).add_model(linear_reg())
         wf_fit = wf.fit(sample_data)
@@ -124,7 +124,7 @@ class TestWorkflowWithRecipe:
         """Test workflow with PCA recipe."""
         rec = recipe().step_normalize().step_pca(num_comp=3)
         wf = workflow().add_recipe(rec).add_model(linear_reg())
-        wf_fit = wf.fit(sample_data)
+        wf_fit = wf.fit(sample_data)  # Auto-detects 'y' as outcome
 
         preds_before = wf_fit.predict(sample_data)
 
@@ -142,10 +142,10 @@ class TestWorkflowWithRecipe:
             recipe()
             .step_normalize()
             .step_pca(num_comp=3)
-            .step_select_corr(threshold=0.95)
+            .step_select_corr(outcome='y', threshold=0.95)
         )
-        wf = workflow().add_recipe(rec).add_model(rand_forest(mode='regression', trees=10))
-        wf_fit = wf.fit(sample_data)
+        wf = workflow().add_recipe(rec).add_model(rand_forest(trees=10).set_mode('regression'))
+        wf_fit = wf.fit(sample_data)  # Auto-detects 'y' as outcome
 
         preds_before = wf_fit.predict(sample_data)
 

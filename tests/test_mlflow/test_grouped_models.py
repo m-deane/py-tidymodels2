@@ -172,7 +172,7 @@ class TestNestedWorkflowFit:
 
     def test_nested_workflow_extract_outputs(self, grouped_data, temp_model_dir):
         """Test extract_outputs() for nested workflow."""
-        wf = workflow().add_formula("y ~ x1 + x2").add_model(rand_forest(mode='regression', trees=10))
+        wf = workflow().add_formula("y ~ x1 + x2").add_model(rand_forest(trees=10).set_mode('regression'))
         nested_wf_fit = wf.fit_nested(
             grouped_data.iloc[:120],
             group_col="group"
