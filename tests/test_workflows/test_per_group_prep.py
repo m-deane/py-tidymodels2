@@ -146,9 +146,22 @@ print()
 
 print("Making predictions...")
 try:
-    preds_per_group = fit_per_group.predict(test_data)
-    print(f"✓ Predictions shape: {preds_per_group.shape}")
-    print(f"  Columns: {list(preds_per_group.columns)}")
+    # Only predict for groups that were actually trained
+    if hasattr(fit_per_group, 'group_fits') and fit_per_group.group_fits:
+        available_groups = list(fit_per_group.group_fits.keys())
+        print(f"  Available groups: {available_groups}")
+
+        # Filter test data to only include available groups
+        test_data_filtered = test_data[test_data['country'].isin(available_groups)].copy()
+
+        if len(test_data_filtered) > 0:
+            preds_per_group = fit_per_group.predict(test_data_filtered)
+            print(f"✓ Predictions shape: {preds_per_group.shape}")
+            print(f"  Columns: {list(preds_per_group.columns)}")
+        else:
+            print("⚠️ No test data for available groups")
+    else:
+        print("⚠️ No group_fits available (all groups may have been filtered)")
 except Exception as e:
     print(f"❌ Prediction failed: {e}")
     import traceback
@@ -213,24 +226,39 @@ print()
 from py_yardstick import rmse
 
 # Get predictions for both approaches
-preds_standard = fit_standard.predict(test_data)
-preds_per_group = fit_per_group.predict(test_data)
+try:
+    preds_standard = fit_standard.predict(test_data)
 
-# Calculate RMSE for each group
-for country in ['USA', 'UK']:
-    test_country = test_data[test_data['country'] == country]
-    preds_std_country = preds_standard[preds_standard['country'] == country]
-    preds_pg_country = preds_per_group[preds_per_group['country'] == country]
+    # Check if per_group has any trained groups
+    if hasattr(fit_per_group, 'group_fits') and fit_per_group.group_fits:
+        available_groups = list(fit_per_group.group_fits.keys())
+        test_data_available = test_data[test_data['country'].isin(available_groups)].copy()
 
-    rmse_std = rmse(test_country['target'], preds_std_country['.pred']).iloc[0]['value']
-    rmse_pg = rmse(test_country['target'], preds_pg_country['.pred']).iloc[0]['value']
+        if len(test_data_available) > 0:
+            preds_per_group = fit_per_group.predict(test_data_available)
 
-    improvement = ((rmse_std - rmse_pg) / rmse_std) * 100
+            # Calculate RMSE for each available group
+            for country in available_groups:
+                test_country = test_data[test_data['country'] == country]
+                preds_std_country = preds_standard[preds_standard['country'] == country]
+                preds_pg_country = preds_per_group[preds_per_group['country'] == country]
 
-    print(f"{country}:")
-    print(f"  Standard RMSE: {rmse_std:.4f}")
-    print(f"  Per-group RMSE: {rmse_pg:.4f}")
-    print(f"  Improvement: {improvement:+.2f}%")
+                if len(preds_pg_country) > 0:
+                    rmse_std = rmse(test_country['target'], preds_std_country['.pred']).iloc[0]['value']
+                    rmse_pg = rmse(test_country['target'], preds_pg_country['.pred']).iloc[0]['value']
+
+                    improvement = ((rmse_std - rmse_pg) / rmse_std) * 100
+
+                    print(f"{country}:")
+                    print(f"  Standard RMSE: {rmse_std:.4f}")
+                    print(f"  Per-group RMSE: {rmse_pg:.4f}")
+                    print(f"  Improvement: {improvement:+.2f}%")
+        else:
+            print("⚠️ No groups available for comparison")
+    else:
+        print("⚠️ Per-group model has no trained groups (all may have been filtered)")
+except Exception as e:
+    print(f"⚠️ Performance comparison skipped due to: {e}")
 print()
 
 # Summary
