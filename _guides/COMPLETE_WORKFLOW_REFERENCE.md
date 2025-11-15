@@ -241,13 +241,20 @@ wf_fit = (workflow()
 
 ---
 
-#### `fit_nested(data: pd.DataFrame, group_col: str) -> NestedWorkflowFit`
+#### `fit_nested(data: pd.DataFrame, group_col: str, per_group_prep: bool = False, min_group_size: int = 30) -> NestedWorkflowFit`
 
 Fit separate models for each group (panel/grouped modeling).
 
 **Parameters:**
 - `data` (pd.DataFrame): Training data with group column
 - `group_col` (str): Column name containing group identifiers
+- `per_group_prep` (bool): Enable per-group recipe preprocessing (default: False)
+  - If True: Each group gets its own PreparedRecipe fitted on that group's data
+  - If False: Single global recipe applied to all groups
+  - Only applicable when workflow uses a recipe (not formula)
+- `min_group_size` (int): Minimum samples for group-specific prep (default: 30)
+  - Groups smaller than this use global recipe
+  - Prevents unstable preprocessing on small groups
 
 **Returns:** NestedWorkflowFit containing dict of fitted models per group
 
@@ -289,6 +296,44 @@ print(outputs[["date", "store_id", "actuals", "forecast"]])
 - For `recursive_reg`: sets date as index if present
 - Returns unified interface via `NestedWorkflowFit`
 - All outputs include `group_col` for filtering
+
+**Per-Group Preprocessing Example:**
+```python
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+# Recipe with PCA (different components per group)
+rec = (recipe()
+    .step_normalize()
+    .step_pca(n_components=5))
+
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+# Each group gets its own PCA transformation
+nested_fit = wf.fit_nested(
+    data,
+    group_col='country',
+    per_group_prep=True,  # Enable per-group recipe prep
+    min_group_size=50     # Groups < 50 use global recipe
+)
+
+# Compare features across groups
+feature_comparison = nested_fit.get_feature_comparison()
+print(feature_comparison)
+# Shows which PCA components each group uses
+```
+
+**When to Use Per-Group Preprocessing:**
+- **Feature selection**: Different groups need different features
+- **PCA**: Groups have different covariance structures
+- **Filters**: Group-specific outlier detection or variance thresholds
+- **Different data distributions**: USA refineries vs UK refineries
+
+**Code References:**
+- `py_workflows/workflow.py:255-311` - fit_nested() implementation
+- `py_workflows/workflow.py:392-543` - Per-group recipe prep logic
+- `py_workflows/workflow.py:1023-1113` - get_feature_comparison() method
+- `tests/test_workflows/test_per_group_prep.py` - Test suite (5 tests, all passing)
 
 ---
 
@@ -701,6 +746,62 @@ print(store_a_coeffs[["variable", "coefficient", "p_value"]])
 
 ---
 
+#### `get_feature_comparison() -> pd.DataFrame`
+
+Compare features used across groups (only for per-group preprocessing).
+
+**Returns:** DataFrame showing which features each group uses after preprocessing
+
+**Raises:**
+- `ValueError` if per-group preprocessing was not enabled
+- `ValueError` if workflow doesn't use a recipe
+
+**Examples:**
+```python
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+# Recipe with feature selection (different features per group)
+rec = (recipe()
+    .step_normalize()
+    .step_select_var(threshold=0.01))  # Removes low-variance features
+
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+# Fit with per-group preprocessing
+nested_fit = wf.fit_nested(
+    data,
+    group_col='country',
+    per_group_prep=True
+)
+
+# Compare which features each group uses
+comparison = nested_fit.get_feature_comparison()
+print(comparison)
+
+# Example output:
+#   country  feature_x1  feature_x2  feature_x3  feature_x4
+# 0     USA        True        True       False        True
+# 1 Germany        True       False        True        True
+# 2   Japan       False        True        True        True
+
+# Count features per group
+feature_counts = comparison.iloc[:, 1:].sum(axis=1)
+print(f"Features per group:\n{feature_counts}")
+```
+
+**Use Cases:**
+- Verify which features survived feature selection per group
+- Understand group-specific PCA components
+- Debug preprocessing differences between groups
+- Document feature heterogeneity across groups
+
+**Code References:**
+- `py_workflows/workflow.py:1023-1113` - Implementation
+- `tests/test_workflows/test_per_group_prep.py` - Tests
+
+---
+
 ## Common Patterns
 
 ### Pattern 1: Simple Formula + Model
@@ -965,6 +1066,13 @@ The workflow system provides a unified, immutable interface for composing prepro
 ✅ **Comprehensive outputs** via three-DataFrame pattern
 ✅ **Seamless integration** with tuning and resampling
 
-**Total Methods Documented:** 20+
-**Last Updated:** 2025-11-09
-**Version:** py-tidymodels v1.0
+**Total Methods Documented:** 22+ (Workflow: 8, WorkflowFit: 10, NestedWorkflowFit: 4)
+**Last Updated:** 2025-11-15
+**Library Tests:** 782+ passing (64 workflow tests)
+**Project:** py-tidymodels (Python port of R tidymodels)
+
+**Related Guides:**
+- COMPLETE_MODEL_REFERENCE.md - All 28 models with examples
+- COMPLETE_PANEL_GROUPED_GUIDE.md - Comprehensive grouped modeling guide
+- COMPLETE_WORKFLOWSET_REFERENCE.md - Multi-model comparison
+- COMPLETE_RECIPE_REFERENCE.md - All 51 preprocessing steps

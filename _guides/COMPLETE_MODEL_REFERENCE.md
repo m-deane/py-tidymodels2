@@ -2,7 +2,9 @@
 
 **py-tidymodels Model Library - Comprehensive Documentation**
 
-This reference covers all 28+ models with complete parameter specifications, engine mappings, tuning capabilities, and usage examples.
+This reference covers all 28 production models with complete parameter specifications, engine mappings, tuning capabilities, and usage examples.
+
+**Library Status:** 782+ tests passing | 28 models | 51 recipe steps | Active development
 
 ---
 
@@ -22,6 +24,79 @@ This reference covers all 28+ models with complete parameter specifications, eng
 12. [Manual Models](#12-manual-models)
 13. [Summary Tables](#summary-tables)
 14. [Tuning Patterns](#common-tuning-patterns)
+
+---
+
+## Universal Model Features
+
+All py-tidymodels models support the following capabilities:
+
+### Grouped/Panel Modeling
+
+Every model can be fit on grouped/panel data using two approaches:
+
+**1. Per-Group Models (Nested):**
+```python
+# Fit separate model for each group
+from py_parsnip import linear_reg
+
+spec = linear_reg()
+nested_fit = spec.fit_nested(data, formula='sales ~ price', group_col='store_id')
+
+# Predictions automatically route to correct group model
+predictions = nested_fit.predict(test_data)
+
+# Extract outputs with group column included
+outputs, coefficients, stats = nested_fit.extract_outputs()
+```
+
+**2. Global Model:**
+```python
+# Single model with group as feature
+global_fit = spec.fit_global(data, formula='sales ~ price', group_col='store_id')
+
+# Predictions use group as a feature
+predictions = global_fit.predict(test_data)
+```
+
+**When to Use:**
+- **Nested (`fit_nested`)**: Groups have different patterns (e.g., premium vs budget stores)
+- **Global (`fit_global`)**: Groups share similar patterns, limited data per group
+
+**See Also:** `COMPLETE_PANEL_GROUPED_GUIDE.md` for comprehensive grouped modeling documentation
+
+---
+
+### Three-DataFrame Output Standard
+
+All models return standardized three-DataFrame outputs via `extract_outputs()`:
+
+```python
+fit = spec.fit(data, 'y ~ x1 + x2')
+outputs, coefficients, stats = fit.extract_outputs()
+```
+
+**1. Outputs DataFrame** (observation-level):
+- `actuals`: True values from data
+- `fitted`: Model predictions (in-sample for train, out-of-sample for test)
+- `forecast`: Combined actual/fitted series (seamless train → test → future)
+- `residuals`: actuals - fitted
+- `split`: "train", "test", or "forecast"
+- `model`, `model_group_name`, `group`: Tracking columns (for grouped models)
+
+**2. Coefficients DataFrame** (parameter-level):
+- **Linear models**: Coefficient estimates with statistical inference
+  - `term`, `estimate`, `std_error`, `t_stat`, `p_value`, `conf_low`, `conf_high`, `vif`
+- **Tree models**: Feature importances
+- **Time series**: Hyperparameters as "coefficients"
+
+**3. Stats DataFrame** (model-level):
+- Performance metrics by split: `rmse`, `mae`, `mape`, `r_squared`, etc.
+- Residual diagnostics: `residual_mean`, `residual_std`, `residual_skew`, `residual_kurt`
+- Model metadata: `n_obs`, `n_predictors`, `aic`, `bic` (where applicable)
+
+**Grouped Models:**
+All three DataFrames include `group` column for easy filtering and comparison.
 
 ---
 
@@ -2391,6 +2466,41 @@ final_fit = final_wf.fit(train)
 
 ---
 
+## Example Notebooks
+
+Explore these models in action:
+
+- **examples/01_hardhat_demo.ipynb** - Data preprocessing basics
+- **examples/02_parsnip_demo.ipynb** - Linear regression (linear_reg)
+- **examples/03_time_series_models.ipynb** - Prophet and ARIMA
+- **examples/04_rand_forest_demo.ipynb** - Random Forest (rand_forest)
+- **examples/05_recipes_comprehensive_demo.ipynb** - Feature engineering
+- **examples/08_workflows_demo.ipynb** - Workflow composition
+- **examples/10_tune_demo.ipynb** - Hyperparameter tuning
+- **examples/11_workflowsets_demo.ipynb** - Multi-model comparison
+- **examples/12_recursive_forecasting_demo.ipynb** - Recursive forecasting (recursive_reg)
+- **examples/13_panel_models_demo.ipynb** - Panel/grouped modeling
+- **examples/16_baseline_models_demo.ipynb** - Baseline models (null_model, naive_reg)
+- **examples/17_gradient_boosting_demo.ipynb** - Gradient boosting (boost_tree)
+- **examples/18_sklearn_regression_demo.ipynb** - sklearn models (decision_tree, nearest_neighbor, svm, mlp)
+- **examples/19_time_series_ets_stl_demo.ipynb** - Time series (exp_smoothing, seasonal_reg)
+- **examples/20_hybrid_models_demo.ipynb** - Hybrid models (arima_boost, prophet_boost, hybrid_model)
+- **examples/21_advanced_regression_demo.ipynb** - Advanced regression (mars, poisson_reg, gen_additive_mod)
+
+---
+
+## Related Documentation
+
+- **COMPLETE_WORKFLOW_REFERENCE.md** - Workflow composition and pipeline building
+- **COMPLETE_WORKFLOWSET_REFERENCE.md** - Multi-model comparison and selection
+- **COMPLETE_PANEL_GROUPED_GUIDE.md** - Comprehensive grouped/panel modeling guide
+- **COMPLETE_TUNING_REFERENCE.md** - Hyperparameter tuning with grid search
+- **COMPLETE_RECIPE_REFERENCE.md** - All 51 feature engineering steps
+- **FORECASTING_GROUPED_ANALYSIS.md** - Grouped forecasting workflows
+
+---
+
 **Total Models Documented:** 28
-**Last Updated:** 2025-11-09
-**Version:** py-tidymodels v1.0
+**Library Tests:** 782+ passing
+**Last Updated:** 2025-11-15
+**Project:** py-tidymodels (Python port of R tidymodels)
