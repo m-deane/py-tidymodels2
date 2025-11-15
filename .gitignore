@@ -59,3 +59,4 @@ reference/
 **/__data/*.zip
 **/__data/*.csv
 *.zip
+examples/catboost_info/
