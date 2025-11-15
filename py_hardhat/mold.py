@@ -199,12 +199,31 @@ def mold(
             f"Or use: data.columns = data.columns.str.replace(' ', '_')"
         )
 
+    # Handle datetime columns by converting to numeric
+    # Datetime columns cause issues in patsy because they're treated as categorical
+    # with specific levels (dates), which fails when test data has future dates
+    data_for_patsy = data.copy()
+    datetime_cols_converted = {}
+
+    for col in referenced_cols:
+        if col in data.columns and pd.api.types.is_datetime64_any_dtype(data[col]):
+            # Convert datetime to numeric (Unix timestamp in seconds)
+            numeric_col = f"{col}_numeric"
+            data_for_patsy[numeric_col] = data[col].astype('int64') / 10**9
+            datetime_cols_converted[col] = numeric_col
+
+    # Replace datetime columns in formula with their numeric versions
+    formula_for_patsy = expanded_formula
+    for original_col, numeric_col in datetime_cols_converted.items():
+        # Use word boundaries to avoid partial matches
+        formula_for_patsy = re.sub(r'\b' + re.escape(original_col) + r'\b', numeric_col, formula_for_patsy)
+
     # Parse formula and create design matrices using patsy
     try:
         # Create design matrices and capture design info
         y_mat, X_mat = dmatrices(
-            expanded_formula,
-            data,
+            formula_for_patsy,
+            data_for_patsy,
             return_type="dataframe",
             NA_action="raise",  # Fail on missing values - user should handle this
         )
@@ -255,6 +274,7 @@ def mold(
         indicators=indicators,
         design_info=predictor_design_info,
         outcome_design_info=outcome_design_info,
+        datetime_conversions=datetime_cols_converted if datetime_cols_converted else None,
     )
 
     # Create MoldedData

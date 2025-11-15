@@ -56,6 +56,7 @@ class Blueprint:
     indicators: str = "traditional"
     design_info: Optional[Any] = None  # patsy.DesignInfo
     outcome_design_info: Optional[Any] = None  # patsy.DesignInfo
+    datetime_conversions: Optional[Dict[str, str]] = None  # Maps original datetime columns to numeric versions
 
     def __post_init__(self):
         """Validate blueprint after creation"""

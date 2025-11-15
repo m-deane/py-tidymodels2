@@ -72,6 +72,14 @@ def forge(
     # Validate required columns are present
     _validate_columns(new_data, blueprint)
 
+    # Apply datetime conversions if they were used during mold()
+    new_data_for_patsy = new_data.copy()
+    if blueprint.datetime_conversions:
+        for original_col, numeric_col in blueprint.datetime_conversions.items():
+            if original_col in new_data.columns:
+                # Convert datetime to numeric (same transformation as in mold)
+                new_data_for_patsy[numeric_col] = new_data[original_col].astype('int64') / 10**9
+
     # Create design matrix using stored design info for consistency
     try:
         # Use patsy's build_design_matrices with stored design_info
@@ -79,16 +87,16 @@ def forge(
         if outcomes:
             # Has outcome variable - build both outcome and predictor matrices
             (y_mat,) = build_design_matrices(
-                [blueprint.outcome_design_info], new_data, return_type="dataframe"
+                [blueprint.outcome_design_info], new_data_for_patsy, return_type="dataframe"
             )
             (X_mat,) = build_design_matrices(
-                [blueprint.design_info], new_data, return_type="dataframe"
+                [blueprint.design_info], new_data_for_patsy, return_type="dataframe"
             )
             outcomes_df = y_mat
         else:
             # No outcome variable - build predictor matrix only
             (X_mat,) = build_design_matrices(
-                [blueprint.design_info], new_data, return_type="dataframe"
+                [blueprint.design_info], new_data_for_patsy, return_type="dataframe"
             )
             outcomes_df = None
 
