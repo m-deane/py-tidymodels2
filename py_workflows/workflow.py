@@ -689,7 +689,6 @@ class Workflow:
                         )
 
                     # Wrap in WorkflowFit
-                    from py_workflows.workflow import WorkflowFit
                     group_fit = WorkflowFit(
                         workflow=self,
                         pre=global_recipe,
