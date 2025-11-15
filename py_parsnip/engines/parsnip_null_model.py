@@ -247,7 +247,7 @@ class ParsnipNullEngine(Engine):
         coefficients["group"] = "global"
 
         # ====================
-        # 3. STATS DataFrame (WIDE FORMAT)
+        # 3. STATS DataFrame
         # ====================
         stats_rows = []
 
@@ -260,22 +260,48 @@ class ParsnipNullEngine(Engine):
             mape_val = mape(actuals, fitted)['value'].iloc[0]
             r2_val = r_squared(actuals, fitted)['value'].iloc[0]
 
-            train_row = {
-                "split": "train",
-                "rmse": rmse_val,
-                "mae": mae_val,
-                "mape": mape_val,
-                "r_squared": r2_val,
-                "baseline_value": baseline_value,
-            }
+            stats_rows.extend([
+                {"metric": "rmse", "value": rmse_val, "split": "train"},
+                {"metric": "mae", "value": mae_val, "split": "train"},
+                {"metric": "mape", "value": mape_val, "split": "train"},
+                {"metric": "r_squared", "value": r2_val, "split": "train"},
+                {"metric": "baseline_value", "value": baseline_value, "split": "train"},
+            ])
         else:
             # Classification - compute accuracy
             accuracy = np.mean(actuals == fitted)
-            train_row = {
-                "split": "train",
-                "accuracy": accuracy,
-                "baseline_class": baseline_value,
-            }
+            stats_rows.extend([
+                {"metric": "accuracy", "value": accuracy, "split": "train"},
+                {"metric": "baseline_class", "value": baseline_value, "split": "train"},
+            ])
+
+        # Test metrics (if evaluated)
+        if "test_predictions" in fit.evaluation_data:
+            test_data = fit.evaluation_data["test_data"]
+            test_preds = fit.evaluation_data["test_predictions"]
+            outcome_col = fit.evaluation_data["outcome_col"]
+
+            test_actuals = test_data[outcome_col].values
+            test_predictions = test_preds[".pred"].values
+
+            if fit.spec.mode == "regression":
+                # Calculate test regression metrics
+                # Yardstick functions return DataFrames, extract scalar values
+                test_rmse = rmse(test_actuals, test_predictions)['value'].iloc[0]
+                test_mae = mae(test_actuals, test_predictions)['value'].iloc[0]
+                test_mape = mape(test_actuals, test_predictions)['value'].iloc[0]
+                test_r2 = r_squared(test_actuals, test_predictions)['value'].iloc[0]
+
+                stats_rows.extend([
+                    {"metric": "rmse", "value": test_rmse, "split": "test"},
+                    {"metric": "mae", "value": test_mae, "split": "test"},
+                    {"metric": "mape", "value": test_mape, "split": "test"},
+                    {"metric": "r_squared", "value": test_r2, "split": "test"},
+                ])
+            else:
+                # Classification - compute test accuracy
+                test_accuracy = np.mean(test_actuals == test_predictions)
+                stats_rows.append({"metric": "accuracy", "value": test_accuracy, "split": "test"})
 
         # Add training date range (if available from original data)
         train_dates = None
@@ -297,44 +323,10 @@ class ParsnipNullEngine(Engine):
             pass
 
         if train_dates is not None and len(train_dates) > 0:
-            train_row["train_start_date"] = str(train_dates[0])
-            train_row["train_end_date"] = str(train_dates[-1])
-
-        stats_rows.append(train_row)
-
-        # Test metrics (if evaluated)
-        if "test_predictions" in fit.evaluation_data:
-            test_data = fit.evaluation_data["test_data"]
-            test_preds = fit.evaluation_data["test_predictions"]
-            outcome_col = fit.evaluation_data["outcome_col"]
-
-            test_actuals = test_data[outcome_col].values
-            test_predictions = test_preds[".pred"].values
-
-            if fit.spec.mode == "regression":
-                # Calculate test regression metrics
-                # Yardstick functions return DataFrames, extract scalar values
-                test_rmse = rmse(test_actuals, test_predictions)['value'].iloc[0]
-                test_mae = mae(test_actuals, test_predictions)['value'].iloc[0]
-                test_mape = mape(test_actuals, test_predictions)['value'].iloc[0]
-                test_r2 = r_squared(test_actuals, test_predictions)['value'].iloc[0]
-
-                test_row = {
-                    "split": "test",
-                    "rmse": test_rmse,
-                    "mae": test_mae,
-                    "mape": test_mape,
-                    "r_squared": test_r2,
-                }
-            else:
-                # Classification - compute test accuracy
-                test_accuracy = np.mean(test_actuals == test_predictions)
-                test_row = {
-                    "split": "test",
-                    "accuracy": test_accuracy,
-                }
-
-            stats_rows.append(test_row)
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 

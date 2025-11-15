@@ -270,7 +270,7 @@ class ManualRegEngine(Engine):
         coefficients["group"] = "global"
 
         # ====================
-        # 3. STATS DataFrame (WIDE FORMAT)
+        # 3. STATS DataFrame
         # ====================
         stats_rows = []
 
@@ -281,46 +281,12 @@ class ManualRegEngine(Engine):
             mape_val = mape(y_train, fitted)['value'].iloc[0]
             r2_val = r_squared(y_train, fitted)['value'].iloc[0]
 
-            # Model information
-            n_obs = fit.fit_data.get("n_obs", 0)
-            formula = fit.blueprint.formula if hasattr(fit.blueprint, "formula") else ""
-
-            train_row = {
-                "split": "train",
-                "rmse": rmse_val,
-                "mae": mae_val,
-                "mape": mape_val,
-                "r_squared": r2_val,
-                "formula": formula,
-                "model_type": "manual_reg",
-                "mode": "manual",
-                "n_obs_train": n_obs,
-            }
-
-            # Add training date range if available
-            train_dates = None
-            try:
-                from py_parsnip.utils import _infer_date_column
-
-                if fit.fit_data.get("original_training_data") is not None:
-                    date_col = _infer_date_column(
-                        fit.fit_data["original_training_data"],
-                        spec_date_col=None,
-                        fit_date_col=None
-                    )
-
-                    if date_col == '__index__':
-                        train_dates = fit.fit_data["original_training_data"].index.values
-                    else:
-                        train_dates = fit.fit_data["original_training_data"][date_col].values
-            except (ValueError, ImportError, KeyError):
-                pass
-
-            if train_dates is not None and len(train_dates) > 0:
-                train_row["train_start_date"] = str(train_dates[0])
-                train_row["train_end_date"] = str(train_dates[-1])
-
-            stats_rows.append(train_row)
+            stats_rows.extend([
+                {"metric": "rmse", "value": rmse_val, "split": "train"},
+                {"metric": "mae", "value": mae_val, "split": "train"},
+                {"metric": "mape", "value": mape_val, "split": "train"},
+                {"metric": "r_squared", "value": r2_val, "split": "train"},
+            ])
 
         # Test metrics (if evaluated)
         if "test_predictions" in fit.evaluation_data:
@@ -336,15 +302,46 @@ class ManualRegEngine(Engine):
             test_mape = mape(test_actuals, test_predictions)['value'].iloc[0]
             test_r2 = r_squared(test_actuals, test_predictions)['value'].iloc[0]
 
-            test_row = {
-                "split": "test",
-                "rmse": test_rmse,
-                "mae": test_mae,
-                "mape": test_mape,
-                "r_squared": test_r2,
-            }
+            stats_rows.extend([
+                {"metric": "rmse", "value": test_rmse, "split": "test"},
+                {"metric": "mae", "value": test_mae, "split": "test"},
+                {"metric": "mape", "value": test_mape, "split": "test"},
+                {"metric": "r_squared", "value": test_r2, "split": "test"},
+            ])
 
-            stats_rows.append(test_row)
+        # Model information
+        n_obs = fit.fit_data.get("n_obs", 0)
+        stats_rows.extend([
+            {"metric": "formula", "value": fit.blueprint.formula if hasattr(fit.blueprint, "formula") else "", "split": ""},
+            {"metric": "model_type", "value": "manual_reg", "split": ""},
+            {"metric": "mode", "value": "manual", "split": ""},
+            {"metric": "n_obs_train", "value": n_obs, "split": "train"},
+        ])
+
+        # Add training date range if available
+        train_dates = None
+        try:
+            from py_parsnip.utils import _infer_date_column
+
+            if fit.fit_data.get("original_training_data") is not None:
+                date_col = _infer_date_column(
+                    fit.fit_data["original_training_data"],
+                    spec_date_col=None,
+                    fit_date_col=None
+                )
+
+                if date_col == '__index__':
+                    train_dates = fit.fit_data["original_training_data"].index.values
+                else:
+                    train_dates = fit.fit_data["original_training_data"][date_col].values
+        except (ValueError, ImportError, KeyError):
+            pass
+
+        if train_dates is not None and len(train_dates) > 0:
+            stats_rows.extend([
+                {"metric": "train_start_date", "value": str(train_dates[0]), "split": "train"},
+                {"metric": "train_end_date", "value": str(train_dates[-1]), "split": "train"},
+            ])
 
         stats = pd.DataFrame(stats_rows)
 
