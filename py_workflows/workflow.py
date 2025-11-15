@@ -539,6 +539,9 @@ class Workflow:
             Tuple of (group_fit, group_recipe, group_train_data, error_msg)
         """
         try:
+            # Import WorkflowFit at function level (needed in multiple paths)
+            from py_workflows.workflow import WorkflowFit
+
             # Store original group training data
             group_train_data = group_data.copy()
 
@@ -689,7 +692,6 @@ class Workflow:
                         )
 
                     # Wrap in WorkflowFit
-                    from py_workflows.workflow import WorkflowFit
                     group_fit = WorkflowFit(
                         workflow=self,
                         pre=global_recipe,
@@ -880,6 +882,18 @@ class Workflow:
         # Print errors
         for error in errors:
             print(f"Warning: {error}")
+
+        # Check if any groups were successfully fitted
+        if not group_fits:
+            error_summary = f"\n\nAll {len(groups)} groups failed to fit. Errors:\n"
+            for i, error in enumerate(errors[:10], 1):  # Show first 10 errors
+                error_summary += f"  {i}. {error}\n"
+            if len(errors) > 10:
+                error_summary += f"  ... and {len(errors) - 10} more errors\n"
+
+            raise RuntimeError(
+                f"fit_nested() failed: No groups were successfully fitted out of {len(groups)} total groups.{error_summary}"
+            )
 
         if verbose:
             print(f"✓ Nested fitting complete: {len(group_fits)} successful groups")
@@ -1592,13 +1606,28 @@ class NestedWorkflowFit:
             ...     (stats["split"] == "test")
             ... ][["group", "value"]]
         """
+        # Check if any groups were successfully fitted
+        if not self.group_fits:
+            raise RuntimeError(
+                "No groups were successfully fitted. This can happen if:\n"
+                "1. All groups failed during fit_nested() due to errors (check for warnings)\n"
+                "2. The group column has no unique values\n"
+                "3. All groups had insufficient data for model fitting\n\n"
+                "Tip: Try running fit_nested() with verbose=True to see per-group fitting status."
+            )
+
         all_outputs = []
         all_coefficients = []
         all_stats = []
+        extraction_errors = []
 
         for group, group_fit in self.group_fits.items():
-            # Extract outputs for this group
-            outputs, coefficients, stats = group_fit.extract_outputs()
+            try:
+                # Extract outputs for this group
+                outputs, coefficients, stats = group_fit.extract_outputs()
+            except Exception as e:
+                extraction_errors.append(f"Group '{group}': {str(e)}")
+                continue  # Skip this group and continue with others
 
             # Preserve date information if available in index or molded data
             # This is needed for plot_forecast() to work
@@ -1678,6 +1707,26 @@ class NestedWorkflowFit:
             all_outputs.append(outputs)
             all_coefficients.append(coefficients)
             all_stats.append(stats)
+
+        # Check if any outputs were successfully extracted
+        if not all_outputs:
+            error_summary = "\n\nExtraction failed for all groups. Errors:\n"
+            for i, error in enumerate(extraction_errors[:10], 1):
+                error_summary += f"  {i}. {error}\n"
+            if len(extraction_errors) > 10:
+                error_summary += f"  ... and {len(extraction_errors) - 10} more errors\n"
+
+            raise RuntimeError(
+                f"extract_outputs() failed: No outputs could be extracted from {len(self.group_fits)} fitted groups.{error_summary}"
+            )
+
+        # Print warnings if some (but not all) groups failed
+        if extraction_errors:
+            print(f"\nWarning: {len(extraction_errors)} group(s) failed during output extraction:")
+            for error in extraction_errors[:5]:
+                print(f"  - {error}")
+            if len(extraction_errors) > 5:
+                print(f"  ... and {len(extraction_errors) - 5} more errors")
 
         # Combine all groups (preserve dates if present)
         combined_outputs = pd.concat(all_outputs, ignore_index=True)

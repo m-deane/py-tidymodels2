@@ -423,6 +423,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_nested"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_global"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_global()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -584,13 +586,19 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_group_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
@@ -606,16 +614,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.recipe_prepped_without_outcome"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id8"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id9"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id10"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id11"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.is_global_fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.is_global_fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.group_col"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.group_col</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessed_data"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessed_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -644,6 +660,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
@@ -655,7 +673,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -669,6 +686,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_anova"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_anova()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_rf_importance"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_rf_importance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_mutual_info"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_mutual_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_roc_auc"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_roc_auc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_chisq"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_chisq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_shap"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_shap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_permutation"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_permutation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_genetic_algorithm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_genetic_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_splitwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_splitwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe_v2"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe_v2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_eix"><code class="docutils literal notranslate"><span class="pre">Recipe.step_eix()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
@@ -703,6 +732,37 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_discretiser"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_discretiser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_winsorizer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_winsorizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_outlier_trimmer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_outlier_trimmer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_features"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_smart_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_smart_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_psi"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_clean_anomalies"><code class="docutils literal notranslate"><span class="pre">Recipe.step_clean_anomalies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_deseasonalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_deseasonalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_detrend"><code class="docutils literal notranslate"><span class="pre">Recipe.step_detrend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_h_stat"><code class="docutils literal notranslate"><span class="pre">Recipe.step_h_stat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_best_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_best_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vif"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vif()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pvalue"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pvalue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stability"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stability()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lofo"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lofo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_granger"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_granger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stepwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stepwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_probe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lasso"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lasso()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_ridge"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_ridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_elastic_net"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_elastic_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_univariate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_univariate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_variance_threshold"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_variance_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_cointegration"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_cointegration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_seasonal"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_seasonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_fractional_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fractional_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_volatility_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_volatility_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_permutation_entropy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_permutation_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_weight_time_decay"><code class="docutils literal notranslate"><span class="pre">Recipe.step_weight_time_decay()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
 </ul>
@@ -845,9 +905,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_ids"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_ids</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -1069,6 +1134,14 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">joblib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parallel</span><span class="p">,</span> <span class="n">delayed</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.parallel_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">validate_n_jobs</span><span class="p">,</span>
+    <span class="n">get_joblib_backend</span><span class="p">,</span>
+    <span class="n">check_windows_compatibility</span><span class="p">,</span>
+    <span class="n">format_parallel_info</span>
+<span class="p">)</span>
 
 
 <span class="c1"># ============================================================================</span>
@@ -1409,7 +1482,9 @@
     <span class="n">workflow</span><span class="p">,</span>
     <span class="n">resamples</span><span class="p">,</span>
     <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_jobs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TuneResults</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Fit a workflow to resamples without tuning.</span>
@@ -1422,6 +1497,9 @@
 <span class="sd">        resamples: Resampling object (from py_rsample)</span>
 <span class="sd">        metrics: Metric set or list of metrics (from py_yardstick)</span>
 <span class="sd">        control: Optional control parameters</span>
+<span class="sd">        n_jobs: Number of parallel jobs. None or 1 for sequential execution,</span>
+<span class="sd">                -1 for all CPU cores, or positive integer for specific number of cores.</span>
+<span class="sd">        verbose: If True, display progress messages</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TuneResults object with metrics and predictions</span>
@@ -1436,71 +1514,74 @@
 <span class="sd">        &gt;&gt;&gt; folds = vfold_cv(data, v=5)</span>
 <span class="sd">        &gt;&gt;&gt; my_metrics = metric_set(rmse, mae)</span>
 <span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Sequential execution</span>
 <span class="sd">        &gt;&gt;&gt; results = fit_resamples(wf, folds, metrics=my_metrics)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Parallel execution with all cores</span>
+<span class="sd">        &gt;&gt;&gt; results = fit_resamples(wf, folds, metrics=my_metrics, n_jobs=-1, verbose=True)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">control</span> <span class="o">=</span> <span class="n">control</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">save_pred</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_pred&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
+    <span class="c1"># Convert resamples to list for iteration</span>
+    <span class="n">resample_splits</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">resamples</span><span class="p">))</span>
+
+    <span class="c1"># Validate and resolve n_jobs with warnings</span>
+    <span class="n">effective_n_jobs</span> <span class="o">=</span> <span class="n">validate_n_jobs</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">resample_splits</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="c1"># Windows compatibility check</span>
+    <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">check_windows_compatibility</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span> <span class="ow">and</span> <span class="n">n_jobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Decide between sequential and parallel execution</span>
+    <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Sequential execution</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">format_parallel_info</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">resample_splits</span><span class="p">),</span> <span class="s2">&quot;CV folds&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">info</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">resample_splits</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">_fit_single_fold</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Fold </span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">resample_splits</span><span class="p">)</span><span class="si">}</span><span class="s2"> complete&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Parallel execution</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">format_parallel_info</span><span class="p">(</span><span class="n">effective_n_jobs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">resample_splits</span><span class="p">),</span> <span class="s2">&quot;CV folds&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">info</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+        <span class="n">joblib_verbose</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">if</span> <span class="n">verbose</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="n">get_joblib_backend</span><span class="p">()</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">Parallel</span><span class="p">(</span><span class="n">n_jobs</span><span class="o">=</span><span class="n">effective_n_jobs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">joblib_verbose</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)(</span>
+            <span class="n">delayed</span><span class="p">(</span><span class="n">_fit_single_fold</span><span class="p">)(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="n">resample_splits</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Process results</span>
     <span class="n">all_metrics</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">all_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="c1"># Iterate over resamples</span>
-    <span class="k">for</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">resamples</span><span class="p">):</span>
-        <span class="c1"># Get train and test data</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">py_rsample</span><span class="w"> </span><span class="kn">import</span> <span class="n">training</span><span class="p">,</span> <span class="n">testing</span>
-        <span class="n">train_data</span> <span class="o">=</span> <span class="n">training</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
-        <span class="n">test_data</span> <span class="o">=</span> <span class="n">testing</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">metrics_df</span><span class="p">,</span> <span class="n">predictions_df</span><span class="p">,</span> <span class="n">error_msg</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">error_msg</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
 
-        <span class="c1"># Fit workflow</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">wf_fit</span> <span class="o">=</span> <span class="n">workflow</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">metrics_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics_df</span><span class="p">)</span>
 
-            <span class="c1"># Predict on test set</span>
-            <span class="n">predictions</span> <span class="o">=</span> <span class="n">wf_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">predictions_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">all_predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions_df</span><span class="p">)</span>
 
-            <span class="c1"># Calculate metrics</span>
-            <span class="c1"># Get outcome column (assume first formula term is outcome)</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="s1">&#39;preprocessor&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">outcome</span> <span class="o">=</span> <span class="n">workflow</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                <span class="n">truth</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span>
-                <span class="n">estimate</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.pred&#39;</span><span class="p">]</span>
-
-                <span class="c1"># Compute metrics</span>
-                <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="c1"># Use default regression metrics</span>
-                    <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span>
-                    <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span><span class="p">)</span>
-                    <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
-                    <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># List of metric functions</span>
-                    <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span>
-                    <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
-                    <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
-
-                <span class="c1"># Add fold identifier</span>
-                <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;config_001&quot;</span>
-                <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metric_results</span><span class="p">)</span>
-
-            <span class="c1"># Save predictions if requested</span>
-            <span class="k">if</span> <span class="n">save_pred</span><span class="p">:</span>
-                <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;config_001&quot;</span>
-                <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.row&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-                <span class="n">all_predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
-
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="c1"># Log error and continue</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Fold </span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> failed with error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">continue</span>
+    <span class="c1"># Print errors</span>
+    <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="c1"># Combine results</span>
     <span class="k">if</span> <span class="n">all_metrics</span><span class="p">:</span>
         <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Return empty DataFrame with expected schema</span>
         <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;metric&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;.resample&#39;</span><span class="p">,</span> <span class="s1">&#39;.config&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">all_predictions</span><span class="p">:</span>
@@ -1510,6 +1591,9 @@
 
     <span class="c1"># Create grid with single configuration</span>
     <span class="n">grid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;.config&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;config_001&#39;</span><span class="p">]})</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Evaluation complete: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">)</span><span class="si">}</span><span class="s2"> successful folds&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">TuneResults</span><span class="p">(</span>
         <span class="n">metrics</span><span class="o">=</span><span class="n">metrics_df</span><span class="p">,</span>
@@ -1529,7 +1613,9 @@
     <span class="n">grid</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">param_info</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">control</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_jobs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TuneResults</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tune workflow hyperparameters via grid search.</span>
@@ -1541,6 +1627,9 @@
 <span class="sd">        metrics: Metric set or list of metrics</span>
 <span class="sd">        param_info: Parameter information for grid generation (required if grid is int)</span>
 <span class="sd">        control: Optional control parameters</span>
+<span class="sd">        n_jobs: Number of parallel jobs. None or 1 for sequential execution,</span>
+<span class="sd">                -1 for all CPU cores, or positive integer for specific number of cores.</span>
+<span class="sd">        verbose: If True, display progress messages</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TuneResults object with metrics across all configurations</span>
@@ -1558,8 +1647,11 @@
 <span class="sd">        ...     &#39;mixture&#39;: {&#39;range&#39;: (0, 1)}</span>
 <span class="sd">        ... }</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; # Run grid search</span>
+<span class="sd">        &gt;&gt;&gt; # Run grid search (sequential)</span>
 <span class="sd">        &gt;&gt;&gt; results = tune_grid(wf, folds, param_info=param_info, grid=5)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Run grid search (parallel)</span>
+<span class="sd">        &gt;&gt;&gt; results = tune_grid(wf, folds, param_info=param_info, grid=5, n_jobs=-1, verbose=True)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">control</span> <span class="o">=</span> <span class="n">control</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="n">save_pred</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_pred&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
@@ -1575,74 +1667,80 @@
         <span class="k">if</span> <span class="s1">&#39;.config&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grid_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="n">grid_df</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;config_</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_df</span><span class="p">))]</span>
 
-    <span class="n">all_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">all_predictions</span> <span class="o">=</span> <span class="p">[]</span>
-
-    <span class="c1"># Iterate over parameter combinations</span>
+    <span class="c1"># Create list of all config × fold combinations</span>
+    <span class="n">config_fold_combinations</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">config_idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">grid_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
         <span class="n">config_name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span>
         <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s1">&#39;.config&#39;</span><span class="p">}</span>
 
-        <span class="c1"># Update workflow with current parameters</span>
-        <span class="c1"># (This requires workflow to support parameter updates)</span>
-        <span class="n">current_wf</span> <span class="o">=</span> <span class="n">_update_workflow_params</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
-
-        <span class="c1"># Fit to each resample</span>
         <span class="k">for</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">resamples</span><span class="p">):</span>
-            <span class="kn">from</span><span class="w"> </span><span class="nn">py_rsample</span><span class="w"> </span><span class="kn">import</span> <span class="n">training</span><span class="p">,</span> <span class="n">testing</span>
-            <span class="n">train_data</span> <span class="o">=</span> <span class="n">training</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
-            <span class="n">test_data</span> <span class="o">=</span> <span class="n">testing</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+            <span class="n">config_fold_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">))</span>
 
-            <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># Fit and predict</span>
-                <span class="n">wf_fit</span> <span class="o">=</span> <span class="n">current_wf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
-                <span class="n">predictions</span> <span class="o">=</span> <span class="n">wf_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+    <span class="c1"># Validate and resolve n_jobs with warnings</span>
+    <span class="n">effective_n_jobs</span> <span class="o">=</span> <span class="n">validate_n_jobs</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">config_fold_combinations</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
 
-                <span class="c1"># Calculate metrics</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">current_wf</span><span class="p">,</span> <span class="s1">&#39;preprocessor&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_wf</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">current_wf</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-                    <span class="n">truth</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span>
-                    <span class="n">estimate</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.pred&#39;</span><span class="p">]</span>
+    <span class="c1"># Windows compatibility check</span>
+    <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">check_windows_compatibility</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span> <span class="ow">and</span> <span class="n">n_jobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
 
-                    <span class="c1"># Compute metrics</span>
-                    <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="c1"># Use default regression metrics</span>
-                        <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span>
-                        <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span><span class="p">)</span>
-                        <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
-                    <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
-                        <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span>
-                        <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
-                        <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+    <span class="c1"># Decide between sequential and parallel execution</span>
+    <span class="k">if</span> <span class="n">effective_n_jobs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Sequential execution</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tuning grid: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> configs × </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">resamples</span><span class="p">))</span><span class="si">}</span><span class="s2"> folds = </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">config_fold_combinations</span><span class="p">)</span><span class="si">}</span><span class="s2"> fits (sequential)...&quot;</span><span class="p">)</span>
 
-                    <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_name</span>
-                    <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metric_results</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">config_fold_combinations</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">_fit_single_config_fold</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">resamples</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">completed_configs</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">resamples</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Config </span><span class="si">{</span><span class="n">completed_configs</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> complete&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Parallel execution</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">format_parallel_info</span><span class="p">(</span><span class="n">effective_n_jobs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">config_fold_combinations</span><span class="p">),</span> <span class="s2">&quot;grid fits&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tuning grid: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_df</span><span class="p">)</span><span class="si">}</span><span class="s2"> configs × </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">resamples</span><span class="p">))</span><span class="si">}</span><span class="s2"> folds = </span><span class="si">{</span><span class="n">info</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
 
-                <span class="c1"># Save predictions</span>
-                <span class="k">if</span> <span class="n">save_pred</span><span class="p">:</span>
-                    <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_name</span>
-                    <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.row&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-                    <span class="n">all_predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+        <span class="n">joblib_verbose</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">if</span> <span class="n">verbose</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">backend</span> <span class="o">=</span> <span class="n">get_joblib_backend</span><span class="p">()</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">Parallel</span><span class="p">(</span><span class="n">n_jobs</span><span class="o">=</span><span class="n">effective_n_jobs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">joblib_verbose</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">)(</span>
+            <span class="n">delayed</span><span class="p">(</span><span class="n">_fit_single_config_fold</span><span class="p">)(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span> <span class="ow">in</span> <span class="n">config_fold_combinations</span>
+        <span class="p">)</span>
 
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Config </span><span class="si">{</span><span class="n">config_name</span><span class="si">}</span><span class="s2">, Fold </span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">continue</span>
+    <span class="c1"># Process results</span>
+    <span class="n">all_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">metrics_df</span><span class="p">,</span> <span class="n">predictions_df</span><span class="p">,</span> <span class="n">error_msg</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">error_msg</span><span class="p">:</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">metrics_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics_df</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">predictions_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">all_predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions_df</span><span class="p">)</span>
+
+    <span class="c1"># Print errors</span>
+    <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="c1"># Combine results</span>
     <span class="k">if</span> <span class="n">all_metrics</span><span class="p">:</span>
         <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Return empty DataFrame with expected schema</span>
         <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;metric&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="s1">&#39;.resample&#39;</span><span class="p">,</span> <span class="s1">&#39;.config&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">all_predictions</span><span class="p">:</span>
         <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_predictions</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Grid search complete: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">)</span><span class="si">}</span><span class="s2"> successful fits&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">TuneResults</span><span class="p">(</span>
         <span class="n">metrics</span><span class="o">=</span><span class="n">metrics_df</span><span class="p">,</span>
@@ -1657,6 +1755,165 @@
 <span class="c1"># ============================================================================</span>
 <span class="c1"># Helper Functions</span>
 <span class="c1"># ============================================================================</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fit_single_fold</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit workflow on a single fold.</span>
+
+<span class="sd">    Helper function for parallel execution in fit_resamples.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        workflow: Workflow to fit</span>
+<span class="sd">        split: Train/test split</span>
+<span class="sd">        fold_idx: Fold index</span>
+<span class="sd">        metrics: Metric function or list</span>
+<span class="sd">        save_pred: Whether to save predictions</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (metrics_df, predictions_df, error_msg)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">py_rsample</span><span class="w"> </span><span class="kn">import</span> <span class="n">training</span><span class="p">,</span> <span class="n">testing</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="n">training</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="n">testing</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+
+        <span class="c1"># Fit workflow</span>
+        <span class="n">wf_fit</span> <span class="o">=</span> <span class="n">workflow</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+
+        <span class="c1"># Predict on test set</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">wf_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+
+        <span class="c1"># Calculate metrics</span>
+        <span class="n">outcome</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="s1">&#39;preprocessor&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Formula-based workflow</span>
+            <span class="n">outcome</span> <span class="o">=</span> <span class="n">workflow</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Recipe-based or other workflow</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">py_recipes</span><span class="w"> </span><span class="kn">import</span> <span class="n">Recipe</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="s1">&#39;preprocessor&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">,</span> <span class="n">Recipe</span><span class="p">):</span>
+                <span class="n">blueprint</span> <span class="o">=</span> <span class="n">wf_fit</span><span class="o">.</span><span class="n">fit</span><span class="o">.</span><span class="n">blueprint</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">blueprint</span><span class="p">,</span> <span class="s1">&#39;outcome_name&#39;</span><span class="p">):</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">outcome_name</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">blueprint</span><span class="p">,</span> <span class="s1">&#39;roles&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;outcome&#39;</span> <span class="ow">in</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">roles</span><span class="p">:</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">roles</span><span class="p">[</span><span class="s1">&#39;outcome&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">roles</span><span class="p">[</span><span class="s1">&#39;outcome&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">blueprint</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">outcome</span> <span class="o">=</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;outcome_name&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">blueprint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;y_name&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">outcome</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;formula_data&#39;</span> <span class="ow">in</span> <span class="n">blueprint</span><span class="p">:</span>
+                        <span class="n">formula_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">blueprint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;formula&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                        <span class="k">if</span> <span class="s1">&#39;~&#39;</span> <span class="ow">in</span> <span class="n">formula_str</span><span class="p">:</span>
+                            <span class="n">outcome</span> <span class="o">=</span> <span class="n">formula_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">outcome</span> <span class="ow">and</span> <span class="n">outcome</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">truth</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span>
+            <span class="n">estimate</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.pred&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Compute metrics</span>
+            <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span>
+                <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span><span class="p">)</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span>
+                <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+
+            <span class="c1"># Add fold identifier</span>
+            <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;config_001&quot;</span>
+            <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">metric_results</span>
+
+        <span class="c1"># Save predictions if requested</span>
+        <span class="k">if</span> <span class="n">save_pred</span><span class="p">:</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;config_001&quot;</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.row&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">predictions</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">metrics_df</span><span class="p">,</span> <span class="n">predictions_df</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold </span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> failed with error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">error_msg</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_fit_single_config_fold</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">config_name</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">fold_idx</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">save_pred</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit workflow with specific parameters on a single fold.</span>
+
+<span class="sd">    Helper function for parallel execution in tune_grid.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        workflow: Base workflow</span>
+<span class="sd">        params: Parameter dictionary</span>
+<span class="sd">        config_name: Configuration name</span>
+<span class="sd">        split: Train/test split</span>
+<span class="sd">        fold_idx: Fold index</span>
+<span class="sd">        metrics: Metric function or list</span>
+<span class="sd">        save_pred: Whether to save predictions</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (metrics_df, predictions_df, error_msg)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">py_rsample</span><span class="w"> </span><span class="kn">import</span> <span class="n">training</span><span class="p">,</span> <span class="n">testing</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Update workflow with current parameters</span>
+        <span class="n">current_wf</span> <span class="o">=</span> <span class="n">_update_workflow_params</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="n">train_data</span> <span class="o">=</span> <span class="n">training</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="n">testing</span><span class="p">(</span><span class="n">split</span><span class="p">)</span>
+
+        <span class="c1"># Fit and predict</span>
+        <span class="n">wf_fit</span> <span class="o">=</span> <span class="n">current_wf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">wf_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+
+        <span class="c1"># Calculate metrics</span>
+        <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">current_wf</span><span class="p">,</span> <span class="s1">&#39;preprocessor&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_wf</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">outcome</span> <span class="o">=</span> <span class="n">current_wf</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">truth</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span>
+            <span class="n">estimate</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.pred&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Compute metrics</span>
+            <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span><span class="p">,</span> <span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span>
+                <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="n">rmse</span><span class="p">,</span> <span class="n">mae</span><span class="p">,</span> <span class="n">r_squared</span><span class="p">)</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">py_yardstick</span><span class="w"> </span><span class="kn">import</span> <span class="n">metric_set</span>
+                <span class="n">metric_fn</span> <span class="o">=</span> <span class="n">metric_set</span><span class="p">(</span><span class="o">*</span><span class="n">metrics</span><span class="p">)</span>
+                <span class="n">metric_results</span> <span class="o">=</span> <span class="n">metric_fn</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">estimate</span><span class="p">)</span>
+
+            <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">metric_results</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_name</span>
+            <span class="n">metrics_df</span> <span class="o">=</span> <span class="n">metric_results</span>
+
+        <span class="c1"># Save predictions</span>
+        <span class="k">if</span> <span class="n">save_pred</span><span class="p">:</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.resample&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Fold</span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.config&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_name</span>
+            <span class="n">predictions</span><span class="p">[</span><span class="s1">&#39;.row&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">predictions</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">metrics_df</span><span class="p">,</span> <span class="n">predictions_df</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Config </span><span class="si">{</span><span class="n">config_name</span><span class="si">}</span><span class="s2">, Fold </span><span class="si">{</span><span class="n">fold_idx</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">error_msg</span><span class="p">)</span>
+
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_update_workflow_params</span><span class="p">(</span><span class="n">workflow</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>

@@ -426,6 +426,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.fit_nested"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.fit_global"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_global()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -587,13 +589,19 @@
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.add_model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.add_model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_group_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
@@ -609,16 +617,24 @@
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.recipe_prepped_without_outcome"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id8"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id9"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id10"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#id11"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.is_global_fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.is_global_fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.group_col"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.group_col</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.extract_preprocessed_data"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessed_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -647,6 +663,8 @@
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_rm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
@@ -658,7 +676,6 @@
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -672,6 +689,18 @@
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_anova"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_anova()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_rf_importance"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_rf_importance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_mutual_info"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_mutual_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_roc_auc"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_roc_auc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_filter_chisq"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_chisq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_shap"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_shap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_permutation"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_permutation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_genetic_algorithm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_genetic_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_splitwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_splitwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_safe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_safe_v2"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe_v2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_eix"><code class="docutils literal notranslate"><span class="pre">Recipe.step_eix()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
@@ -706,6 +735,37 @@
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_dt_discretiser"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_discretiser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_winsorizer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_winsorizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_outlier_trimmer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_outlier_trimmer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_dt_features"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_smart_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_smart_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_psi"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_clean_anomalies"><code class="docutils literal notranslate"><span class="pre">Recipe.step_clean_anomalies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_deseasonalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_deseasonalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_detrend"><code class="docutils literal notranslate"><span class="pre">Recipe.step_detrend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_h_stat"><code class="docutils literal notranslate"><span class="pre">Recipe.step_h_stat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_best_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_best_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_vif"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vif()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_pvalue"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pvalue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_stability"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stability()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_lofo"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lofo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_granger"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_granger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_stepwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stepwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_probe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_lasso"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lasso()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_ridge"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_ridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_elastic_net"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_elastic_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_univariate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_univariate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_variance_threshold"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_variance_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_cointegration"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_cointegration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_select_seasonal"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_seasonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_fractional_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fractional_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_volatility_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_volatility_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_permutation_entropy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_permutation_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.step_weight_time_decay"><code class="docutils literal notranslate"><span class="pre">Recipe.step_weight_time_decay()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
 </ul>
@@ -848,9 +908,14 @@
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.workflow_ids"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_ids</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.fit_nested"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.fit_global"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.fit_nested_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.fit_global_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -1225,6 +1290,102 @@ It’s frozen (immutable) so it can be safely reused across multiple fits.</p>
 <p class="admonition-title">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">linear_reg</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="s2">&quot;sales ~ price + advertising&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="py_parsnip.ModelSpec.fit_nested">
+<span class="sig-name descname"><span class="pre">fit_nested</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formula</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_training_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_parsnip/model_spec.html#ModelSpec.fit_nested"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_parsnip.ModelSpec.fit_nested" title="Link to this definition"></a></dt>
+<dd><p>Fit separate models for each group in the data (panel/grouped modeling).</p>
+<p>This method enables grouped/panel modeling directly on ModelSpec without
+requiring a workflow wrapper. It fits one independent model per group value,
+useful for:
+- Multi-store sales forecasting (one model per store)
+- Multi-product demand forecasting (one model per product)
+- Multi-region time series (one model per region)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span>) – Training data DataFrame with group column</p></li>
+<li><p><strong>formula</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Model formula (e.g., “y ~ x1 + x2”)</p></li>
+<li><p><strong>group_col</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Column name containing group identifiers</p></li>
+<li><p><strong>original_training_data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>]</span>) – Original unpreprocessed training data (optional)</p></li>
+<li><p><strong>date_col</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Optional date column name (for time series models)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">NestedModelFit</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>NestedModelFit containing dict of fitted models per group</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If group_col not in data</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Fit separate models for each store</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">linear_reg</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">nested_fit</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">fit_nested</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;sales ~ date + price&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">group_col</span><span class="o">=</span><span class="s2">&quot;store_id&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Predict for all groups</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">predictions</span> <span class="o">=</span> <span class="n">nested_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Extract outputs with group column</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">outputs</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">nested_fit</span><span class="o">.</span><span class="n">extract_outputs</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="py_parsnip.ModelSpec.fit_global">
+<span class="sig-name descname"><span class="pre">fit_global</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formula</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_col</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">original_training_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/py_parsnip/model_spec.html#ModelSpec.fit_global"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#py_parsnip.ModelSpec.fit_global" title="Link to this definition"></a></dt>
+<dd><p>Fit a single global model using group as a feature.</p>
+<p>This method fits one model using all groups together, with the group
+column as an additional predictor. Useful when:
+- Groups share common patterns
+- Insufficient data per group for separate models
+- Want to capture cross-group effects</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a></span>) – Training data DataFrame with group column</p></li>
+<li><p><strong>formula</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Model formula (e.g., “sales ~ price + advertising”)</p></li>
+<li><p><strong>group_col</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a></span>) – Column name containing group identifiers (used as feature)</p></li>
+<li><p><strong>original_training_data</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v2.3.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></a>]</span>) – Original unpreprocessed training data (optional)</p></li>
+<li><p><strong>date_col</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]</span>) – Optional date column name (for time series models)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#py_parsnip.ModelFit" title="py_parsnip.model_spec.ModelFit"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModelFit</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ModelFit with group column included as predictor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If group_col not in data or invalid formula format</p>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Fit single model using store_id as a feature</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">spec</span> <span class="o">=</span> <span class="n">linear_reg</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">global_fit</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">fit_global</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;sales ~ price + advertising&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">group_col</span><span class="o">=</span><span class="s2">&quot;store_id&quot;</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Group column is automatically included as predictor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">predictions</span> <span class="o">=</span> <span class="n">global_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

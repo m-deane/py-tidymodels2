@@ -1341,16 +1341,181 @@ r2_val = r_squared(y_true, y_pred).iloc[0]["value"]
 - `py_yardstick/metrics.py` - All metric functions
 - `examples/11_workflowsets_demo.ipynb:cell-31` - Correct usage pattern
 
+### Common Notebook Column Name Issues
+
+**Problem:** Different methods return metrics in different formats, causing KeyError when accessing columns.
+
+**Column Name Reference:**
+
+**`collect_metrics()` returns (long format):**
+- Columns: `wflow_id`, `metric`, `mean`, `std`, `n`, `preprocessor`, `model`
+- Access: `df[df['metric'] == 'rmse']['mean']`
+- **NOT** `.metric` (with dot prefix)
+
+**`rank_results()` returns (wide format):**
+- Columns: `wflow_id`, `rmse_mean`, `mae_mean`, `r_squared_mean`, `rmse_std`, etc.
+- Access: `df['rmse_mean']`, `df['mae_mean']`, `df['r_squared_mean']`
+- **NOT** `rmse`, `mae`, `rsq` (without suffix)
+
+**`extract_outputs()[2]` (stats DataFrame):**
+- Columns: `rmse`, `mae`, `rsq` (no suffix, no prefix)
+- Access: `stats['rmse']`, `stats['mae']`, `stats['rsq']`
+
+**Quick Fix Examples:**
+```python
+# WRONG - Using .metric instead of metric
+metrics_df[metrics_df['.metric'] == 'rmse']  # ❌ KeyError
+
+# CORRECT
+metrics_df[metrics_df['metric'] == 'rmse']  # ✅ Works
+
+# WRONG - Using rmse instead of rmse_mean
+ranked[['wflow_id', 'rmse', 'mae', 'rank']]  # ❌ KeyError
+
+# CORRECT
+ranked[['wflow_id', 'rmse_mean', 'mae_mean', 'rank']]  # ✅ Works
+```
+
+**Code References:**
+- Fixed in `_md/parallel_03_workflowset_comparison.ipynb` - Cells 21, 27
+- Fixed in `examples/27_gas_demand_workflowset_nsga2.ipynb` - Cells 19, 22, 24
+
+### Recipe Steps Are Methods, Not Functions
+
+**Problem:** Recipe preprocessing steps are methods on the `Recipe` class, not standalone functions.
+
+**WRONG - Trying to import as functions:**
+```python
+from py_recipes import (
+    recipe,
+    step_normalize,  # ❌ ImportError
+    step_pca,        # ❌ ImportError
+    step_poly,       # ❌ ImportError
+    all_numeric_predictors
+)
+```
+
+**CORRECT - Import only recipe and selectors:**
+```python
+from py_recipes import recipe, all_numeric_predictors
+
+# Steps are methods on recipe objects
+rec1 = recipe().step_normalize(all_numeric_predictors())
+rec2 = recipe().step_normalize(all_numeric_predictors()).step_pca(all_numeric_predictors(), num_comp=3)
+rec3 = recipe().step_poly(all_numeric_predictors(), degree=2)
+```
+
+**Method Chaining Pattern:**
+All 51 recipe steps follow the method chaining pattern:
+```python
+rec = (recipe(data, "y ~ x1 + x2")
+    .step_impute_median(all_numeric())
+    .step_normalize(all_numeric())
+    .step_pca(all_numeric(), num_comp=5)
+    .step_dummy(all_nominal()))
+```
+
+**Code References:**
+- `py_recipes/recipe.py` - All step methods defined here
+- `py_recipes/__init__.py` - Exports `recipe` class and selector functions only
+- Fixed in `_md/parallel_03_workflowset_comparison.ipynb` - Cell 3
+
+### Genetic Algorithm Feature Selection Status
+
+**Current Status:** ✅ FULLY INTEGRATED (as of 2025-11-15)
+
+The genetic algorithm feature selection is now fully integrated as a Recipe step.
+
+**Usage:**
+```python
+# Recipe method usage (WORKS)
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+rec = (recipe()
+    .step_normalize(all_numeric_predictors())
+    .step_select_genetic_algorithm(
+        outcome='target',
+        model=linear_reg(),
+        metric='rmse',
+        top_n=10,
+        generations=50,
+        verbose=True
+    ))
+
+# With statistical constraints
+rec = (recipe()
+    .step_select_genetic_algorithm(
+        outcome='target',
+        model=linear_reg(),
+        top_n=15,
+        constraints={
+            'p_value': {'max': 0.05, 'method': 'bonferroni'},
+            'vif': {'max': 5.0}
+        },
+        cv_folds=5
+    ))
+
+# Multi-objective optimization with NSGA-II
+rec = (recipe()
+    .step_select_genetic_algorithm(
+        outcome='target',
+        model=linear_reg(),
+        use_nsga2=True,
+        nsga2_objectives=['performance', 'sparsity'],
+        generations=100
+    ))
+```
+
+**Features:**
+- ✅ Integrated as `recipe.step_select_genetic_algorithm()` method
+- ✅ Full support for single-objective GA and multi-objective NSGA-II
+- ✅ Statistical constraints (p-value, VIF, coefficient stability)
+- ✅ Mandatory/forbidden features
+- ✅ Ensemble mode with multiple GA runs
+- ✅ Warm start options (importance-based, low-correlation)
+- ✅ Parallel fitness evaluation (n_jobs parameter)
+- ✅ Comprehensive test coverage (20 tests passing)
+
+**Code References:**
+- `py_recipes/steps/genetic_selection.py` - StepSelectGeneticAlgorithm class
+- `py_recipes/recipe.py:937-1064` - Recipe method implementation
+- `tests/test_recipes/test_genetic_selection.py` - 20 tests (all passing)
+- See `.claude_debugging/GENETIC_ALGORITHM_INTEGRATION_COMPLETE.md` for details
+
+**Next Steps:**
+- Update 6 affected notebooks (examples 23-28) to use new method
+- Verify notebooks execute without errors
+- Clean up old documentation referencing "not integrated" status
+
 ## Project Status and Planning
 
-**Current Status:** All Issues Complete (1-8), 782+ Tests Passing, WorkflowSet Grouped Modeling COMPLETE
-**Last Updated:** 2025-11-11 (Latest: WorkflowSet grouped/panel modeling support)
-**Total Tests Passing:** 782+ tests across all packages (762 base + 20 WorkflowSet grouped)
+**Current Status:** All Issues Complete (1-8), 802+ Tests Passing, Genetic Algorithm Fully Integrated
+**Last Updated:** 2025-11-15 (Latest: Genetic algorithm Recipe integration complete)
+**Total Tests Passing:** 802+ tests across all packages (762 base + 20 WorkflowSet + 20 genetic algorithm)
 **Total Models:** 23 production-ready models (21 fitted + 1 hybrid + 1 manual)
 **Total Engines:** 30+ engine implementations
 **All Issues Completed:** ✅ Issues 1-8 from backlog
+**Recipe Steps:** 52 preprocessing steps (51 previous + 1 genetic algorithm)
+**Notebooks Status:** 5/11 ready to run, 6/11 need updating for new genetic algorithm API
 
-**Recent Enhancements (2025-11-11):**
+**Recent Enhancements (2025-11-15):**
+- ✅ **Genetic algorithm Recipe integration**: step_select_genetic_algorithm() fully integrated
+  - Added Recipe method for genetic feature selection
+  - Supports single-objective GA and multi-objective NSGA-II
+  - Statistical constraints (p-value, VIF, coefficient stability)
+  - Ensemble mode and warm start options
+  - 20 comprehensive tests (all passing)
+  - Code: `py_recipes/recipe.py:937-1064`, `py_recipes/steps/genetic_selection.py`
+- ✅ **Post-merge notebook fixes**: Fixed 4/4 fixable notebooks in `_md/` directory
+  - Recipe import errors resolved (step functions → methods)
+  - Column name fixes ('rsq' → 'r_squared', '.metric' → 'metric')
+  - Data path corrections for new directory structure
+  - Automated diagnostic and fix tools created
+  - Code: `.claude_debugging/diagnose_notebooks.py`, `.claude_debugging/fix_notebooks_v2.py`
+  - Docs: `.claude_debugging/NOTEBOOK_FIX_SUMMARY_2025_11_15.md`
+
+**Previous Enhancements (2025-11-11):**
 - ✅ **WorkflowSet grouped modeling**: `fit_nested()` and `fit_global()` for multi-model comparison across groups
   - Fit ALL workflows across ALL groups with single method call
   - `WorkflowSetNestedResults` with 5 key methods (collect_metrics, rank_results, extract_best_workflow, collect_outputs, autoplot)

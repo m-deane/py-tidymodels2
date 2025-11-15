@@ -423,6 +423,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_nested"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_global"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_global()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -584,13 +586,19 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_group_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
@@ -606,16 +614,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.recipe_prepped_without_outcome"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id8"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id9"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id10"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id11"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.is_global_fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.is_global_fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.group_col"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.group_col</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessed_data"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessed_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -644,6 +660,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
@@ -655,7 +673,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -669,6 +686,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_anova"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_anova()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_rf_importance"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_rf_importance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_mutual_info"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_mutual_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_roc_auc"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_roc_auc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_chisq"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_chisq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_shap"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_shap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_permutation"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_permutation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_genetic_algorithm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_genetic_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_splitwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_splitwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe_v2"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe_v2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_eix"><code class="docutils literal notranslate"><span class="pre">Recipe.step_eix()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
@@ -703,6 +732,37 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_discretiser"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_discretiser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_winsorizer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_winsorizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_outlier_trimmer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_outlier_trimmer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_features"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_smart_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_smart_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_psi"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_clean_anomalies"><code class="docutils literal notranslate"><span class="pre">Recipe.step_clean_anomalies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_deseasonalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_deseasonalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_detrend"><code class="docutils literal notranslate"><span class="pre">Recipe.step_detrend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_h_stat"><code class="docutils literal notranslate"><span class="pre">Recipe.step_h_stat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_best_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_best_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vif"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vif()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pvalue"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pvalue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stability"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stability()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lofo"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lofo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_granger"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_granger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stepwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stepwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_probe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lasso"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lasso()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_ridge"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_ridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_elastic_net"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_elastic_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_univariate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_univariate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_variance_threshold"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_variance_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_cointegration"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_cointegration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_seasonal"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_seasonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_fractional_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fractional_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_volatility_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_volatility_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_permutation_entropy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_permutation_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_weight_time_decay"><code class="docutils literal notranslate"><span class="pre">Recipe.step_weight_time_decay()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
 </ul>
@@ -845,9 +905,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_ids"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_ids</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -1069,8 +1134,9 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">replace</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Tuple</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">py_hardhat</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoldedData</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">py_parsnip.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_infer_date_column</span>
@@ -1204,13 +1270,14 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="s2">&quot;fit_raw&quot;</span><span class="p">):</span>
             <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 
-            <span class="c1"># Check if fit_raw accepts date_col parameter</span>
+            <span class="c1"># Check if fit_raw accepts optional parameters</span>
             <span class="n">fit_raw_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">fit_raw</span><span class="p">)</span>
             <span class="n">accepts_date_col</span> <span class="o">=</span> <span class="s1">&#39;date_col&#39;</span> <span class="ow">in</span> <span class="n">fit_raw_signature</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">accepts_original_data</span> <span class="o">=</span> <span class="s1">&#39;original_training_data&#39;</span> <span class="ow">in</span> <span class="n">fit_raw_signature</span><span class="o">.</span><span class="n">parameters</span>
 
             <span class="c1"># Build kwargs for fit_raw</span>
             <span class="n">fit_raw_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="n">original_training_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">original_training_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">accepts_original_data</span><span class="p">:</span>
                 <span class="n">fit_raw_kwargs</span><span class="p">[</span><span class="s1">&#39;original_training_data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">original_training_data</span>
 
             <span class="c1"># Only infer and pass date_col if engine supports it</span>
@@ -1268,6 +1335,52 @@
                 <span class="c1"># Pass dict as original_training_data and minimal molded for formula</span>
                 <span class="n">fit_data</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">minimal_molded</span><span class="p">,</span> <span class="n">original_training_data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">formula</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Expand dot notation before molding (if present)</span>
+                <span class="c1"># This prevents datetime columns from being included, which causes</span>
+                <span class="c1"># patsy to treat them as categorical and fail on new dates in test data</span>
+                <span class="k">if</span> <span class="s1">&#39; . &#39;</span> <span class="ow">in</span> <span class="n">formula</span> <span class="ow">or</span> <span class="n">formula</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39; .&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39; ~ .&#39;</span> <span class="ow">in</span> <span class="n">formula</span><span class="p">:</span>
+                    <span class="c1"># Parse formula to extract outcome</span>
+                    <span class="k">if</span> <span class="s1">&#39;~&#39;</span> <span class="ow">in</span> <span class="n">formula</span><span class="p">:</span>
+                        <span class="n">outcome_str</span><span class="p">,</span> <span class="n">predictor_str</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">outcome_str</span> <span class="o">=</span> <span class="n">outcome_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="n">predictor_str</span> <span class="o">=</span> <span class="n">predictor_str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+                        <span class="c1"># Check if using dot notation</span>
+                        <span class="k">if</span> <span class="n">predictor_str</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">or</span> <span class="n">predictor_str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;. +&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39; + .&#39;</span> <span class="ow">in</span> <span class="n">predictor_str</span><span class="p">:</span>
+                            <span class="c1"># Expand dot notation to all columns except outcome and datetime</span>
+                            <span class="c1"># Get all columns except outcome</span>
+                            <span class="n">all_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span> <span class="o">!=</span> <span class="n">outcome_str</span><span class="p">]</span>
+
+                            <span class="c1"># Exclude datetime columns (they cause patsy categorical errors on new dates)</span>
+                            <span class="n">predictor_cols</span> <span class="o">=</span> <span class="p">[</span>
+                                <span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">all_cols</span>
+                                <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_datetime64_any_dtype</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+                            <span class="p">]</span>
+
+                            <span class="c1"># Handle different dot notation patterns</span>
+                            <span class="k">if</span> <span class="n">predictor_str</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+                                <span class="c1"># Pure dot notation: &quot;y ~ .&quot;</span>
+                                <span class="n">expanded_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome_str</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="s1">&#39; + &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">predictor_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">elif</span> <span class="n">predictor_str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;. +&#39;</span><span class="p">):</span>
+                                <span class="c1"># Dot notation with additions: &quot;y ~ . + I(x1*x2)&quot;</span>
+                                <span class="n">extra_terms</span> <span class="o">=</span> <span class="n">predictor_str</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>  <span class="c1"># Remove &quot;. +&quot;</span>
+                                <span class="k">if</span> <span class="n">predictor_cols</span><span class="p">:</span>
+                                    <span class="n">expanded_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome_str</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="s1">&#39; + &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">predictor_cols</span><span class="p">)</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="n">extra_terms</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">expanded_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome_str</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="n">extra_terms</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">elif</span> <span class="s1">&#39; + .&#39;</span> <span class="ow">in</span> <span class="n">predictor_str</span><span class="p">:</span>
+                                <span class="c1"># Additions before dot: &quot;y ~ x1 + .&quot;</span>
+                                <span class="n">prefix_terms</span> <span class="o">=</span> <span class="n">predictor_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; + .&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                <span class="k">if</span> <span class="n">predictor_cols</span><span class="p">:</span>
+                                    <span class="n">expanded_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome_str</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="n">prefix_terms</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="s1">&#39; + &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">predictor_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">expanded_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome_str</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="n">prefix_terms</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="c1"># Shouldn&#39;t reach here, but use original formula</span>
+                                <span class="n">expanded_formula</span> <span class="o">=</span> <span class="n">formula</span>
+
+                            <span class="n">formula</span> <span class="o">=</span> <span class="n">expanded_formula</span>
+
                 <span class="n">molded</span> <span class="o">=</span> <span class="n">mold</span><span class="p">(</span><span class="n">formula</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
                 <span class="c1"># Pass original_training_data to engine.fit() for datetime column extraction</span>
                 <span class="c1"># If not provided, use data itself (direct fit() calls have original data)</span>
@@ -1308,6 +1421,182 @@
             <span class="n">spec</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">fit_data</span><span class="o">=</span><span class="n">fit_data</span><span class="p">,</span>
             <span class="n">blueprint</span><span class="o">=</span><span class="n">blueprint</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ModelSpec.fit_nested">
+<a class="viewcode-back" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_nested">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_nested</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">original_training_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;NestedModelFit&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit separate models for each group in the data (panel/grouped modeling).</span>
+
+<span class="sd">        This method enables grouped/panel modeling directly on ModelSpec without</span>
+<span class="sd">        requiring a workflow wrapper. It fits one independent model per group value,</span>
+<span class="sd">        useful for:</span>
+<span class="sd">        - Multi-store sales forecasting (one model per store)</span>
+<span class="sd">        - Multi-product demand forecasting (one model per product)</span>
+<span class="sd">        - Multi-region time series (one model per region)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: Training data DataFrame with group column</span>
+<span class="sd">            formula: Model formula (e.g., &quot;y ~ x1 + x2&quot;)</span>
+<span class="sd">            group_col: Column name containing group identifiers</span>
+<span class="sd">            original_training_data: Original unpreprocessed training data (optional)</span>
+<span class="sd">            date_col: Optional date column name (for time series models)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            NestedModelFit containing dict of fitted models per group</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If group_col not in data</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; # Fit separate models for each store</span>
+<span class="sd">            &gt;&gt;&gt; spec = linear_reg()</span>
+<span class="sd">            &gt;&gt;&gt; nested_fit = spec.fit_nested(</span>
+<span class="sd">            ...     data,</span>
+<span class="sd">            ...     &quot;sales ~ date + price&quot;,</span>
+<span class="sd">            ...     group_col=&quot;store_id&quot;</span>
+<span class="sd">            ... )</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Predict for all groups</span>
+<span class="sd">            &gt;&gt;&gt; predictions = nested_fit.predict(test_data)</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Extract outputs with group column</span>
+<span class="sd">            &gt;&gt;&gt; outputs, coeffs, stats = nested_fit.extract_outputs()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Validate group column exists</span>
+        <span class="k">if</span> <span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get unique groups</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+        <span class="c1"># Warn if only one group</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">groups</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Only one group found in &#39;</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39;. Consider using fit() instead of fit_nested().&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Fit separate model for each group</span>
+        <span class="n">group_fits</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">group_train_data</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Store original training data per group</span>
+
+        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+            <span class="n">group_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="c1"># Store original group training data (before dropping group column)</span>
+            <span class="c1"># This preserves date column for later extraction</span>
+            <span class="n">group_train_data</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="c1"># For recursive models, set date as index if needed</span>
+            <span class="n">is_recursive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">==</span> <span class="s2">&quot;recursive_reg&quot;</span>
+            <span class="k">if</span> <span class="n">is_recursive</span> <span class="ow">and</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">group_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">group_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                <span class="c1"># Set date as index before removing group column (recursive models need this)</span>
+                <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">)</span>
+                <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">group_col</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Remove group column before fitting (it&#39;s not a predictor)</span>
+                <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">group_col</span><span class="p">])</span>
+
+            <span class="c1"># Fit this group&#39;s model</span>
+            <span class="n">group_fits</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+                <span class="n">group_data</span><span class="p">,</span>
+                <span class="n">formula</span><span class="p">,</span>
+                <span class="n">original_training_data</span><span class="o">=</span><span class="n">original_training_data</span><span class="p">,</span>
+                <span class="n">date_col</span><span class="o">=</span><span class="n">date_col</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">NestedModelFit</span><span class="p">(</span>
+            <span class="n">spec</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">group_col</span><span class="o">=</span><span class="n">group_col</span><span class="p">,</span>
+            <span class="n">group_fits</span><span class="o">=</span><span class="n">group_fits</span><span class="p">,</span>
+            <span class="n">formula</span><span class="o">=</span><span class="n">formula</span><span class="p">,</span>
+            <span class="n">group_train_data</span><span class="o">=</span><span class="n">group_train_data</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ModelSpec.fit_global">
+<a class="viewcode-back" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_global">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_global</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">original_training_data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">date_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ModelFit&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit a single global model using group as a feature.</span>
+
+<span class="sd">        This method fits one model using all groups together, with the group</span>
+<span class="sd">        column as an additional predictor. Useful when:</span>
+<span class="sd">        - Groups share common patterns</span>
+<span class="sd">        - Insufficient data per group for separate models</span>
+<span class="sd">        - Want to capture cross-group effects</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: Training data DataFrame with group column</span>
+<span class="sd">            formula: Model formula (e.g., &quot;sales ~ price + advertising&quot;)</span>
+<span class="sd">            group_col: Column name containing group identifiers (used as feature)</span>
+<span class="sd">            original_training_data: Original unpreprocessed training data (optional)</span>
+<span class="sd">            date_col: Optional date column name (for time series models)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ModelFit with group column included as predictor</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If group_col not in data or invalid formula format</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; # Fit single model using store_id as a feature</span>
+<span class="sd">            &gt;&gt;&gt; spec = linear_reg()</span>
+<span class="sd">            &gt;&gt;&gt; global_fit = spec.fit_global(</span>
+<span class="sd">            ...     data,</span>
+<span class="sd">            ...     &quot;sales ~ price + advertising&quot;,</span>
+<span class="sd">            ...     group_col=&quot;store_id&quot;</span>
+<span class="sd">            ... )</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Group column is automatically included as predictor</span>
+<span class="sd">            &gt;&gt;&gt; predictions = global_fit.predict(test_data)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Validate group column exists</span>
+        <span class="k">if</span> <span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Validate formula structure</span>
+        <span class="k">if</span> <span class="s1">&#39;~&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">formula</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid formula format: </span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2">. Formula must contain &#39;~&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Parse formula to add group column</span>
+        <span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span> <span class="o">=</span> <span class="n">formula</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">outcome</span> <span class="o">=</span> <span class="n">lhs</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">predictors</span> <span class="o">=</span> <span class="n">rhs</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="c1"># Check if group_col is already in the formula</span>
+        <span class="n">predictor_terms</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">predictors</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">group_col</span> <span class="ow">in</span> <span class="n">predictor_terms</span> <span class="ow">or</span> <span class="n">predictors</span> <span class="o">==</span> <span class="s2">&quot;.&quot;</span><span class="p">:</span>
+            <span class="c1"># group_col already in formula or using &quot;.&quot; notation (includes all columns)</span>
+            <span class="n">updated_formula</span> <span class="o">=</span> <span class="n">formula</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Add group_col explicitly</span>
+            <span class="n">updated_formula</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">outcome</span><span class="si">}</span><span class="s2"> ~ </span><span class="si">{</span><span class="n">predictors</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Fit with updated formula</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">updated_formula</span><span class="p">,</span>
+            <span class="n">original_training_data</span><span class="o">=</span><span class="n">original_training_data</span><span class="p">,</span>
+            <span class="n">date_col</span><span class="o">=</span><span class="n">date_col</span>
         <span class="p">)</span></div>
 </div>
 
@@ -1505,9 +1794,267 @@
         <span class="kn">from</span><span class="w"> </span><span class="nn">py_parsnip.engine_registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_engine</span>
 
         <span class="n">engine</span> <span class="o">=</span> <span class="n">get_engine</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">model_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">engine</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">engine</span><span class="o">.</span><span class="n">extract_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        <span class="n">outputs</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">extract_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="c1"># Reorder columns for consistent ordering: date first, then core columns</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">py_parsnip.utils.output_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">reorder_outputs_columns</span><span class="p">,</span>
+            <span class="n">reorder_coefficients_columns</span><span class="p">,</span>
+            <span class="n">reorder_stats_columns</span>
+        <span class="p">)</span>
+
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">reorder_outputs_columns</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">reorder_coefficients_columns</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">reorder_stats_columns</span><span class="p">(</span><span class="n">stats</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">stats</span></div>
 </div>
 
+
+
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">NestedModelFit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fitted model with separate fits for each group (panel/grouped modeling).</span>
+
+<span class="sd">    This class is parallel to NestedWorkflowFit but operates at the ModelSpec level,</span>
+<span class="sd">    enabling grouped/panel modeling without requiring workflow wrapper.</span>
+<span class="sd">    It holds multiple fitted models, one per group, while maintaining a unified interface.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        spec: Original ModelSpec specification</span>
+<span class="sd">        group_col: Column name containing group identifiers</span>
+<span class="sd">        group_fits: Dict mapping group values to ModelFit objects</span>
+<span class="sd">        formula: Formula used for fitting</span>
+<span class="sd">        group_train_data: Dict mapping group values to original training data (for date extraction)</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; spec = linear_reg()</span>
+<span class="sd">        &gt;&gt;&gt; nested_fit = spec.fit_nested(data, &quot;sales ~ date&quot;, group_col=&quot;store_id&quot;)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Predict for all groups</span>
+<span class="sd">        &gt;&gt;&gt; predictions = nested_fit.predict(test_data)</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Extract outputs with group column</span>
+<span class="sd">        &gt;&gt;&gt; outputs, coeffs, stats = nested_fit.extract_outputs()</span>
+<span class="sd">        &gt;&gt;&gt; print(outputs[[&quot;date&quot;, group_col, &quot;actuals&quot;, &quot;forecast&quot;]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">spec</span><span class="p">:</span> <span class="n">ModelSpec</span>
+    <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">group_fits</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">ModelFit</span><span class="p">]</span>
+    <span class="n">formula</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">group_train_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">new_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;numeric&quot;</span><span class="p">,</span> <span class="s2">&quot;class&quot;</span><span class="p">,</span> <span class="s2">&quot;prob&quot;</span><span class="p">,</span> <span class="s2">&quot;conf_int&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;numeric&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate predictions for all groups.</span>
+
+<span class="sd">        Automatically routes each row to the appropriate group model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_data: New data with group column</span>
+<span class="sd">            type: Prediction type (&quot;numeric&quot;, &quot;conf_int&quot;, &quot;pred_int&quot;, etc.)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame with predictions and group column</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If group_col not in new_data or no matching groups found</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; predictions = nested_fit.predict(test_data)</span>
+<span class="sd">            &gt;&gt;&gt; predictions = nested_fit.predict(test_data, type=&quot;conf_int&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">new_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in new_data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get predictions for each group</span>
+        <span class="n">all_predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">is_recursive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">model_type</span> <span class="o">==</span> <span class="s2">&quot;recursive_reg&quot;</span>
+
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">group_fit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_fits</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Filter data for this group</span>
+            <span class="n">group_data</span> <span class="o">=</span> <span class="n">new_data</span><span class="p">[</span><span class="n">new_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># Skip groups not in new_data</span>
+
+            <span class="c1"># For recursive models, set date as index if needed</span>
+            <span class="k">if</span> <span class="n">is_recursive</span> <span class="ow">and</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">group_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">group_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                <span class="c1"># Set date as index before removing group column (recursive models need this)</span>
+                <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">)</span>
+                <span class="n">group_data_no_group</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Remove group column before prediction</span>
+                <span class="n">group_data_no_group</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">])</span>
+
+            <span class="c1"># Get predictions</span>
+            <span class="n">group_preds</span> <span class="o">=</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">group_data_no_group</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">)</span>
+
+            <span class="c1"># Add group column back</span>
+            <span class="n">group_preds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">group</span>
+
+            <span class="n">all_predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group_preds</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_predictions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No matching groups found in new_data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Combine predictions from all groups</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_predictions</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">test_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">outcome_col</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;NestedModelFit&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate all group models on test data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            test_data: Test data with actual outcomes and group column</span>
+<span class="sd">            outcome_col: Name of outcome column (auto-detected if None)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Self for method chaining</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; nested_fit = spec.fit_nested(train, &quot;y ~ x&quot;, &quot;store_id&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; nested_fit = nested_fit.evaluate(test)</span>
+<span class="sd">            &gt;&gt;&gt; outputs, coeffs, stats = nested_fit.extract_outputs()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in test_data&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Evaluate each group model</span>
+        <span class="n">is_recursive</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">model_type</span> <span class="o">==</span> <span class="s2">&quot;recursive_reg&quot;</span>
+
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">group_fit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_fits</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Filter data for this group</span>
+            <span class="n">group_data</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="n">test_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># Skip groups not in test_data</span>
+
+            <span class="c1"># For recursive models, set date as index if needed</span>
+            <span class="k">if</span> <span class="n">is_recursive</span> <span class="ow">and</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">group_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">group_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                <span class="c1"># Set date as index before removing group column (recursive models need this)</span>
+                <span class="n">group_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">)</span>
+                <span class="n">group_data_no_group</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Remove group column before evaluation</span>
+                <span class="n">group_data_no_group</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">])</span>
+
+            <span class="c1"># Evaluate this group&#39;s model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">group_fits</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">group_data_no_group</span><span class="p">,</span> <span class="n">outcome_col</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">extract_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract comprehensive three-DataFrame outputs for all groups.</span>
+
+<span class="sd">        Combines outputs from all group models and adds group column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (outputs, coefficients, stats) DataFrames</span>
+<span class="sd">            - outputs: Includes group_col showing which group each row belongs to</span>
+<span class="sd">            - coefficients: Includes group_col</span>
+<span class="sd">            - stats: Includes group_col</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; outputs, coefficients, stats = nested_fit.extract_outputs()</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Filter to specific group</span>
+<span class="sd">            &gt;&gt;&gt; store_a_outputs = outputs[outputs[group_col] == &quot;A&quot;]</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Compare metrics across groups</span>
+<span class="sd">            &gt;&gt;&gt; test_rmse = stats[</span>
+<span class="sd">            ...     (stats[&quot;metric&quot;] == &quot;rmse&quot;) &amp;</span>
+<span class="sd">            ...     (stats[&quot;split&quot;] == &quot;test&quot;)</span>
+<span class="sd">            ... ][[group_col, &quot;value&quot;]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">all_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_coefficients</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_stats</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">group_fit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_fits</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Extract outputs for this group</span>
+            <span class="n">outputs</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">extract_outputs</span><span class="p">()</span>
+
+            <span class="c1"># Preserve date information if available</span>
+            <span class="c1"># This is needed for plot_forecast() to work</span>
+            <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="c1"># Make a copy to avoid SettingWithCopyWarning</span>
+                <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="c1"># Try to get training dates from stored original training data</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;group_train_data&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_train_data</span><span class="p">:</span>
+                    <span class="n">train_data_orig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_train_data</span><span class="p">[</span><span class="n">group</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">train_data_orig</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="n">train_dates</span> <span class="o">=</span> <span class="n">train_data_orig</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                        <span class="n">train_mask</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;split&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span>
+                        <span class="k">if</span> <span class="n">train_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_dates</span><span class="p">):</span>
+                            <span class="n">outputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_mask</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_dates</span>
+                <span class="c1"># Fallback: Try to get date from the fit&#39;s molded data (if date was used as index)</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">group_fit</span><span class="p">,</span> <span class="s1">&#39;molded&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">molded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">molded_outcomes</span> <span class="o">=</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">molded</span><span class="o">.</span><span class="n">outcomes</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">molded_outcomes</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">molded_outcomes</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                        <span class="c1"># Date is in the outcomes index</span>
+                        <span class="n">date_index</span> <span class="o">=</span> <span class="n">molded_outcomes</span><span class="o">.</span><span class="n">index</span>
+                        <span class="n">train_mask</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;split&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span>
+                        <span class="k">if</span> <span class="n">train_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">date_index</span><span class="p">):</span>
+                            <span class="n">outputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_mask</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_index</span><span class="o">.</span><span class="n">values</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">molded_outcomes</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">molded_outcomes</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                        <span class="c1"># Outcomes is a Series with date index</span>
+                        <span class="n">date_index</span> <span class="o">=</span> <span class="n">molded_outcomes</span><span class="o">.</span><span class="n">index</span>
+                        <span class="n">train_mask</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;split&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span>
+                        <span class="k">if</span> <span class="n">train_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">date_index</span><span class="p">):</span>
+                            <span class="n">outputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_mask</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">date_index</span><span class="o">.</span><span class="n">values</span>
+
+                <span class="c1"># Try to get test dates from evaluation data</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">group_fit</span><span class="p">,</span> <span class="s1">&#39;evaluation_data&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;test_data&quot;</span> <span class="ow">in</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">evaluation_data</span><span class="p">:</span>
+                    <span class="n">test_data</span> <span class="o">=</span> <span class="n">group_fit</span><span class="o">.</span><span class="n">evaluation_data</span><span class="p">[</span><span class="s2">&quot;test_data&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="n">test_dates</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                        <span class="n">test_mask</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;split&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span>
+                        <span class="k">if</span> <span class="n">test_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_dates</span><span class="p">):</span>
+                            <span class="n">outputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test_mask</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_dates</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">):</span>
+                        <span class="n">test_dates</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span>
+                        <span class="n">test_mask</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;split&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;test&#39;</span>
+                        <span class="k">if</span> <span class="n">test_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_dates</span><span class="p">):</span>
+                            <span class="n">outputs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">test_mask</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_dates</span>
+
+            <span class="c1"># Add group column</span>
+            <span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">group</span>
+            <span class="n">coefficients</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">group</span>
+            <span class="n">stats</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">group</span>
+
+            <span class="n">all_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+            <span class="n">all_coefficients</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span>
+            <span class="n">all_stats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
+
+        <span class="c1"># Combine all groups (preserve dates if present)</span>
+        <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_outputs</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">combined_coefficients</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_coefficients</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">combined_stats</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">all_stats</span><span class="p">,</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Reorder columns for consistent ordering: date first, group second, then core columns</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">py_parsnip.utils.output_ordering</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+            <span class="n">reorder_outputs_columns</span><span class="p">,</span>
+            <span class="n">reorder_coefficients_columns</span><span class="p">,</span>
+            <span class="n">reorder_stats_columns</span>
+        <span class="p">)</span>
+
+        <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">reorder_outputs_columns</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">)</span>
+        <span class="n">combined_coefficients</span> <span class="o">=</span> <span class="n">reorder_coefficients_columns</span><span class="p">(</span><span class="n">combined_coefficients</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">)</span>
+        <span class="n">combined_stats</span> <span class="o">=</span> <span class="n">reorder_stats_columns</span><span class="p">(</span><span class="n">combined_stats</span><span class="p">,</span> <span class="n">group_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">group_col</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">combined_outputs</span><span class="p">,</span> <span class="n">combined_coefficients</span><span class="p">,</span> <span class="n">combined_stats</span>
 </pre></div>
 
            </div>

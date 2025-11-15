@@ -934,6 +934,135 @@ class Recipe:
             random_state=random_state, n_jobs=n_jobs
         ))
 
+    def step_select_genetic_algorithm(
+        self,
+        outcome: str,
+        model: Any,
+        columns: Optional[Union[List[str], Callable]] = None,
+        metric: str = "rmse",
+        maximize: bool = False,
+        top_n: Optional[int] = None,
+        constraints: Optional[Dict[str, Dict[str, Any]]] = None,
+        mandatory_features: Optional[List[str]] = None,
+        forbidden_features: Optional[List[str]] = None,
+        population_size: int = 50,
+        generations: int = 100,
+        mutation_rate: float = 0.1,
+        crossover_rate: float = 0.8,
+        cv_folds: int = 5,
+        use_nsga2: bool = False,
+        nsga2_objectives: Optional[List[str]] = None,
+        random_state: Optional[int] = None,
+        verbose: bool = False,
+        **kwargs
+    ) -> "Recipe":
+        """
+        Select features using genetic algorithm optimization.
+
+        Uses a genetic algorithm to find an optimal subset of features that
+        maximizes model performance. Supports multi-objective optimization
+        via NSGA-II for balancing performance, sparsity, and cost.
+
+        Args:
+            outcome: Outcome column name
+            model: Parsnip model specification for fitness evaluation
+            columns: Columns to consider (None = all numeric predictors)
+            metric: Metric to optimize ('rmse', 'mae', 'r_squared', etc.)
+            maximize: Whether to maximize metric (True for R²) or minimize (False for RMSE)
+            top_n: Number of features to select (None = GA determines)
+            constraints: Statistical constraints dict (p_value, vif, coef_stability, etc.)
+            mandatory_features: Features that must be included
+            forbidden_features: Features that must not be included
+            population_size: GA population size (default: 50)
+            generations: Maximum number of generations (default: 100)
+            mutation_rate: Mutation probability (default: 0.1)
+            crossover_rate: Crossover probability (default: 0.8)
+            cv_folds: Cross-validation folds for fitness evaluation (default: 5)
+            use_nsga2: Use multi-objective NSGA-II algorithm (default: False)
+            nsga2_objectives: Objectives for NSGA-II (['performance', 'sparsity', 'cost'])
+            random_state: Random seed for reproducibility
+            verbose: Print GA progress (default: False)
+            **kwargs: Additional parameters (elitism, tournament_size, n_jobs, etc.)
+
+        Returns:
+            Self for method chaining
+
+        Examples:
+            >>> from py_recipes import recipe
+            >>> from py_parsnip import linear_reg
+            >>>
+            >>> # Basic usage: Select top 10 features optimizing RMSE
+            >>> rec = recipe(data, "y ~ .").step_select_genetic_algorithm(
+            ...     outcome='y',
+            ...     model=linear_reg(),
+            ...     metric='rmse',
+            ...     top_n=10,
+            ...     generations=50
+            ... )
+            >>>
+            >>> # With statistical constraints
+            >>> rec = recipe(data, "y ~ .").step_select_genetic_algorithm(
+            ...     outcome='y',
+            ...     model=linear_reg(),
+            ...     metric='rmse',
+            ...     top_n=15,
+            ...     constraints={
+            ...         'p_value': {'max': 0.05, 'method': 'bonferroni'},
+            ...         'vif': {'max': 5.0}
+            ...     },
+            ...     cv_folds=5,
+            ...     verbose=True
+            ... )
+            >>>
+            >>> # Multi-objective optimization with NSGA-II
+            >>> rec = recipe(data, "y ~ .").step_select_genetic_algorithm(
+            ...     outcome='y',
+            ...     model=linear_reg(),
+            ...     use_nsga2=True,
+            ...     nsga2_objectives=['performance', 'sparsity'],
+            ...     generations=100
+            ... )
+
+        Notes:
+            - Computationally expensive; uses CV for each chromosome evaluation
+            - Supports parallel execution via n_jobs parameter
+            - For large feature sets, consider using warm_start='importance'
+            - NSGA-II finds Pareto-optimal trade-offs between objectives
+        """
+        from py_recipes.steps.genetic_selection import StepSelectGeneticAlgorithm
+
+        # Set defaults for optional parameters
+        if constraints is None:
+            constraints = {}
+        if mandatory_features is None:
+            mandatory_features = []
+        if forbidden_features is None:
+            forbidden_features = []
+        if nsga2_objectives is None:
+            nsga2_objectives = ["performance", "sparsity"]
+
+        return self.add_step(StepSelectGeneticAlgorithm(
+            outcome=outcome,
+            model=model,
+            columns=columns,
+            metric=metric,
+            maximize=maximize,
+            top_n=top_n,
+            constraints=constraints,
+            mandatory_features=mandatory_features,
+            forbidden_features=forbidden_features,
+            population_size=population_size,
+            generations=generations,
+            mutation_rate=mutation_rate,
+            crossover_rate=crossover_rate,
+            cv_folds=cv_folds,
+            use_nsga2=use_nsga2,
+            nsga2_objectives=nsga2_objectives,
+            random_state=random_state,
+            verbose=verbose,
+            **kwargs
+        ))
+
     def step_splitwise(
         self,
         outcome: str,

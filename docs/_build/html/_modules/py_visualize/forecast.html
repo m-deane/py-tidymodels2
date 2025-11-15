@@ -423,6 +423,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_nested"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_global"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_global()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -584,13 +586,19 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_group_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
@@ -606,16 +614,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.recipe_prepped_without_outcome"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id8"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id9"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id10"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id11"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.is_global_fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.is_global_fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.group_col"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.group_col</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessed_data"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessed_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -644,6 +660,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
@@ -655,7 +673,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -669,6 +686,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_anova"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_anova()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_rf_importance"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_rf_importance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_mutual_info"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_mutual_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_roc_auc"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_roc_auc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_chisq"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_chisq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_shap"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_shap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_permutation"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_permutation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_genetic_algorithm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_genetic_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_splitwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_splitwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe_v2"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe_v2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_eix"><code class="docutils literal notranslate"><span class="pre">Recipe.step_eix()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
@@ -703,6 +732,37 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_discretiser"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_discretiser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_winsorizer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_winsorizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_outlier_trimmer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_outlier_trimmer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_features"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_smart_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_smart_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_psi"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_clean_anomalies"><code class="docutils literal notranslate"><span class="pre">Recipe.step_clean_anomalies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_deseasonalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_deseasonalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_detrend"><code class="docutils literal notranslate"><span class="pre">Recipe.step_detrend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_h_stat"><code class="docutils literal notranslate"><span class="pre">Recipe.step_h_stat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_best_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_best_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vif"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vif()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pvalue"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pvalue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stability"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stability()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lofo"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lofo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_granger"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_granger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stepwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stepwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_probe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lasso"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lasso()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_ridge"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_ridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_elastic_net"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_elastic_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_univariate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_univariate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_variance_threshold"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_variance_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_cointegration"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_cointegration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_seasonal"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_seasonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_fractional_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fractional_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_volatility_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_volatility_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_permutation_entropy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_permutation_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_weight_time_decay"><code class="docutils literal notranslate"><span class="pre">Recipe.step_weight_time_decay()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
 </ul>
@@ -845,9 +905,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_ids"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_ids</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -1080,8 +1145,8 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">go</span><span class="o">.</span><span class="n">Figure</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Create interactive forecast plot with actual vs predicted values.</span>
 
-<span class="sd">    Displays training data, fitted values, and forecasts (if available) with</span>
-<span class="sd">    optional prediction intervals.</span>
+<span class="sd">    Displays actuals as one continuous line, fitted values split by train/test,</span>
+<span class="sd">    and optional prediction intervals.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1120,29 +1185,62 @@
     <span class="c1"># Extract outputs from fit</span>
     <span class="n">outputs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">extract_outputs</span><span class="p">()</span>
 
-    <span class="c1"># Check if this is a nested fit (has group column)</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">py_workflows.workflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedWorkflowFit</span>
-    <span class="n">is_nested</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="n">NestedWorkflowFit</span><span class="p">)</span>
+    <span class="c1"># Detect group column for grouped plotting</span>
+    <span class="c1"># Check if outputs has a group column with multiple groups</span>
+    <span class="n">group_col</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="n">is_nested</span><span class="p">:</span>
+    <span class="c1"># Priority: 1) fit.group_col from nested fits, 2) Standard &#39;group&#39; column with multiple values</span>
+    <span class="c1"># Check fit.group_col first (for NestedWorkflowFit where group_col preserves original name)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span> <span class="s1">&#39;group_col&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">fit</span><span class="o">.</span><span class="n">group_col</span> <span class="ow">and</span> <span class="n">fit</span><span class="o">.</span><span class="n">group_col</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># Nested fits may have custom group column name (e.g., &#39;country&#39;, &#39;region&#39;)</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="n">fit</span><span class="o">.</span><span class="n">group_col</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">group_col</span>
+    <span class="c1"># Check standard &#39;group&#39; column (for WorkflowFit with fit_global)</span>
+    <span class="k">elif</span> <span class="s1">&#39;group&#39;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># Check if there are multiple groups (not just &#39;global&#39;)</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;group&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="s1">&#39;group&#39;</span>
+    <span class="c1"># Fallback: Check for common group column names</span>
+    <span class="k">elif</span> <span class="s1">&#39;country&#39;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;country&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="s1">&#39;country&#39;</span>
+    <span class="k">elif</span> <span class="s1">&#39;region&#39;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;region&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="s1">&#39;region&#39;</span>
+    <span class="k">elif</span> <span class="s1">&#39;store&#39;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;store&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="s1">&#39;store&#39;</span>
+    <span class="k">elif</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">n_groups</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_groups</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">group_col</span> <span class="o">=</span> <span class="s1">&#39;id&#39;</span>
+
+    <span class="c1"># Use grouped plotting if group column exists with multiple groups</span>
+    <span class="k">if</span> <span class="n">group_col</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_plot_forecast_nested</span><span class="p">(</span>
             <span class="n">outputs</span><span class="p">,</span>
-            <span class="n">group_col</span><span class="o">=</span><span class="n">fit</span><span class="o">.</span><span class="n">group_col</span><span class="p">,</span>
+            <span class="n">group_col</span><span class="o">=</span><span class="n">group_col</span><span class="p">,</span>
             <span class="n">prediction_intervals</span><span class="o">=</span><span class="n">prediction_intervals</span><span class="p">,</span>
             <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
             <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
             <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
             <span class="n">show_legend</span><span class="o">=</span><span class="n">show_legend</span>
         <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_plot_forecast_single</span><span class="p">(</span>
-            <span class="n">outputs</span><span class="p">,</span>
-            <span class="n">prediction_intervals</span><span class="o">=</span><span class="n">prediction_intervals</span><span class="p">,</span>
-            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
-            <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
-            <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
-            <span class="n">show_legend</span><span class="o">=</span><span class="n">show_legend</span>
-        <span class="p">)</span></div>
+
+    <span class="c1"># Default to single plot</span>
+    <span class="k">return</span> <span class="n">_plot_forecast_single</span><span class="p">(</span>
+        <span class="n">outputs</span><span class="p">,</span>
+        <span class="n">prediction_intervals</span><span class="o">=</span><span class="n">prediction_intervals</span><span class="p">,</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
+        <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
+        <span class="n">show_legend</span><span class="o">=</span><span class="n">show_legend</span>
+    <span class="p">)</span></div>
 
 
 
@@ -1162,46 +1260,48 @@
     <span class="n">test_data</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;test&quot;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
     <span class="c1"># Determine x-axis (date or index)</span>
-    <span class="n">x_col</span> <span class="o">=</span> <span class="s2">&quot;date&quot;</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">outputs</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">outputs</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">train_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">train_data</span><span class="o">.</span><span class="n">index</span>
+    <span class="n">x_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">(</span><span class="n">test_data</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="c1"># Training data (actuals)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">x_train</span> <span class="o">=</span> <span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">train_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">train_data</span><span class="o">.</span><span class="n">index</span>
+    <span class="c1"># 1. ACTUALS - One continuous line (train + test)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Combine train and test actuals</span>
+        <span class="k">if</span> <span class="n">x_test</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Check if x values are Series or Index</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_test</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                <span class="n">x_all</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">x_train</span><span class="p">,</span> <span class="n">x_test</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># For Index objects, convert to list and concatenate</span>
+                <span class="n">x_all</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_test</span><span class="p">)</span>
+            <span class="n">y_all</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_all</span> <span class="o">=</span> <span class="n">x_train</span>
+            <span class="n">y_all</span> <span class="o">=</span> <span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">]</span>
+
         <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
-            <span class="n">y</span><span class="o">=</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Training Data&quot;</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">x_all</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">y_all</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Actuals&quot;</span><span class="p">,</span>
             <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1f77b4&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
         <span class="p">))</span>
 
-        <span class="c1"># Fitted values (training)</span>
+    <span class="c1"># 2. FITTED VALUES (TRAIN) - Orange dashed</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
             <span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
             <span class="n">y</span><span class="o">=</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;fitted&quot;</span><span class="p">],</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Fitted Values&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Fitted (Train)&quot;</span><span class="p">,</span>
             <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
-            <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7f0e&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dot&quot;</span><span class="p">)</span>
+            <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7f0e&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">)</span>
         <span class="p">))</span>
 
-    <span class="c1"># Test data (actuals and forecast)</span>
+    <span class="c1"># 3. FITTED VALUES (TEST) - Red dashed</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">x_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">test_data</span><span class="o">.</span><span class="n">index</span>
-
-        <span class="c1"># Test actuals</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
             <span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
-            <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Test Data&quot;</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
-            <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#2ca02c&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="p">))</span>
-
-        <span class="c1"># Forecast</span>
-        <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
-            <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;forecast&quot;</span><span class="p">],</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Forecast&quot;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;fitted&quot;</span><span class="p">],</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Fitted (Test)&quot;</span><span class="p">,</span>
             <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
             <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#d62728&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">)</span>
         <span class="p">))</span>
@@ -1276,58 +1376,60 @@
         <span class="n">group_data</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="n">outputs</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
         <span class="c1"># Filter by split</span>
-        <span class="n">train_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="p">[</span><span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">]</span>
-        <span class="n">test_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="p">[</span><span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;test&quot;</span> <span class="ow">in</span> <span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="p">[</span><span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="n">group_data</span><span class="p">[</span><span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;test&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="s2">&quot;test&quot;</span> <span class="ow">in</span> <span class="n">group_data</span><span class="p">[</span><span class="s2">&quot;split&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
         <span class="c1"># Determine x-axis</span>
         <span class="n">x_train</span> <span class="o">=</span> <span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">train_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">train_data</span><span class="o">.</span><span class="n">index</span>
-        <span class="n">x_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">(</span><span class="n">test_data</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="n">x_test</span> <span class="o">=</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">(</span><span class="n">test_data</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
 
-        <span class="c1"># Training data</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># Actuals</span>
+        <span class="c1"># 1. ACTUALS - One continuous line (train + test)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Combine train and test actuals</span>
+            <span class="k">if</span> <span class="n">x_test</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># Check if x values are Series or Index</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_test</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+                    <span class="n">x_all</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">x_train</span><span class="p">,</span> <span class="n">x_test</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># For Index objects, convert to list and concatenate</span>
+                    <span class="n">x_all</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">x_test</span><span class="p">)</span>
+                <span class="n">y_all</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span> <span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">]])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_all</span> <span class="o">=</span> <span class="n">x_train</span>
+                <span class="n">y_all</span> <span class="o">=</span> <span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">]</span>
+
             <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
-                <span class="n">y</span><span class="o">=</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span>
-                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Training (</span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">x_all</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">y_all</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Actuals&quot;</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
                 <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1f77b4&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
                 <span class="n">showlegend</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Only show legend for first group</span>
             <span class="p">),</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-            <span class="c1"># Fitted</span>
+        <span class="c1"># 2. FITTED VALUES (TRAIN) - Orange dashed</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
                 <span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
                 <span class="n">y</span><span class="o">=</span><span class="n">train_data</span><span class="p">[</span><span class="s2">&quot;fitted&quot;</span><span class="p">],</span>
-                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Fitted (</span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Fitted (Train)&quot;</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
-                <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7f0e&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dot&quot;</span><span class="p">),</span>
+                <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#ff7f0e&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">),</span>
                 <span class="n">showlegend</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
             <span class="p">),</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># Test data</span>
+        <span class="c1"># 3. FITTED VALUES (TEST) - Red dashed</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c1"># Actuals</span>
             <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
                 <span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
-                <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;actuals&quot;</span><span class="p">],</span>
-                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Test (</span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
-                <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#2ca02c&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
-                <span class="n">showlegend</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="p">),</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="c1"># Forecast</span>
-            <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>
-                <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;forecast&quot;</span><span class="p">],</span>
-                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Forecast (</span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">test_data</span><span class="p">[</span><span class="s2">&quot;fitted&quot;</span><span class="p">],</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Fitted (Test)&quot;</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
                 <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#d62728&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dash</span><span class="o">=</span><span class="s2">&quot;dash&quot;</span><span class="p">),</span>
                 <span class="n">showlegend</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
             <span class="p">),</span> <span class="n">row</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-            <span class="c1"># Prediction intervals</span>
+            <span class="c1"># 4. Prediction intervals (if available)</span>
             <span class="k">if</span> <span class="n">prediction_intervals</span> <span class="ow">and</span> <span class="s2">&quot;.pred_lower&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;.pred_upper&quot;</span> <span class="ow">in</span> <span class="n">test_data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
                 <span class="n">fig</span><span class="o">.</span><span class="n">add_trace</span><span class="p">(</span><span class="n">go</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span>
                     <span class="n">x</span><span class="o">=</span><span class="n">x_test</span><span class="p">,</span>

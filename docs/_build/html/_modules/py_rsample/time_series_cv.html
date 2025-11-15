@@ -423,6 +423,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_mode"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_mode()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.set_args"><code class="docutils literal notranslate"><span class="pre">ModelSpec.set_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_nested"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.fit_global"><code class="docutils literal notranslate"><span class="pre">ModelSpec.fit_global()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/parsnip.html#py_parsnip.ModelSpec.__init__"><code class="docutils literal notranslate"><span class="pre">ModelSpec.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -584,13 +586,19 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.spec"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.post"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.case_weights"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id0"><code class="docutils literal notranslate"><span class="pre">Workflow.preprocessor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id1"><code class="docutils literal notranslate"><span class="pre">Workflow.spec</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id2"><code class="docutils literal notranslate"><span class="pre">Workflow.post</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id3"><code class="docutils literal notranslate"><span class="pre">Workflow.case_weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">Workflow.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">Workflow.model_group_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.add_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_recipe"><code class="docutils literal notranslate"><span class="pre">Workflow.add_recipe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.add_model_group_name"><code class="docutils literal notranslate"><span class="pre">Workflow.add_model_group_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_formula()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.remove_model"><code class="docutils literal notranslate"><span class="pre">Workflow.remove_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.Workflow.update_formula"><code class="docutils literal notranslate"><span class="pre">Workflow.update_formula()</span></code></a></li>
@@ -606,16 +614,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.pre"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.post"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id4"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id5"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.recipe_prepped_without_outcome"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id6"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.workflow</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id7"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.pre</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id8"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id9"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.post</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id10"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.formula</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#id11"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.recipe_prepped_without_outcome</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.is_global_fit"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.is_global_fit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.group_col"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.group_col</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.predict"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.predict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.evaluate"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.evaluate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_fit_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_fit_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessor"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_spec_parsnip"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_spec_parsnip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_outputs"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_outputs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_formula"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_formula()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.extract_preprocessed_data"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.extract_preprocessed_data()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflows.html#py_workflows.WorkflowFit.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowFit.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -644,6 +660,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id1"><code class="docutils literal notranslate"><span class="pre">Recipe.template</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#id2"><code class="docutils literal notranslate"><span class="pre">Recipe.roles</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.add_step"><code class="docutils literal notranslate"><span class="pre">Recipe.add_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_normalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_normalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dummy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dummy()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_impute_mean"><code class="docutils literal notranslate"><span class="pre">Recipe.step_impute_mean()</span></code></a></li>
@@ -655,7 +673,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rolling"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rolling()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_date"><code class="docutils literal notranslate"><span class="pre">Recipe.step_date()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pca"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pca()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_corr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_log"><code class="docutils literal notranslate"><span class="pre">Recipe.step_log()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_sqrt"><code class="docutils literal notranslate"><span class="pre">Recipe.step_sqrt()</span></code></a></li>
@@ -669,6 +686,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_nzv"><code class="docutils literal notranslate"><span class="pre">Recipe.step_nzv()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_lincomb"><code class="docutils literal notranslate"><span class="pre">Recipe.step_lincomb()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_missing"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_missing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_anova"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_anova()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_rf_importance"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_rf_importance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_mutual_info"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_mutual_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_roc_auc"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_roc_auc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_filter_chisq"><code class="docutils literal notranslate"><span class="pre">Recipe.step_filter_chisq()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_shap"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_shap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_permutation"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_permutation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_genetic_algorithm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_genetic_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_splitwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_splitwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_safe_v2"><code class="docutils literal notranslate"><span class="pre">Recipe.step_safe_v2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_eix"><code class="docutils literal notranslate"><span class="pre">Recipe.step_eix()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_naomit"><code class="docutils literal notranslate"><span class="pre">Recipe.step_naomit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_other"><code class="docutils literal notranslate"><span class="pre">Recipe.step_other()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_novel"><code class="docutils literal notranslate"><span class="pre">Recipe.step_novel()</span></code></a></li>
@@ -703,6 +732,37 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vip"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vip()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_boruta"><code class="docutils literal notranslate"><span class="pre">Recipe.step_boruta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_rfe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_rfe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_discretiser"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_discretiser()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_winsorizer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_winsorizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_outlier_trimmer"><code class="docutils literal notranslate"><span class="pre">Recipe.step_outlier_trimmer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_dt_features"><code class="docutils literal notranslate"><span class="pre">Recipe.step_dt_features()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_smart_corr"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_smart_corr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_psi"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_clean_anomalies"><code class="docutils literal notranslate"><span class="pre">Recipe.step_clean_anomalies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_deseasonalize"><code class="docutils literal notranslate"><span class="pre">Recipe.step_deseasonalize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_detrend"><code class="docutils literal notranslate"><span class="pre">Recipe.step_detrend()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_h_stat"><code class="docutils literal notranslate"><span class="pre">Recipe.step_h_stat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_best_lag"><code class="docutils literal notranslate"><span class="pre">Recipe.step_best_lag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_vif"><code class="docutils literal notranslate"><span class="pre">Recipe.step_vif()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_pvalue"><code class="docutils literal notranslate"><span class="pre">Recipe.step_pvalue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stability"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stability()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lofo"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lofo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_granger"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_granger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stepwise"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stepwise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_probe"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_lasso"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_lasso()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_ridge"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_ridge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_elastic_net"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_elastic_net()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_univariate"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_univariate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_variance_threshold"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_variance_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_stationary"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_stationary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_cointegration"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_cointegration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_select_seasonal"><code class="docutils literal notranslate"><span class="pre">Recipe.step_select_seasonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_fractional_diff"><code class="docutils literal notranslate"><span class="pre">Recipe.step_fractional_diff()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_volatility_ewm"><code class="docutils literal notranslate"><span class="pre">Recipe.step_volatility_ewm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_permutation_entropy"><code class="docutils literal notranslate"><span class="pre">Recipe.step_permutation_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.step_weight_time_decay"><code class="docutils literal notranslate"><span class="pre">Recipe.step_weight_time_decay()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.prep"><code class="docutils literal notranslate"><span class="pre">Recipe.prep()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/recipes.html#py_recipes.Recipe.__init__"><code class="docutils literal notranslate"><span class="pre">Recipe.__init__()</span></code></a></li>
 </ul>
@@ -845,9 +905,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__len__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__len__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__iter__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__iter__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__getitem__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_ids"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_ids</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.workflow_map"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.workflow_map()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.tune_grid"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.tune_grid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_nested_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_nested_resamples()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.fit_global_resamples"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.fit_global_resamples()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/workflowsets.html#py_workflowsets.WorkflowSet.__init__"><code class="docutils literal notranslate"><span class="pre">WorkflowSet.__init__()</span></code></a></li>
 </ul>
 </li>
@@ -1060,9 +1125,10 @@
 <span class="sd">Time series cross-validation with rolling and expanding windows</span>
 
 <span class="sd">Provides time_series_cv() for creating multiple train/test folds for time series validation.</span>
+<span class="sd">Also provides time_series_nested_cv() for group-aware CV splits.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
@@ -1112,6 +1178,7 @@
         <span class="n">skip</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">cumulative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">lag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">slice_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize time series cross-validation.</span>
@@ -1127,6 +1194,7 @@
 <span class="sd">            skip: Gap between consecutive folds (default 0 = no gap)</span>
 <span class="sd">            cumulative: If True, use expanding window; if False, use rolling window</span>
 <span class="sd">            lag: Gap between train and test (forecast horizon)</span>
+<span class="sd">            slice_limit: Maximum number of folds to create (default None = all folds)</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If parameters are invalid</span>
@@ -1134,6 +1202,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">date_column</span> <span class="o">=</span> <span class="n">date_column</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cumulative</span> <span class="o">=</span> <span class="n">cumulative</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slice_limit</span> <span class="o">=</span> <span class="n">slice_limit</span>
 
         <span class="c1"># Validate date column</span>
         <span class="k">if</span> <span class="n">date_column</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
@@ -1224,6 +1293,10 @@
                 <span class="sa">f</span><span class="s2">&quot;have </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> rows&quot;</span>
             <span class="p">)</span>
 
+        <span class="c1"># Limit number of splits if requested</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">slice_limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">splits</span> <span class="o">=</span> <span class="n">splits</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">slice_limit</span><span class="p">]</span>
+
         <span class="k">return</span> <span class="n">splits</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1257,6 +1330,7 @@
     <span class="n">skip</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">cumulative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">lag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">slice_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TimeSeriesCV</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create time series cross-validation splits.</span>
@@ -1276,6 +1350,7 @@
 <span class="sd">        skip: Gap between consecutive folds (default 0)</span>
 <span class="sd">        cumulative: If True, use expanding window; if False, use rolling window</span>
 <span class="sd">        lag: Gap between train and test (forecast horizon)</span>
+<span class="sd">        slice_limit: Maximum number of folds to create (default None = all folds)</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TimeSeriesCV object (iterable of RSplit objects)</span>
@@ -1320,8 +1395,234 @@
         <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">,</span>
         <span class="n">cumulative</span><span class="o">=</span><span class="n">cumulative</span><span class="p">,</span>
         <span class="n">lag</span><span class="o">=</span><span class="n">lag</span><span class="p">,</span>
+        <span class="n">slice_limit</span><span class="o">=</span><span class="n">slice_limit</span><span class="p">,</span>
     <span class="p">)</span></div>
 
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">time_series_nested_cv</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">date_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">initial</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">],</span>
+    <span class="n">assess</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">],</span>
+    <span class="n">skip</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">cumulative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">lag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">slice_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TimeSeriesCV</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create time series cross-validation splits per group (group-aware CV).</span>
+
+<span class="sd">    This is a convenience function that creates separate time series CV splits</span>
+<span class="sd">    for each unique value in the group column. Each group gets its own CV splits</span>
+<span class="sd">    based on that group&#39;s data. Designed to work seamlessly with</span>
+<span class="sd">    WorkflowSet.fit_nested_resamples().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame with time series data</span>
+<span class="sd">        group_col: Column name identifying groups (e.g., &#39;country&#39;, &#39;store_id&#39;)</span>
+<span class="sd">        date_column: Name of date column</span>
+<span class="sd">        initial: Initial training period size</span>
+<span class="sd">            - int: Number of rows</span>
+<span class="sd">            - str: Period like &quot;2 years&quot;, &quot;6 months&quot;</span>
+<span class="sd">            - Timedelta: pandas Timedelta</span>
+<span class="sd">        assess: Assessment (test) period size</span>
+<span class="sd">        skip: Gap between consecutive folds (default 0)</span>
+<span class="sd">        cumulative: If True, use expanding window; if False, use rolling window</span>
+<span class="sd">        lag: Gap between train and test (forecast horizon)</span>
+<span class="sd">        slice_limit: Maximum number of folds per group (default None = all folds)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary mapping group names to TimeSeriesCV objects</span>
+<span class="sd">        Example: {&#39;USA&#39;: TimeSeriesCV(...), &#39;Germany&#39;: TimeSeriesCV(...), ...}</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; # Create CV splits per country (nested modeling)</span>
+<span class="sd">        &gt;&gt;&gt; cv_by_country = time_series_nested_cv(</span>
+<span class="sd">        ...     data=sales_data,</span>
+<span class="sd">        ...     group_col=&#39;country&#39;,</span>
+<span class="sd">        ...     date_column=&#39;date&#39;,</span>
+<span class="sd">        ...     initial=&#39;18 months&#39;,</span>
+<span class="sd">        ...     assess=&#39;3 months&#39;,</span>
+<span class="sd">        ...     skip=&#39;2 months&#39;,</span>
+<span class="sd">        ...     cumulative=False</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Use with WorkflowSet.fit_nested_resamples()</span>
+<span class="sd">        &gt;&gt;&gt; from py_workflowsets import WorkflowSet</span>
+<span class="sd">        &gt;&gt;&gt; from py_yardstick import metric_set, rmse, mae</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; wf_set = WorkflowSet.from_cross(</span>
+<span class="sd">        ...     preproc=[&quot;sales ~ price&quot;, &quot;sales ~ price + promotion&quot;],</span>
+<span class="sd">        ...     models=[linear_reg()]</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; results = wf_set.fit_nested_resamples(</span>
+<span class="sd">        ...     resamples=cv_by_country,</span>
+<span class="sd">        ...     group_col=&#39;country&#39;,</span>
+<span class="sd">        ...     metrics=metric_set(rmse, mae)</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        - Each group gets its own independent CV splits based on that group&#39;s data</span>
+<span class="sd">        - Periods (initial, assess, skip, lag) are parsed relative to each group&#39;s date range</span>
+<span class="sd">        - Groups with insufficient data will raise ValueError from TimeSeriesCV</span>
+<span class="sd">        - Use this for per-group modeling (fit_nested_resamples)</span>
+<span class="sd">        - For global modeling, use time_series_global_cv() instead</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate group column</span>
+    <span class="k">if</span> <span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in data. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Available columns: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Get unique groups</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+    <span class="c1"># Create CV splits per group</span>
+    <span class="n">cv_by_group</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">failed_groups</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+        <span class="n">group_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cv_by_group</span><span class="p">[</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_series_cv</span><span class="p">(</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">group_data</span><span class="p">,</span>
+                <span class="n">date_column</span><span class="o">=</span><span class="n">date_column</span><span class="p">,</span>
+                <span class="n">initial</span><span class="o">=</span><span class="n">initial</span><span class="p">,</span>
+                <span class="n">assess</span><span class="o">=</span><span class="n">assess</span><span class="p">,</span>
+                <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">,</span>
+                <span class="n">cumulative</span><span class="o">=</span><span class="n">cumulative</span><span class="p">,</span>
+                <span class="n">lag</span><span class="o">=</span><span class="n">lag</span><span class="p">,</span>
+                <span class="n">slice_limit</span><span class="o">=</span><span class="n">slice_limit</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># Group has insufficient data</span>
+            <span class="n">failed_groups</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">group</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+
+    <span class="c1"># Raise error if any groups failed</span>
+    <span class="k">if</span> <span class="n">failed_groups</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Failed to create CV splits for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failed_groups</span><span class="p">)</span><span class="si">}</span><span class="s2"> group(s):</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">failed_groups</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">group</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+
+    <span class="c1"># Report success</span>
+    <span class="n">total_splits</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cv</span><span class="p">)</span> <span class="k">for</span> <span class="n">cv</span> <span class="ow">in</span> <span class="n">cv_by_group</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Created CV splits for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cv_by_group</span><span class="p">)</span><span class="si">}</span><span class="s2"> groups (</span><span class="si">{</span><span class="n">total_splits</span><span class="si">}</span><span class="s2"> total folds)&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cv_by_group</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">time_series_global_cv</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">group_col</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">date_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">initial</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">],</span>
+    <span class="n">assess</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">],</span>
+    <span class="n">skip</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">cumulative</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">lag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">slice_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TimeSeriesCV</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create time series cross-validation splits on full dataset for global modeling.</span>
+
+<span class="sd">    This function creates CV splits on the FULL dataset (not per-group), then returns</span>
+<span class="sd">    a dictionary where each group gets the same CV splits. This is designed to work</span>
+<span class="sd">    with WorkflowSet.fit_global_resamples(), which fits a global model with group as</span>
+<span class="sd">    a feature and evaluates performance per-group.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data: DataFrame with time series data</span>
+<span class="sd">        group_col: Column name identifying groups (e.g., &#39;country&#39;, &#39;store_id&#39;)</span>
+<span class="sd">        date_column: Name of date column</span>
+<span class="sd">        initial: Initial training period size</span>
+<span class="sd">            - int: Number of rows</span>
+<span class="sd">            - str: Period like &quot;2 years&quot;, &quot;6 months&quot;</span>
+<span class="sd">            - Timedelta: pandas Timedelta</span>
+<span class="sd">        assess: Assessment (test) period size</span>
+<span class="sd">        skip: Gap between consecutive folds (default 0)</span>
+<span class="sd">        cumulative: If True, use expanding window; if False, use rolling window</span>
+<span class="sd">        lag: Gap between train and test (forecast horizon)</span>
+<span class="sd">        slice_limit: Maximum number of folds (default None = all folds)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dictionary mapping group names to the same TimeSeriesCV object</span>
+<span class="sd">        Example: {&#39;USA&#39;: cv, &#39;Germany&#39;: cv, &#39;Japan&#39;: cv, ...}</span>
+<span class="sd">        (all groups get the same CV splits)</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; # Create CV splits on full dataset (global modeling)</span>
+<span class="sd">        &gt;&gt;&gt; cv_by_country = time_series_global_cv(</span>
+<span class="sd">        ...     data=sales_data,</span>
+<span class="sd">        ...     group_col=&#39;country&#39;,</span>
+<span class="sd">        ...     date_column=&#39;date&#39;,</span>
+<span class="sd">        ...     initial=&#39;18 months&#39;,</span>
+<span class="sd">        ...     assess=&#39;3 months&#39;,</span>
+<span class="sd">        ...     skip=&#39;2 months&#39;,</span>
+<span class="sd">        ...     cumulative=False</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Use with WorkflowSet.fit_global_resamples()</span>
+<span class="sd">        &gt;&gt;&gt; from py_workflowsets import WorkflowSet</span>
+<span class="sd">        &gt;&gt;&gt; from py_yardstick import metric_set, rmse, mae</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; wf_set = WorkflowSet.from_cross(</span>
+<span class="sd">        ...     preproc=[&quot;sales ~ price&quot;, &quot;sales ~ price + promotion&quot;],</span>
+<span class="sd">        ...     models=[linear_reg()]</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; results = wf_set.fit_global_resamples(</span>
+<span class="sd">        ...     data=sales_data,</span>
+<span class="sd">        ...     resamples=cv_by_country,</span>
+<span class="sd">        ...     group_col=&#39;country&#39;,</span>
+<span class="sd">        ...     metrics=metric_set(rmse, mae)</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        - Creates CV splits on the FULL dataset (all groups combined)</span>
+<span class="sd">        - All groups get the same CV splits (same train/test indices)</span>
+<span class="sd">        - fit_global_resamples() fits a global model, then evaluates per-group</span>
+<span class="sd">        - Use this for global modeling (fit_global_resamples)</span>
+<span class="sd">        - For per-group modeling, use time_series_nested_cv() instead</span>
+
+<span class="sd">    Key Difference from time_series_nested_cv():</span>
+<span class="sd">        - time_series_nested_cv(): Each group gets its own CV splits</span>
+<span class="sd">        - time_series_global_cv(): All groups share the same CV splits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Validate group column</span>
+    <span class="k">if</span> <span class="n">group_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Group column &#39;</span><span class="si">{</span><span class="n">group_col</span><span class="si">}</span><span class="s2">&#39; not found in data. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Available columns: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Get unique groups</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">group_col</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+    <span class="c1"># Create CV splits on FULL dataset (not per-group)</span>
+    <span class="n">cv_global</span> <span class="o">=</span> <span class="n">time_series_cv</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">date_column</span><span class="o">=</span><span class="n">date_column</span><span class="p">,</span>
+        <span class="n">initial</span><span class="o">=</span><span class="n">initial</span><span class="p">,</span>
+        <span class="n">assess</span><span class="o">=</span><span class="n">assess</span><span class="p">,</span>
+        <span class="n">skip</span><span class="o">=</span><span class="n">skip</span><span class="p">,</span>
+        <span class="n">cumulative</span><span class="o">=</span><span class="n">cumulative</span><span class="p">,</span>
+        <span class="n">lag</span><span class="o">=</span><span class="n">lag</span><span class="p">,</span>
+        <span class="n">slice_limit</span><span class="o">=</span><span class="n">slice_limit</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Return same CV object for all groups</span>
+    <span class="n">cv_by_group</span> <span class="o">=</span> <span class="p">{</span><span class="n">group</span><span class="p">:</span> <span class="n">cv_global</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">}</span>
+
+    <span class="c1"># Report success</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Created global CV splits for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cv_by_group</span><span class="p">)</span><span class="si">}</span><span class="s2"> groups (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cv_global</span><span class="p">)</span><span class="si">}</span><span class="s2"> folds)&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cv_by_group</span>
 </pre></div>
 
            </div>
