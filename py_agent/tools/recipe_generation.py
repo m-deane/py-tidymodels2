@@ -96,7 +96,7 @@ def create_recipe(
     # ==============================================
 
     # Remove zero-variance features
-    template['steps'].append(".step_zv(all_predictors())")
+    template['steps'].append(".step_zv()")
 
     # Remove highly correlated features for interpretable models
     if _needs_correlation_filter(model_type):
@@ -262,7 +262,7 @@ def get_recipe_templates() -> Dict[str, Dict]:
                 ".step_impute_median(all_numeric_predictors())",
                 ".step_date('date', features=['dow', 'month', 'quarter'])",
                 ".step_poly(all_numeric_predictors(), degree=2)",
-                ".step_zv(all_predictors())",
+                ".step_zv()",
                 ".step_normalize(all_numeric_predictors())",
                 ".step_dummy(all_nominal_predictors())"
             ]
@@ -282,7 +282,7 @@ def get_recipe_templates() -> Dict[str, Dict]:
             'description': 'Many features (>20), dimensionality reduction',
             'steps': [
                 ".step_impute_median(all_numeric_predictors())",
-                ".step_zv(all_predictors())",
+                ".step_zv()",
                 ".step_select_corr(all_numeric_predictors(), threshold=0.9, method='multicollinearity')",
                 ".step_normalize(all_numeric_predictors())",
                 ".step_pca(all_numeric_predictors(), num_comp=15)",
@@ -305,7 +305,7 @@ def get_recipe_templates() -> Dict[str, Dict]:
             'description': 'IoT sensor data with many correlated features',
             'steps': [
                 ".step_impute_knn(all_numeric_predictors(), neighbors=5)",
-                ".step_zv(all_predictors())",
+                ".step_zv()",
                 ".step_select_corr(all_numeric_predictors(), threshold=0.95, method='multicollinearity')",
                 ".step_normalize(all_numeric_predictors())"
             ]
