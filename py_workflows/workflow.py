@@ -932,50 +932,54 @@ class Workflow:
         if group_col not in data.columns:
             raise ValueError(f"Group column '{group_col}' not found in data")
 
-        # Update formula to include group column as a feature
-        if isinstance(self.preprocessor, str):
-            formula = self.preprocessor
-
-            # Validate formula structure
-            if '~' not in formula:
-                raise ValueError(f"Invalid formula format: {formula}. Formula must contain '~'")
-
-            # Robust formula parsing with whitespace normalization
-            lhs, rhs = formula.split('~', 1)
-            outcome = lhs.strip()
-            predictors = rhs.strip()
-
-            # Check if group_col is already in the formula
-            # Split predictors on '+' and check each term
-            predictor_terms = [term.strip() for term in predictors.split('+')]
-
-            if group_col in predictor_terms or predictors == ".":
-                # group_col already in formula or using "." notation (includes all columns)
-                updated_formula = formula
-            else:
-                # Add group_col explicitly
-                updated_formula = f"{outcome} ~ {predictors} + {group_col}"
-
-            # Update workflow with new formula
-            updated_workflow = self.update_formula(updated_formula)
+        # For hierarchical Bayesian models, add group_col to spec args
+        if self.spec.engine == "pymc_hierarchical":
+            from dataclasses import replace
+            updated_spec = replace(
+                self.spec,
+                args={**self.spec.args, "group_col": group_col}
+            )
+            updated_workflow = replace(self, spec=updated_spec)
             fit_result = updated_workflow.fit(data)
-            # Mark this as a global fit and store the group column
-            fit_result.is_global_fit = True
-            fit_result.group_col = group_col
-            # Store group column values from training data (indexed by original data index)
-            fit_result._train_group_values = data[[group_col]].copy() if group_col in data.columns else None
-            return fit_result
-        elif isinstance(self.preprocessor, Recipe):
-            # For recipes, group column will be included automatically if present in data
-            fit_result = self.fit(data)
-            # Mark this as a global fit and store the group column
-            fit_result.is_global_fit = True
-            fit_result.group_col = group_col
-            # Store group column values from training data (indexed by original data index)
-            fit_result._train_group_values = data[[group_col]].copy() if group_col in data.columns else None
-            return fit_result
         else:
-            raise ValueError("Workflow must have a formula or recipe preprocessor")
+            # Update formula to include group column as a feature
+            if isinstance(self.preprocessor, str):
+                formula = self.preprocessor
+
+                # Validate formula structure
+                if '~' not in formula:
+                    raise ValueError(f"Invalid formula format: {formula}. Formula must contain '~'")
+
+                # Robust formula parsing with whitespace normalization
+                lhs, rhs = formula.split('~', 1)
+                outcome = lhs.strip()
+                predictors = rhs.strip()
+
+                # Check if group_col is already in the formula
+                # Split predictors on '+' and check each term
+                predictor_terms = [term.strip() for term in predictors.split('+')]
+
+                if group_col in predictor_terms or predictors == ".":
+                    # group_col already in formula or using "." notation (includes all columns)
+                    updated_formula = formula
+                else:
+                    # Add group_col explicitly
+                    updated_formula = f"{outcome} ~ {predictors} + {group_col}"
+
+                # Update workflow with new formula
+                updated_workflow = self.update_formula(updated_formula)
+                fit_result = updated_workflow.fit(data)
+            elif isinstance(self.preprocessor, Recipe):
+                # For recipes, group column will be included automatically if present in data
+                fit_result = self.fit(data)
+            else:
+                raise ValueError("Workflow must have a formula or recipe preprocessor")
+        # Mark this as a global fit and store the group column
+        fit_result.is_global_fit = True
+        fit_result.group_col = group_col
+        # Store group column values from training data (indexed by original data index)
+        fit_result._train_group_values = data[[group_col]].copy() if group_col in data.columns else None
+        return fit_result
 
 
 @dataclass
@@ -1337,6 +1341,142 @@ class WorkflowFit:
         )
 
         return shap_df
+
+    def explain_plot(
+        self,
+        data: pd.DataFrame,
+        plot_type: Literal["summary", "waterfall", "force", "dependence", "temporal"] = "summary",
+        observation_id: Optional[int] = None,
+        feature: Optional[str] = None,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        **kwargs
+    ):
+        """
+        Generate SHAP visualization for workflow predictions.
+
+        Convenience method that combines explain() with visualization functions.
+        Automatically handles recipe preprocessing before computing SHAP values.
+
+        Args:
+            data: Data to explain (unprocessed, will be preprocessed by recipe)
+            plot_type: Type of visualization:
+                - "summary": Global feature importance (beeswarm or bar)
+                - "waterfall": Local explanation for single observation
+                - "force": Interactive force plot for single observation
+                - "dependence": Partial dependence for single feature
+                - "temporal": SHAP values over time (requires date column)
+            observation_id: Required for waterfall/force plots
+            feature: Required for dependence plots (preprocessed feature name)
+            method: SHAP explainer method ("auto", "tree", "linear", "kernel")
+            **kwargs: Additional arguments passed to plotting function
+
+        Returns:
+            matplotlib Figure object (or HTML for force plot with matplotlib=False)
+
+        Examples:
+            >>> # Global feature importance for preprocessed features
+            >>> fig = wf_fit.explain_plot(test_data, plot_type="summary")
+            >>>
+            >>> # For PCA workflow, features are "PC1", "PC2", etc.
+            >>> fig = wf_fit.explain_plot(test_data, plot_type="dependence", feature="PC1")
+        """
+        from py_interpret.visualizations import (
+            summary_plot,
+            waterfall_plot,
+            force_plot,
+            dependence_plot,
+            temporal_plot
+        )
+
+        # Get SHAP values (with preprocessing applied)
+        shap_df = self.explain(data, method=method)
+
+        # Route to appropriate plot function
+        if plot_type == "summary":
+            return summary_plot(shap_df, **kwargs)
+
+        elif plot_type == "waterfall":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for waterfall plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return waterfall_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "force":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for force plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return force_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "dependence":
+            if feature is None:
+                raise ValueError(
+                    "feature required for dependence plot. "
+                    "Specify which feature to analyze (e.g., feature='temperature')"
+                )
+            return dependence_plot(shap_df, feature=feature, **kwargs)
+
+        elif plot_type == "temporal":
+            if "date" not in data.columns:
+                raise ValueError(
+                    "Temporal plot requires 'date' column in data. "
+                    "Ensure your data has a date/datetime column."
+                )
+            return temporal_plot(shap_df, **kwargs)
+
+        else:
+            raise ValueError(
+                f"Unknown plot_type: {plot_type}. "
+                f"Must be 'summary', 'waterfall', 'force', 'dependence', or 'temporal'"
+            )
+
+    def explain_interactions(
+        self,
+        data: pd.DataFrame,
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None
+    ):
+        """
+        Compute SHAP interaction values for workflow predictions.
+
+        Only works with tree-based models. Returns 3D array showing how
+        preprocessed features interact.
+
+        Args:
+            data: Data to explain (unprocessed, will be preprocessed by recipe)
+            background_size: Number of background samples
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (optional)
+
+        Returns:
+            3D numpy array of shape (n_observations, n_features, n_features)
+            for preprocessed features
+
+        Raises:
+            NotImplementedError: If model doesn't support interaction values
+
+        Examples:
+            >>> # For workflow with PCA preprocessing
+            >>> interactions = wf_fit.explain_interactions(test_data)
+            >>> # Shape: (n_obs, n_pca_components, n_pca_components)
+        """
+        from py_interpret import ShapEngine
+
+        # Apply preprocessing
+        processed_data = self.extract_preprocessed_data(data)
+
+        # Compute interactions
+        return ShapEngine.explain_interactions(
+            fit=self.fit,
+            data=processed_data,
+            background_size=background_size,
+            background=background,
+            background_data=background_data
+        )
 
     def save_mlflow(
         self,
@@ -2121,6 +2261,204 @@ class NestedWorkflowFit:
         combined_shap = pd.concat(all_shap, ignore_index=True)
 
         return combined_shap
+
+    def explain_plot(
+        self,
+        data: pd.DataFrame,
+        plot_type: Literal["summary", "waterfall", "force", "dependence", "temporal"] = "summary",
+        observation_id: Optional[int] = None,
+        feature: Optional[str] = None,
+        group: Optional[str] = None,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        **kwargs
+    ):
+        """
+        Generate SHAP visualization for nested workflow predictions.
+
+        For nested models, can create plots for:
+        - All groups combined (default)
+        - Single specific group (when group parameter specified)
+
+        Args:
+            data: Data to explain (must include group column, unprocessed)
+            plot_type: Type of visualization:
+                - "summary": Global feature importance
+                - "waterfall": Local explanation for single observation
+                - "force": Interactive force plot for single observation
+                - "dependence": Partial dependence for single feature
+                - "temporal": SHAP values over time (requires date column)
+            observation_id: Required for waterfall/force plots (observation index)
+            feature: Required for dependence plots (preprocessed feature name)
+            group: Optional group to filter to (if None, plots all groups)
+            method: SHAP explainer method ("auto", "tree", "linear", "kernel")
+            **kwargs: Additional arguments passed to plotting function
+
+        Returns:
+            matplotlib Figure object (or HTML for force plot with matplotlib=False)
+
+        Examples:
+            >>> # Global importance across all groups
+            >>> fig = nested_fit.explain_plot(test_data, plot_type="summary")
+            >>>
+            >>> # Global importance for specific group
+            >>> fig = nested_fit.explain_plot(test_data, plot_type="summary", group="USA")
+            >>>
+            >>> # Explain single prediction
+            >>> fig = nested_fit.explain_plot(
+            ...     test_data, plot_type="waterfall", observation_id=0
+            ... )
+            >>>
+            >>> # Temporal evolution across groups
+            >>> fig = nested_fit.explain_plot(test_data, plot_type="temporal")
+        """
+        from py_interpret.visualizations import (
+            summary_plot,
+            waterfall_plot,
+            force_plot,
+            dependence_plot,
+            temporal_plot
+        )
+
+        # Get SHAP values for all groups (or filtered group)
+        shap_df = self.explain(data, method=method)
+
+        # Filter to specific group if requested
+        if group is not None:
+            if group not in self.group_fits:
+                raise ValueError(
+                    f"Group '{group}' not found in fitted groups. "
+                    f"Available groups: {sorted(self.group_fits.keys())}"
+                )
+            shap_df = shap_df[shap_df["group"] == group].copy()
+
+        # Route to appropriate plot function
+        if plot_type == "summary":
+            return summary_plot(shap_df, **kwargs)
+
+        elif plot_type == "waterfall":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for waterfall plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return waterfall_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "force":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for force plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return force_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "dependence":
+            if feature is None:
+                raise ValueError(
+                    "feature required for dependence plot. "
+                    "Specify which feature to analyze (e.g., feature='temperature')"
+                )
+            return dependence_plot(shap_df, feature=feature, **kwargs)
+
+        elif plot_type == "temporal":
+            if "date" not in data.columns:
+                raise ValueError(
+                    "Temporal plot requires 'date' column in data. "
+                    "Ensure your data has a date/datetime column."
+                )
+            return temporal_plot(shap_df, **kwargs)
+
+        else:
+            raise ValueError(
+                f"Unknown plot_type: {plot_type}. "
+                f"Must be 'summary', 'waterfall', 'force', 'dependence', or 'temporal'"
+            )
+
+    def explain_interactions(
+        self,
+        data: pd.DataFrame,
+        group: Optional[str] = None,
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None
+    ):
+        """
+        Compute SHAP interaction values for nested workflow predictions.
+
+        Only works with tree-based models. Returns dict mapping groups to
+        interaction arrays, or single array if group specified.
+
+        Args:
+            data: Data to explain (must include group column, unprocessed)
+            group: Optional specific group to compute interactions for.
+                  If None, computes for all groups.
+            background_size: Number of background samples
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (optional)
+
+        Returns:
+            If group specified: 3D numpy array of shape (n_obs, n_features, n_features)
+            If group is None: Dict mapping group names to 3D interaction arrays
+
+        Raises:
+            NotImplementedError: If model doesn't support interaction values
+
+        Examples:
+            >>> # Compute interactions for all groups
+            >>> all_interactions = nested_fit.explain_interactions(test_data)
+            >>> usa_interactions = all_interactions['USA']
+            >>>
+            >>> # Compute for specific group only
+            >>> usa_interactions = nested_fit.explain_interactions(
+            ...     test_data, group='USA'
+            ... )
+        """
+        if self.group_col not in data.columns:
+            raise ValueError(f"Group column '{self.group_col}' not found in data")
+
+        # If specific group requested, compute for that group only
+        if group is not None:
+            if group not in self.group_fits:
+                raise ValueError(
+                    f"Group '{group}' not found. Available: {sorted(self.group_fits.keys())}"
+                )
+
+            # Filter to group
+            group_data = data[data[self.group_col] == group].copy()
+            group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Compute interactions for this group
+            group_fit = self.group_fits[group]
+            return group_fit.explain_interactions(
+                data=group_data_no_group,
+                background_size=background_size,
+                background=background,
+                background_data=background_data
+            )
+
+        # Otherwise, compute for all groups
+        all_interactions = {}
+
+        for group_name, group_fit in self.group_fits.items():
+            # Filter data for this group
+            group_data = data[data[self.group_col] == group_name].copy()
+
+            if len(group_data) == 0:
+                continue  # Skip groups not in data
+
+            # Remove group column
+            group_data_no_group = group_data.drop(columns=[self.group_col])
+
+            # Compute interactions for this group
+            interactions = group_fit.explain_interactions(
+                data=group_data_no_group,
+                background_size=background_size,
+                background=background,
+                background_data=background_data
+            )
+
+            all_interactions[group_name] = interactions
+
+        return all_interactions
 
     def save_mlflow(
         self,

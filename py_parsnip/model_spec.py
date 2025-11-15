@@ -13,6 +13,7 @@ This separation ensures:
 from dataclasses import dataclass, field, replace
 from typing import Dict, Any, Optional, Literal, Tuple
 import pandas as pd
+import numpy as np
 import warnings
 
 from py_hardhat import MoldedData
@@ -704,6 +705,156 @@ class ModelFit:
             background=background,
             background_data=background_data,
             check_additivity=check_additivity
+        )
+
+    def explain_plot(
+        self,
+        data: pd.DataFrame,
+        plot_type: Literal["summary", "waterfall", "force", "dependence", "temporal"] = "summary",
+        observation_id: Optional[int] = None,
+        feature: Optional[str] = None,
+        method: Literal["auto", "tree", "linear", "kernel"] = "auto",
+        **kwargs
+    ):
+        """
+        Generate SHAP visualization for model interpretability.
+
+        Convenience method that combines explain() with visualization functions.
+        Supports 5 plot types for different analysis needs.
+
+        Args:
+            data: Data to explain
+            plot_type: Type of visualization:
+                - "summary": Global feature importance (beeswarm or bar)
+                - "waterfall": Local explanation for single observation
+                - "force": Interactive force plot for single observation
+                - "dependence": Partial dependence for single feature
+                - "temporal": SHAP values over time (requires date column)
+            observation_id: Required for waterfall/force plots (which observation to explain)
+            feature: Required for dependence plots (which feature to analyze)
+            method: SHAP explainer method ("auto", "tree", "linear", "kernel")
+            **kwargs: Additional arguments passed to plotting function:
+                - summary: plot_type="beeswarm"|"bar", max_display=20
+                - waterfall: max_display=10
+                - force: matplotlib=False
+                - dependence: interaction_feature="auto"
+                - temporal: features=None, aggregation="mean", plot_type="line"
+
+        Returns:
+            matplotlib Figure object (or HTML for force plot with matplotlib=False)
+
+        Raises:
+            ValueError: If required arguments missing (e.g., observation_id for waterfall)
+
+        Examples:
+            >>> # Global feature importance
+            >>> fig = fit.explain_plot(test_data, plot_type="summary")
+            >>>
+            >>> # Explain single prediction
+            >>> fig = fit.explain_plot(test_data, plot_type="waterfall", observation_id=0)
+            >>>
+            >>> # Partial dependence
+            >>> fig = fit.explain_plot(test_data, plot_type="dependence", feature="temperature")
+            >>>
+            >>> # Time series evolution
+            >>> fig = fit.explain_plot(test_data, plot_type="temporal")
+        """
+        from py_interpret.visualizations import (
+            summary_plot,
+            waterfall_plot,
+            force_plot,
+            dependence_plot,
+            temporal_plot
+        )
+
+        # Get SHAP values
+        shap_df = self.explain(data, method=method)
+
+        # Route to appropriate plot function
+        if plot_type == "summary":
+            return summary_plot(shap_df, **kwargs)
+
+        elif plot_type == "waterfall":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for waterfall plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return waterfall_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "force":
+            if observation_id is None:
+                raise ValueError(
+                    "observation_id required for force plot. "
+                    "Specify which observation to explain (e.g., observation_id=0)"
+                )
+            return force_plot(shap_df, observation_id=observation_id, **kwargs)
+
+        elif plot_type == "dependence":
+            if feature is None:
+                raise ValueError(
+                    "feature required for dependence plot. "
+                    "Specify which feature to analyze (e.g., feature='temperature')"
+                )
+            return dependence_plot(shap_df, feature=feature, **kwargs)
+
+        elif plot_type == "temporal":
+            if "date" not in data.columns:
+                raise ValueError(
+                    "Temporal plot requires 'date' column in data. "
+                    "Ensure your data has a date/datetime column."
+                )
+            return temporal_plot(shap_df, **kwargs)
+
+        else:
+            raise ValueError(
+                f"Unknown plot_type: {plot_type}. "
+                f"Must be 'summary', 'waterfall', 'force', 'dependence', or 'temporal'"
+            )
+
+    def explain_interactions(
+        self,
+        data: pd.DataFrame,
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None
+    ) -> np.ndarray:
+        """
+        Compute SHAP interaction values showing feature pair interactions.
+
+        Only works with tree-based models (rand_forest, decision_tree, boost_tree).
+        Returns 3D array where interaction_values[i, j, k] is the interaction
+        between features j and k for observation i.
+
+        Args:
+            data: Data to explain
+            background_size: Number of background samples (for fallback methods)
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (optional)
+
+        Returns:
+            3D numpy array of shape (n_observations, n_features, n_features)
+
+        Raises:
+            NotImplementedError: If model type doesn't support interaction values
+
+        Examples:
+            >>> # Compute interactions for random forest
+            >>> spec = rand_forest().set_mode('regression')
+            >>> fit = spec.fit(train_data, 'y ~ x1 + x2 + x3')
+            >>> interactions = fit.explain_interactions(test_data)
+            >>>
+            >>> # Get interaction between x1 and x2 for first observation
+            >>> x1_x2_interaction = interactions[0, 0, 1]
+        """
+        from py_interpret import ShapEngine
+
+        return ShapEngine.explain_interactions(
+            fit=self,
+            data=data,
+            background_size=background_size,
+            background=background,
+            background_data=background_data
         )
 
     def save_mlflow(

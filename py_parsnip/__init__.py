@@ -41,9 +41,17 @@ from py_parsnip.models.hybrid_model import hybrid_model
 from py_parsnip.models.manual_reg import manual_reg
 from py_parsnip.models.rule_fit import rule_fit
 from py_parsnip.models.window_reg import window_reg
+from py_parsnip.models.poisson_bayes import poisson_bayes
+from py_parsnip.models.logistic_bayes import logistic_bayes
 
 # Import engines to trigger registration
 import py_parsnip.engines  # noqa: F401
+
+# Import Bayesian engines (from py_bayes package)
+try:
+    import py_bayes  # noqa: F401
+except ImportError:
+    pass  # py_bayes is optional (requires PyMC)
 
 __all__ = [
     "ModelSpec",
@@ -74,5 +82,7 @@ __all__ = [
     "manual_reg",
     "rule_fit",
     "window_reg",
+    "poisson_bayes",
+    "logistic_bayes",
 ]
 __version__ = "0.1.0"

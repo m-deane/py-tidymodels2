@@ -466,3 +466,89 @@ class ShapEngine:
                     f"  Difference: {diff:.6f}\n"
                     f"This may indicate numerical precision issues."
                 )
+
+    @staticmethod
+    def explain_interactions(
+        fit: "ModelFit",
+        data: pd.DataFrame,
+        background_size: int = 100,
+        background: Literal["sample", "kmeans"] = "sample",
+        background_data: Optional[pd.DataFrame] = None
+    ) -> np.ndarray:
+        """
+        Compute SHAP interaction values for model predictions.
+
+        Interaction values show how pairs of features interact to affect predictions.
+        Only works with TreeExplainer (tree-based models). Other model types will
+        raise NotImplementedError.
+
+        Args:
+            fit: Fitted ModelFit object
+            data: Data to explain (must contain all features)
+            background_size: Number of background samples (for fallback methods)
+            background: Background sampling strategy ("sample" or "kmeans")
+            background_data: Custom background data (optional)
+
+        Returns:
+            3D numpy array of shape (n_observations, n_features, n_features)
+            where interaction_values[i, j, k] is the interaction between
+            features j and k for observation i.
+
+        Raises:
+            ImportError: If shap package not installed
+            NotImplementedError: If model type doesn't support interaction values
+            ValueError: If training data not available
+
+        Examples:
+            >>> # Compute interaction values for tree model
+            >>> spec = rand_forest().set_mode('regression')
+            >>> fit = spec.fit(train_data, 'y ~ x1 + x2 + x3')
+            >>> interactions = fit.explain_interactions(test_data)
+            >>>
+            >>> # Shape: (n_observations, n_features, n_features)
+            >>> print(interactions.shape)  # e.g., (100, 3, 3)
+            >>>
+            >>> # Get interaction between x1 and x2 for first observation
+            >>> x1_x2_interaction = interactions[0, 0, 1]
+        """
+        # Try importing shap
+        try:
+            import shap
+        except ImportError:
+            raise ImportError(
+                "SHAP package not installed. Install with: pip install shap>=0.43.0"
+            )
+
+        # Check model type - only tree models support interaction values
+        model_type = fit.spec.model_type
+        tree_models = [
+            "rand_forest", "decision_tree", "boost_tree",
+            "bag_tree", "cubist_rules"
+        ]
+
+        if model_type not in tree_models:
+            raise NotImplementedError(
+                f"Interaction values only supported for tree-based models. "
+                f"Model type '{model_type}' is not supported. "
+                f"Supported models: {tree_models}"
+            )
+
+        # Prepare data
+        X = ShapEngine._prepare_data(fit, data)
+
+        # Create TreeExplainer
+        model = fit.fit_data.get("model")
+        if model is None:
+            raise ValueError("Model object not found in fit_data. Cannot compute interactions.")
+
+        explainer = shap.TreeExplainer(model)
+
+        # Compute interaction values
+        # TreeExplainer.shap_interaction_values returns (n_observations, n_features, n_features)
+        interaction_values = explainer.shap_interaction_values(X)
+
+        # Handle potential list output for multi-class (use first class)
+        if isinstance(interaction_values, list):
+            interaction_values = interaction_values[0]
+
+        return interaction_values
