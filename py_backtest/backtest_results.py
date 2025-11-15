@@ -440,6 +440,164 @@ class BacktestResults:
         result = pd.concat(all_predictions, ignore_index=True)
         return result
 
+    def plot_accuracy_over_time(
+        self,
+        metric: str = "rmse",
+        by_workflow: bool = True,
+        workflows: Optional[List[str]] = None,
+        show: bool = True,
+        figsize: tuple = (12, 6),
+        **kwargs
+    ):
+        """
+        Plot metric performance over time/vintages.
+
+        Delegates to plot_accuracy_over_time() function from py_backtest.visualizations.
+
+        Args:
+            metric: Which metric to plot (rmse, mae, etc.)
+            by_workflow: If True, separate lines per workflow; if False, aggregate
+            workflows: List of workflow IDs to plot (default None = all workflows)
+            show: Whether to display plot immediately
+            figsize: Figure size tuple (width, height)
+            **kwargs: Additional arguments passed to plt.plot()
+
+        Returns:
+            matplotlib Figure object
+
+        Example:
+            >>> results = wf_set.fit_backtests(vintage_cv, metrics)
+            >>> fig = results.plot_accuracy_over_time(metric="rmse", by_workflow=True)
+            >>> fig.savefig("accuracy_over_time.png")
+        """
+        from py_backtest.visualizations.backtest_plots import plot_accuracy_over_time
+        return plot_accuracy_over_time(
+            self,
+            metric=metric,
+            by_workflow=by_workflow,
+            workflows=workflows,
+            show=show,
+            figsize=figsize,
+            **kwargs
+        )
+
+    def plot_horizon_comparison(
+        self,
+        metric: str = "rmse",
+        workflows: Optional[List[str]] = None,
+        show: bool = True,
+        figsize: tuple = (12, 6),
+        **kwargs
+    ):
+        """
+        Plot forecast horizon degradation.
+
+        Delegates to plot_horizon_comparison() function from py_backtest.visualizations.
+
+        Args:
+            metric: Which metric to plot (rmse, mae, etc.)
+            workflows: List of workflow IDs to plot (default None = all workflows)
+            show: Whether to display plot immediately
+            figsize: Figure size tuple (width, height)
+            **kwargs: Additional arguments passed to plt.bar() or plt.plot()
+
+        Returns:
+            matplotlib Figure object
+
+        Example:
+            >>> results = wf_set.fit_backtests(vintage_cv, metrics)
+            >>> fig = results.plot_horizon_comparison(metric="rmse")
+            >>> fig.savefig("horizon_comparison.png")
+        """
+        from py_backtest.visualizations.backtest_plots import plot_horizon_comparison
+        return plot_horizon_comparison(
+            self,
+            metric=metric,
+            workflows=workflows,
+            show=show,
+            figsize=figsize,
+            **kwargs
+        )
+
+    def plot_vintage_drift(
+        self,
+        metric: str = "rmse",
+        workflows: Optional[List[str]] = None,
+        show: bool = True,
+        figsize: tuple = (12, 6),
+        **kwargs
+    ):
+        """
+        Plot vintage drift analysis.
+
+        Delegates to plot_vintage_drift() function from py_backtest.visualizations.
+
+        Args:
+            metric: Which metric to plot (rmse, mae, etc.)
+            workflows: List of workflow IDs to plot (default None = all workflows)
+            show: Whether to display plot immediately
+            figsize: Figure size tuple (width, height)
+            **kwargs: Additional arguments passed to plt.plot()
+
+        Returns:
+            matplotlib Figure object
+
+        Example:
+            >>> results = wf_set.fit_backtests(vintage_cv, metrics)
+            >>> fig = results.plot_vintage_drift(metric="rmse")
+            >>> fig.savefig("vintage_drift.png")
+        """
+        from py_backtest.visualizations.backtest_plots import plot_vintage_drift
+        return plot_vintage_drift(
+            self,
+            metric=metric,
+            workflows=workflows,
+            show=show,
+            figsize=figsize,
+            **kwargs
+        )
+
+    def plot_revision_impact(
+        self,
+        metric: str = "rmse",
+        workflows: Optional[List[str]] = None,
+        vintage_vs_final_data: Optional[pd.DataFrame] = None,
+        show: bool = True,
+        figsize: tuple = (10, 6),
+        **kwargs
+    ):
+        """
+        Plot data revision impact on predictions.
+
+        Delegates to plot_revision_impact() function from py_backtest.visualizations.
+
+        Args:
+            metric: Which metric to plot (rmse, mae, etc.)
+            workflows: List of workflow IDs to plot (default None = all workflows)
+            vintage_vs_final_data: Optional DataFrame with vintage vs final metrics
+            show: Whether to display plot immediately
+            figsize: Figure size tuple (width, height)
+            **kwargs: Additional arguments passed to plt.scatter()
+
+        Returns:
+            matplotlib Figure object
+
+        Example:
+            >>> results = wf_set.fit_backtests(vintage_cv, metrics)
+            >>> fig = results.plot_revision_impact(metric="rmse")
+            >>> fig.savefig("revision_impact.png")
+        """
+        from py_backtest.visualizations.backtest_plots import plot_revision_impact
+        return plot_revision_impact(
+            self,
+            metric=metric,
+            workflows=workflows,
+            vintage_vs_final_data=vintage_vs_final_data,
+            show=show,
+            figsize=figsize,
+            **kwargs
+        )
+
     def __repr__(self):
         """String representation"""
         n_workflows = len(self.workflow_ids)

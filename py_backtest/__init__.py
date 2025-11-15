@@ -63,6 +63,13 @@ from py_backtest.backtest_results import (
     BacktestResults,
 )
 
+from py_backtest.visualizations import (
+    plot_accuracy_over_time,
+    plot_horizon_comparison,
+    plot_vintage_drift,
+    plot_revision_impact,
+)
+
 __all__ = [
     # Utility functions
     "select_vintage",
@@ -76,4 +83,9 @@ __all__ = [
     "vintage_cv",
     # Results
     "BacktestResults",
+    # Visualizations
+    "plot_accuracy_over_time",
+    "plot_horizon_comparison",
+    "plot_vintage_drift",
+    "plot_revision_impact",
 ]
