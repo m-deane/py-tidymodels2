@@ -2,20 +2,28 @@
 
 **py-tidymodels Panel Data Modeling Guide**
 
+*Last Updated: 2025-11-15 | Library Version: 782+ tests, 28 models, 51 recipe steps*
+
 ## Table of Contents
 1. [Overview](#overview)
 2. [Panel Data Concepts](#panel-data-concepts)
-3. [Nested Approach (fit_nested)](#nested-approach-fit_nested)
-4. [Global Approach (fit_global)](#global-approach-fit_global)
-5. [NestedWorkflowFit Class](#nestedworkflowfit-class)
-6. [Data Preparation](#data-preparation)
-7. [Model Integration](#model-integration)
-8. [Outputs and Analysis](#outputs-and-analysis)
-9. [Complete Workflow Examples](#complete-workflow-examples)
-10. [Decision Framework](#decision-framework)
-11. [Best Practices](#best-practices)
-12. [Common Patterns](#common-patterns)
-13. [Troubleshooting](#troubleshooting)
+3. [ModelSpec API (Simplified)](#modelspec-api-simplified)
+4. [Workflow API (Full-Featured)](#workflow-api-full-featured)
+5. [When to Use ModelSpec vs Workflow](#when-to-use-modelspec-vs-workflow)
+6. [Nested Approach (fit_nested)](#nested-approach-fit_nested)
+7. [Global Approach (fit_global)](#global-approach-fit_global)
+8. [NestedWorkflowFit and NestedModelFit](#nestedworkflowfit-and-nestedmodelfit)
+9. [Per-Group Preprocessing](#per-group-preprocessing)
+10. [Group-Aware Cross-Validation](#group-aware-cross-validation)
+11. [WorkflowSet Multi-Model Comparison](#workflowset-multi-model-comparison)
+12. [Data Preparation](#data-preparation)
+13. [Model Integration](#model-integration)
+14. [Outputs and Analysis](#outputs-and-analysis)
+15. [Complete Examples](#complete-examples)
+16. [Decision Framework](#decision-framework)
+17. [Best Practices](#best-practices)
+18. [Common Patterns](#common-patterns)
+19. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -96,6 +104,351 @@ Store A, B, C: All follow seasonal patterns, differ only in baseline sales
 
 → Global approach: Single model with store_id as a categorical feature
 ```
+
+---
+
+## ModelSpec API (Simplified)
+
+**NEW (2025-11-10):** ModelSpec now supports grouped modeling directly without requiring workflows. This is the **simplest API** for grouped modeling when you only need formulas (no recipes).
+
+### fit_nested() on ModelSpec
+
+Fit separate models for each group using just a model specification.
+
+```python
+from py_parsnip import linear_reg
+
+# Create model specification
+spec = linear_reg()
+
+# Fit nested models with just formula
+nested_fit = spec.fit_nested(
+    data,
+    formula='sales ~ price + temperature',
+    group_col='store_id'
+)
+
+# Returns NestedModelFit (similar to NestedWorkflowFit)
+predictions = nested_fit.predict(test_data)
+outputs, coeffs, stats = nested_fit.extract_outputs()
+```
+
+**Method Signature:**
+```python
+ModelSpec.fit_nested(
+    data: pd.DataFrame,
+    formula: str,
+    group_col: str
+) -> NestedModelFit
+```
+
+**Parameters:**
+- `data`: Training data with group column
+- `formula`: Patsy formula string (e.g., "y ~ x1 + x2")
+- `group_col`: Column name containing group identifiers
+
+**Returns:**
+- `NestedModelFit`: Fitted model with per-group models
+
+**Advantages:**
+- ✅ **Simplest API**: 2 lines instead of 3 (no workflow creation)
+- ✅ **Formula-only**: Perfect when you don't need recipes
+- ✅ **All models supported**: Works with all 28 model types
+- ✅ **Same output format**: Three-DataFrame pattern with group column
+
+**Example with Recursive Forecasting:**
+```python
+from py_parsnip import recursive_reg, linear_reg
+
+# Recursive model per store
+spec = recursive_reg(base_model=linear_reg(), lags=7)
+
+nested_fit = spec.fit_nested(
+    data,
+    formula='sales ~ temperature + day_of_week',
+    group_col='store_id'
+)
+
+# Date indexing is automatic for recursive models
+predictions = nested_fit.predict(test_data)
+```
+
+### fit_global() on ModelSpec
+
+Fit single model with group as feature.
+
+```python
+from py_parsnip import linear_reg
+
+spec = linear_reg()
+
+global_fit = spec.fit_global(
+    data,
+    formula='sales ~ price + temperature',
+    group_col='store_id'
+)
+
+# Returns standard ModelFit (not nested)
+predictions = global_fit.predict(test_data)
+```
+
+**Method Signature:**
+```python
+ModelSpec.fit_global(
+    data: pd.DataFrame,
+    formula: str,
+    group_col: str
+) -> ModelFit
+```
+
+**How It Works:**
+- Automatically adds `group_col` to formula
+- Example: `"sales ~ price"` becomes `"sales ~ price + store_id"`
+- Group becomes categorical feature with dummy encoding
+
+**Example:**
+```python
+from py_parsnip import rand_forest
+
+spec = rand_forest(trees=100, min_n=5).set_mode('regression')
+
+# Fit global model
+global_fit = spec.fit_global(
+    data,
+    formula='sales ~ .',  # All features
+    group_col='store_id'
+)
+
+# store_id becomes a feature
+# Model learns common patterns with store-specific adjustments
+```
+
+### NestedModelFit Class
+
+Similar to `NestedWorkflowFit` but for ModelSpec-based grouped models.
+
+```python
+@dataclass
+class NestedModelFit:
+    """
+    Fitted model with separate models for each group.
+
+    Attributes:
+        spec: Original ModelSpec
+        formula: Formula used for fitting
+        group_col: Group column name
+        group_fits: Dict mapping group values to ModelFit objects
+    """
+    spec: ModelSpec
+    formula: str
+    group_col: str
+    group_fits: dict  # {group_value: ModelFit}
+```
+
+**Methods:**
+- `predict(new_data, type="numeric")`: Generate predictions with automatic routing
+- `evaluate(test_data, outcome_col=None)`: Evaluate all groups on test data
+- `extract_outputs()`: Get three-DataFrame outputs with group column
+
+**Example:**
+```python
+# Access specific group's model
+store_a_fit = nested_fit.group_fits['A']
+
+# Get coefficients for store A
+_, coeffs_a, _ = store_a_fit.extract_outputs()
+print(coeffs_a[['variable', 'coefficient']])
+
+# Predict for all groups
+predictions = nested_fit.predict(test_data)
+
+# Evaluate and extract outputs
+nested_fit = nested_fit.evaluate(test_data)
+outputs, coeffs, stats = nested_fit.extract_outputs()
+
+# Compare metrics across groups
+test_rmse = stats[
+    (stats['metric'] == 'rmse') &
+    (stats['split'] == 'test')
+][['store_id', 'value']].sort_values('value')
+```
+
+---
+
+## Workflow API (Full-Featured)
+
+Workflows provide the full-featured API with recipe support for advanced preprocessing.
+
+### When You Need Workflows
+
+Use workflows when you need:
+- **Recipe preprocessing**: Normalization, PCA, dummy encoding, imputation, etc.
+- **Per-group preprocessing**: Each group gets its own recipe preparation
+- **Complex pipelines**: Multiple preprocessing steps chained together
+- **Reusable pipelines**: Save and reuse preprocessing + model combinations
+
+### Basic Workflow Example
+
+```python
+from py_workflows import workflow
+from py_parsnip import linear_reg
+
+# Create workflow with formula
+wf = (
+    workflow()
+    .add_formula("sales ~ price + temperature")
+    .add_model(linear_reg())
+)
+
+# Fit nested models
+nested_fit = wf.fit_nested(data, group_col='store_id')
+
+# Same interface as NestedModelFit
+predictions = nested_fit.predict(test_data)
+outputs, coeffs, stats = nested_fit.extract_outputs()
+```
+
+### Workflow with Recipe
+
+```python
+from py_workflows import workflow
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+# Create recipe for preprocessing
+rec = (
+    recipe()
+    .step_normalize(['price', 'temperature'])
+    .step_impute_median(['price'])
+    .step_dummy(['day_of_week'])
+)
+
+# Create workflow with recipe
+wf = (
+    workflow()
+    .add_recipe(rec)
+    .add_model(linear_reg())
+)
+
+# Fit nested models
+nested_fit = wf.fit_nested(data, group_col='store_id')
+```
+
+---
+
+## When to Use ModelSpec vs Workflow
+
+### Decision Matrix
+
+| Criterion | ModelSpec | Workflow | Recommendation |
+|-----------|-----------|----------|----------------|
+| **Formula-only modeling** | ✓✓✓ | ✓✓ | ModelSpec (simpler) |
+| **Need recipes** | ✗ | ✓✓✓ | Workflow (required) |
+| **Per-group preprocessing** | ✗ | ✓✓✓ | Workflow (required) |
+| **Simplest API** | ✓✓✓ | ✓ | ModelSpec (2 lines) |
+| **Advanced pipelines** | ✗ | ✓✓✓ | Workflow (required) |
+| **Reusable components** | ✓ | ✓✓✓ | Workflow (better) |
+| **Quick prototyping** | ✓✓✓ | ✓ | ModelSpec (faster) |
+
+### Use ModelSpec When:
+
+✅ **Formula-only modeling is sufficient**
+```python
+# Just need formula, no preprocessing
+spec = linear_reg()
+fit = spec.fit_nested(data, 'y ~ x1 + x2', group_col='group')
+```
+
+✅ **Quick prototyping and exploration**
+```python
+# Test multiple models quickly
+for spec in [linear_reg(), rand_forest().set_mode('regression')]:
+    fit = spec.fit_nested(data, 'y ~ .', group_col='group')
+    _, _, stats = fit.extract_outputs()
+    rmse = stats[(stats['metric']=='rmse')&(stats['split']=='test')]['value'].mean()
+    print(f"{spec.model_type}: {rmse:.4f}")
+```
+
+✅ **Simple grouped time series**
+```python
+# Prophet per group (no preprocessing needed)
+spec = prophet_reg()
+fit = spec.fit_nested(data, 'sales ~ date', group_col='store_id')
+```
+
+### Use Workflow When:
+
+✅ **Need preprocessing steps**
+```python
+# Normalization, imputation, etc.
+rec = recipe().step_normalize().step_impute_median()
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(data, group_col='group')
+```
+
+✅ **Per-group preprocessing required**
+```python
+# Each group gets its own PCA transformation
+rec = recipe().step_pca(n_components=5)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+# Each group has different PCA components
+fit = wf.fit_nested(data, group_col='group', per_group_prep=True)
+```
+
+✅ **Complex feature engineering**
+```python
+# Multiple preprocessing steps
+rec = (
+    recipe()
+    .step_normalize(['x1', 'x2'])
+    .step_poly(['x1'], degree=2)
+    .step_interact(['x1', 'x2'])
+    .step_dummy(['category'])
+)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+fit = wf.fit_nested(data, group_col='group')
+```
+
+✅ **Production pipelines**
+```python
+# Reusable, serializable pipeline
+wf = workflow().add_recipe(rec).add_model(spec)
+fit = wf.fit_nested(train, group_col='group')
+
+# Save for deployment
+import pickle
+with open('production_model.pkl', 'wb') as f:
+    pickle.dump(fit, f)
+```
+
+### Side-by-Side Comparison
+
+```python
+# MODELSPEC API (Simpler - Formula Only)
+from py_parsnip import linear_reg
+
+spec = linear_reg()
+nested_fit = spec.fit_nested(data, 'y ~ x1 + x2', group_col='group')
+predictions = nested_fit.predict(test)
+
+# WORKFLOW API (Full-Featured - Recipe Support)
+from py_workflows import workflow
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+rec = recipe().step_normalize(['x1', 'x2'])
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+nested_fit = wf.fit_nested(data, group_col='group')
+predictions = nested_fit.predict(test)
+
+# Both produce identical output structure
+outputs, coeffs, stats = nested_fit.extract_outputs()
+```
+
+**Bottom Line:**
+- **ModelSpec**: Formula-only, 2-line simplicity, perfect for quick analysis
+- **Workflow**: Recipe support, per-group prep, production-ready pipelines
 
 ---
 
@@ -320,9 +673,13 @@ wf = workflow().add_formula("y ~ .").add_model(linear_reg())
 
 ---
 
-## NestedWorkflowFit Class
+## NestedWorkflowFit and NestedModelFit
 
-### Class Definition
+Both classes provide the same interface for grouped models, differing only in their internal structure.
+
+### NestedWorkflowFit (from Workflow)
+
+Used when fitting via `workflow().fit_nested()`.
 
 ```python
 @dataclass
@@ -461,6 +818,830 @@ test_rmse = stats[
     (stats["metric"] == "rmse") &
     (stats["split"] == "test")
 ][["store_id", "value"]].sort_values("value")
+```
+
+### NestedModelFit (from ModelSpec)
+
+Used when fitting via `spec.fit_nested()`.
+
+```python
+@dataclass
+class NestedModelFit:
+    """
+    Fitted model with separate models for each group.
+
+    Attributes:
+        spec: Original ModelSpec
+        formula: Formula used for fitting
+        group_col: Group column name
+        group_fits: Dict mapping group values to ModelFit objects
+    """
+    spec: ModelSpec
+    formula: str
+    group_col: str
+    group_fits: dict  # {group_value: ModelFit}
+```
+
+**Same Methods as NestedWorkflowFit:**
+- `predict(new_data, type="numeric")`
+- `evaluate(test_data, outcome_col=None)`
+- `extract_outputs()`
+
+**Example:**
+```python
+from py_parsnip import linear_reg
+
+# Fit using ModelSpec API
+spec = linear_reg()
+nested_fit = spec.fit_nested(data, 'y ~ x1 + x2', group_col='group')
+
+# Same interface as NestedWorkflowFit
+predictions = nested_fit.predict(test)
+nested_fit = nested_fit.evaluate(test)
+outputs, coeffs, stats = nested_fit.extract_outputs()
+```
+
+**Key Differences:**
+- `NestedWorkflowFit.workflow` → `NestedModelFit.spec`
+- `NestedWorkflowFit` stores workflow, `NestedModelFit` stores spec + formula
+- Both return same three-DataFrame output structure
+- Both support same predict/evaluate/extract_outputs API
+
+---
+
+## Per-Group Preprocessing
+
+**NEW (2025-11-10):** Workflows support per-group recipe preparation, allowing each group to have its own preprocessing pipeline.
+
+### Why Per-Group Preprocessing?
+
+Different groups may need different preprocessing:
+- **Different feature scales**: USA refineries vs UK refineries have different temperature ranges
+- **Different feature importance**: Some groups benefit from different features
+- **Different dimensionality**: PCA may need different number of components per group
+- **Different transformations**: Feature engineering requirements vary by group
+
+### Basic Usage
+
+```python
+from py_workflows import workflow
+from py_recipes import recipe
+from py_parsnip import linear_reg
+
+# Create recipe with PCA
+rec = recipe().step_pca(n_components=5)
+
+# Create workflow
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+# Enable per-group preprocessing
+nested_fit = wf.fit_nested(
+    data,
+    group_col='country',
+    per_group_prep=True,     # Each group gets own recipe prep
+    min_group_size=30        # Groups < 30 use global recipe
+)
+
+# Each group now has its own PCA transformation
+# Group A might keep 5 components, Group B might have different loadings
+```
+
+### Parameters
+
+**`per_group_prep` (bool, default=False)**
+- `True`: Each group gets its own recipe preparation
+- `False`: All groups share same recipe (fitted on all data)
+
+**`min_group_size` (int, default=30)**
+- Minimum observations required for group-specific prep
+- Groups smaller than this use the global recipe instead
+- Prevents overfitting with small groups
+
+### How It Works
+
+```python
+# Pseudocode for fit_nested() with per_group_prep=True
+
+1. Fit global recipe on all data (fallback for small groups)
+2. For each group:
+   a. Check group size
+   b. If size >= min_group_size:
+      - Fit recipe on group's data only
+      - Prep group-specific recipe
+   c. If size < min_group_size:
+      - Use global recipe (warning issued)
+      - Apply global preprocessing
+   d. Fit model on preprocessed group data
+3. Return NestedWorkflowFit with per-group recipes stored
+```
+
+### Feature Comparison Across Groups
+
+Compare which features each group uses after preprocessing:
+
+```python
+# Fit with per-group PCA
+rec = recipe().step_pca(n_components=5)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+nested_fit = wf.fit_nested(
+    data,
+    group_col='country',
+    per_group_prep=True
+)
+
+# Compare features across groups
+feature_comparison = nested_fit.get_feature_comparison()
+print(feature_comparison)
+```
+
+**Output:**
+```
+         feature  USA  Germany  Japan  UK
+0         PC1     1       1      1     1
+1         PC2     1       1      1     1
+2         PC3     1       1      1     1
+3         PC4     1       1      1     1
+4         PC5     1       1      1     1
+```
+
+(1 = feature used, 0 = feature not used)
+
+### Use Cases
+
+#### 1. PCA with Different Components
+
+```python
+# Each group gets optimal number of PCA components
+rec = recipe().step_pca(n_components=5)  # Max 5 components
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+nested_fit = wf.fit_nested(
+    data,
+    group_col='facility_id',
+    per_group_prep=True,
+    min_group_size=50
+)
+
+# USA facility: might use 5 components (complex patterns)
+# Small EU facility: might use 3 components (simpler patterns)
+# Each group's PCA is fitted on that group's data distribution
+```
+
+#### 2. Feature Selection Per Group
+
+```python
+from py_recipes import recipe
+
+# Supervised feature selection
+rec = (
+    recipe()
+    .step_normalize()
+    .step_select_permutation(threshold=0.01, n_features=10)
+)
+
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+nested_fit = wf.fit_nested(
+    data,
+    group_col='region',
+    per_group_prep=True
+)
+
+# Each region selects its own top 10 features
+# Urban regions: might select population density, public transit
+# Rural regions: might select road network, vehicle ownership
+```
+
+#### 3. Normalization with Different Scales
+
+```python
+# Each group normalized by its own mean/std
+rec = recipe().step_normalize(['temperature', 'pressure'])
+
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+nested_fit = wf.fit_nested(
+    data,
+    group_col='plant_id',
+    per_group_prep=True
+)
+
+# Arctic plant: temperature normalized by Arctic mean/std (-30°C to 10°C)
+# Tropical plant: temperature normalized by tropical mean/std (20°C to 40°C)
+# Each group's normalization reflects its own operating range
+```
+
+### Small Group Handling
+
+Groups below `min_group_size` automatically use global recipe:
+
+```python
+rec = recipe().step_pca(n_components=5)
+wf = workflow().add_recipe(rec).add_model(linear_reg())
+
+nested_fit = wf.fit_nested(
+    data,
+    group_col='store_id',
+    per_group_prep=True,
+    min_group_size=50  # Need 50+ observations
+)
+
+# Group A (100 obs): Gets own PCA (✓)
+# Group B (75 obs): Gets own PCA (✓)
+# Group C (30 obs): Uses global PCA (⚠ warning issued)
+# Group D (500 obs): Gets own PCA (✓)
+```
+
+**Warning Message:**
+```
+Warning: Group 'C' has only 30 observations (< 50 required).
+Using global recipe for this group to prevent overfitting.
+```
+
+### Outcome Column Preservation
+
+**Important:** Per-group preprocessing automatically preserves outcome columns during recipe preparation.
+
+```python
+# Recipe operates on predictors only
+rec = recipe().step_normalize().step_pca(n_components=3)
+
+# Outcome column ('sales') is automatically preserved
+# Only predictor columns are transformed
+nested_fit = wf.fit_nested(
+    data,
+    group_col='store_id',
+    per_group_prep=True
+)
+
+# Each group's recipe only transforms features, not outcome
+```
+
+### Advantages
+
+✅ **Group-specific transformations**: Each group gets optimal preprocessing
+✅ **Handles heterogeneity**: Different data distributions accommodated
+✅ **Better feature engineering**: Features selected based on group-specific importance
+✅ **Improved accuracy**: Preprocessing tailored to each group's patterns
+
+### Disadvantages
+
+⚠ **More complex**: Harder to debug (different preprocessing per group)
+⚠ **Requires more data**: Each group needs sufficient observations
+⚠ **Harder to compare**: Groups have different feature spaces
+⚠ **Computational cost**: Fits N recipes instead of 1
+
+### When to Use Per-Group Preprocessing
+
+✅ **Use when:**
+- Groups have very different data distributions
+- Feature scales vary dramatically across groups
+- Groups need different dimensionality reduction
+- Sufficient data per group (50+ observations)
+
+❌ **Don't use when:**
+- Groups have similar distributions (wasted complexity)
+- Small groups (< 30-50 observations per group)
+- Need feature space consistency across groups
+- Interpretability is critical (harder with different features)
+
+---
+
+## Group-Aware Cross-Validation
+
+**NEW (2025-11-12):** Time series cross-validation functions for grouped/panel data.
+
+### Overview
+
+Two approaches for cross-validation with grouped data:
+1. **Nested CV** (`time_series_nested_cv`): Per-group CV splits for nested models
+2. **Global CV** (`time_series_global_cv`): Shared CV splits for global models
+
+### time_series_nested_cv()
+
+Create separate CV splits for each group.
+
+```python
+from py_rsample import time_series_nested_cv
+
+# Create per-group CV splits
+cv_folds = time_series_nested_cv(
+    data=train_data,
+    group_col='country',
+    date_column='date',
+    initial='18 months',
+    assess='3 months',
+    skip='2 months',
+    cumulative=False
+)
+
+# Returns: dict mapping group names → TimeSeriesCV objects
+# {'USA': cv_usa, 'Germany': cv_germany, 'Japan': cv_japan, ...}
+```
+
+**Method Signature:**
+```python
+time_series_nested_cv(
+    data: pd.DataFrame,
+    group_col: str,
+    date_column: str,
+    initial: str,
+    assess: str,
+    skip: str = '0 days',
+    cumulative: bool = True
+) -> Dict[str, TimeSeriesCV]
+```
+
+**Parameters:**
+- `data`: Panel data with group column
+- `group_col`: Column containing group identifiers
+- `date_column`: Column containing dates
+- `initial`: Initial training period (e.g., '18 months', '2 years')
+- `assess`: Assessment period for each fold (e.g., '3 months', '1 year')
+- `skip`: Period to skip between folds (default: '0 days')
+- `cumulative`: If True, training window expands; if False, rolling window
+
+**Returns:**
+- Dict mapping each group name to its own `TimeSeriesCV` object
+
+**Key Features:**
+- Each group gets independent CV splits based on that group's data
+- Different groups may have different number of folds (based on their date ranges)
+- Ideal for nested modeling (each group has own model)
+
+**Example:**
+```python
+from py_rsample import time_series_nested_cv
+from py_workflowsets import WorkflowSet
+from py_yardstick import metric_set, rmse, mae
+
+# Create per-group CV folds
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='country',
+    date_column='date',
+    initial='4 years',
+    assess='1 year',
+    skip='6 months',
+    cumulative=True
+)
+
+# Use with WorkflowSet
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Evaluate all workflows on per-group CV
+results = wf_set.fit_nested_resamples(
+    resamples=cv_folds,
+    group_col='country',
+    metrics=metric_set(rmse, mae)
+)
+
+# Collect metrics per group
+metrics_by_group = results.collect_metrics(by_group=True, summarize=True)
+```
+
+### time_series_global_cv()
+
+Create shared CV splits for all groups (global modeling).
+
+```python
+from py_rsample import time_series_global_cv
+
+# Create global CV splits
+cv_folds = time_series_global_cv(
+    data=train_data,
+    group_col='country',
+    date_column='date',
+    initial='18 months',
+    assess='3 months',
+    skip='2 months',
+    cumulative=False
+)
+
+# Returns: dict mapping group names → same TimeSeriesCV object
+# {'USA': cv_global, 'Germany': cv_global, 'Japan': cv_global, ...}
+# All groups share the same CV object (same reference)
+```
+
+**Method Signature:**
+```python
+time_series_global_cv(
+    data: pd.DataFrame,
+    group_col: str,
+    date_column: str,
+    initial: str,
+    assess: str,
+    skip: str = '0 days',
+    cumulative: bool = True
+) -> Dict[str, TimeSeriesCV]
+```
+
+**Parameters:** Same as `time_series_nested_cv()`
+
+**Returns:**
+- Dict mapping each group name to the **same** `TimeSeriesCV` object
+
+**Key Features:**
+- All groups share identical CV splits (based on full dataset dates)
+- Consistent fold structure across all groups
+- Ideal for global modeling (single model with group as feature)
+
+**Example:**
+```python
+from py_rsample import time_series_global_cv
+from py_workflowsets import WorkflowSet
+
+# Create global CV splits
+cv_folds = time_series_global_cv(
+    train_data,
+    group_col='country',
+    date_column='date',
+    initial='4 years',
+    assess='1 year'
+)
+
+# Use with WorkflowSet for global modeling
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+results = wf_set.fit_global_resamples(
+    data=train_data,
+    resamples=cv_folds,
+    group_col='country',
+    metrics=metric_set(rmse, mae)
+)
+
+# Collect average metrics across groups
+metrics_avg = results.collect_metrics(by_group=False, summarize=True)
+```
+
+### Comparison: Nested vs Global CV
+
+| Aspect | time_series_nested_cv | time_series_global_cv |
+|--------|----------------------|----------------------|
+| **CV splits** | Per-group (independent) | Shared (all groups same) |
+| **Number of folds** | Varies by group | Same for all groups |
+| **Use with** | fit_nested_resamples() | fit_global_resamples() |
+| **Model approach** | Nested (per-group models) | Global (single model) |
+| **Group column** | Excluded from CV data | Included as feature |
+| **Best for** | Heterogeneous groups | Homogeneous groups |
+
+### Integration with WorkflowSet
+
+#### Nested Modeling with CV
+
+```python
+from py_rsample import time_series_nested_cv
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg, rand_forest
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Define workflows
+formulas = ['y ~ x1', 'y ~ x1 + x2', 'y ~ x1 + x2 + x3']
+models = [linear_reg(), rand_forest(trees=100).set_mode('regression')]
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Create per-group CV folds
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='store_id',
+    date_column='date',
+    initial='3 years',
+    assess='6 months',
+    cumulative=True
+)
+
+# Evaluate all workflows on all groups with CV
+results = wf_set.fit_nested_resamples(
+    resamples=cv_folds,
+    group_col='store_id',
+    metrics=metric_set(rmse, mae, r_squared),
+    verbose=True  # Show progress: Workflow 1/6, Group 1/10, Folds
+)
+
+# Rank workflows per group
+ranked_by_group = results.rank_results('rmse', by_group=True, n=3)
+
+# Find best workflow overall
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+```
+
+#### Global Modeling with CV
+
+```python
+from py_rsample import time_series_global_cv
+
+# Create global CV folds
+cv_folds = time_series_global_cv(
+    train_data,
+    group_col='store_id',
+    date_column='date',
+    initial='3 years',
+    assess='6 months'
+)
+
+# Evaluate global models with per-group CV
+results = wf_set.fit_global_resamples(
+    data=train_data,
+    resamples=cv_folds,
+    group_col='store_id',
+    metrics=metric_set(rmse, mae)
+)
+
+# Get overall best workflow
+ranked = results.rank_results('rmse', by_group=False, n=5)
+```
+
+### Overfitting Detection
+
+**NEW (2025-11-12):** Compare training vs CV performance to detect overfitting.
+
+```python
+# Step 1: Fit on full training data
+train_results = wf_set.fit_nested(train_data, group_col='country')
+outputs, coeffs, train_stats = train_results.extract_outputs()
+
+# Step 2: Evaluate with CV
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='country',
+    date_column='date',
+    initial='4 years',
+    assess='1 year'
+)
+
+cv_results = wf_set.fit_nested_resamples(
+    cv_folds,
+    group_col='country',
+    metrics=metric_set(rmse, mae, r_squared)
+)
+
+# Step 3: Compare train vs CV (ONE LINE!)
+comparison = cv_results.compare_train_cv(train_stats)
+
+# Returns DataFrame with overfitting indicators
+# Columns: workflow, group, metric_train, metric_cv, overfit_ratio, status
+# Status: 🟢 Good, 🟡 Moderate Overfit, 🔴 Severe Overfit
+```
+
+**Overfitting Ratio Interpretation:**
+- **< 1.1**: 🟢 Good - Model generalizes well
+- **1.1 - 1.3**: 🟡 Moderate - Some overfitting, acceptable
+- **> 1.3**: 🔴 Severe - Model overfitting, needs regularization
+
+**Example Output:**
+```
+         workflow   group  rmse_train  rmse_cv  rmse_overfit_ratio  status
+0   prep_1_linear  USA        12.5     13.2          1.06          🟢
+1   prep_1_linear  Germany    18.3     19.1          1.04          🟢
+2   prep_2_rf      USA        8.2      15.7          1.91          🔴
+3   prep_2_rf      Germany    9.1      16.3          1.79          🔴
+```
+
+**Finding Overfitting Workflows:**
+```python
+# Filter to overfitting workflows
+overfit = comparison[comparison['rmse_overfit_ratio'] > 1.3]
+
+# Best per group (by CV performance, not training)
+best = comparison.sort_values('rmse_cv').groupby('group').first()
+```
+
+---
+
+## WorkflowSet Multi-Model Comparison
+
+**NEW (2025-11-11):** Compare multiple workflows across all groups simultaneously.
+
+### Overview
+
+WorkflowSet enables:
+- Fit **all workflows** across **all groups** with one method call
+- Compare performance per group or overall
+- Identify if different groups prefer different workflows (heterogeneous patterns)
+- Rank workflows by CV performance with overfitting detection
+
+### Basic Usage
+
+```python
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg, rand_forest, boost_tree
+
+# Define multiple preprocessing strategies
+formulas = [
+    'y ~ x1',
+    'y ~ x1 + x2',
+    'y ~ x1 + x2 + I(x1*x2)',  # Interaction
+]
+
+# Define multiple models
+models = [
+    linear_reg(),
+    rand_forest(trees=100).set_mode('regression'),
+    boost_tree(trees=100).set_mode('regression').set_engine('xgboost')
+]
+
+# Create all combinations (3 × 3 = 9 workflows)
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+
+# Fit ALL workflows across ALL groups
+results = wf_set.fit_nested(train_data, group_col='store_id')
+
+# Returns WorkflowSetNestedResults
+```
+
+### Methods on WorkflowSetNestedResults
+
+#### 1. collect_metrics()
+
+Aggregate metrics per-group or overall.
+
+```python
+# Per-group metrics
+metrics_by_group = results.collect_metrics(by_group=True, split='test')
+
+# Overall average metrics
+metrics_avg = results.collect_metrics(by_group=False, split='test')
+```
+
+**Parameters:**
+- `by_group` (bool): If True, return per-group metrics; if False, average across groups
+- `split` (str): 'train', 'test', or 'all'
+
+#### 2. rank_results()
+
+Rank workflows by performance.
+
+```python
+# Overall ranking (average across groups)
+ranked = results.rank_results('rmse', by_group=False, n=5)
+
+# Per-group ranking
+ranked_by_group = results.rank_results('rmse', by_group=True, n=3)
+```
+
+**Parameters:**
+- `metric` (str): Metric to rank by (e.g., 'rmse', 'mae', 'r_squared')
+- `by_group` (bool): Rank overall or per-group
+- `split` (str, default='test'): Split to use for ranking
+- `n` (int, optional): Return top N workflows only
+
+#### 3. extract_best_workflow()
+
+Get best workflow ID(s).
+
+```python
+# Overall best workflow
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+# Returns: 'prep_2_linear_reg_1' (for example)
+
+# Best workflow per group
+best_by_group = results.extract_best_workflow('rmse', by_group=True)
+# Returns DataFrame: columns=['group', 'wflow_id', 'rmse']
+```
+
+#### 4. collect_outputs()
+
+Get all predictions, actuals, and forecasts.
+
+```python
+# All outputs for all workflows and groups
+outputs_df = results.collect_outputs()
+
+# Columns include: workflow, group, actuals, fitted, forecast, residuals, split
+```
+
+#### 5. autoplot()
+
+Visualize workflow comparison.
+
+```python
+# Average performance with error bars
+fig = results.autoplot('rmse', by_group=False, top_n=10)
+fig.show()
+
+# Per-group subplots
+fig = results.autoplot('rmse', by_group=True, top_n=5)
+fig.show()
+```
+
+### Complete Example
+
+```python
+from py_workflowsets import WorkflowSet
+from py_parsnip import linear_reg, rand_forest
+from py_yardstick import metric_set, rmse, mae, r_squared
+
+# Create workflow set
+formulas = ['y ~ x1', 'y ~ x1 + x2', 'y ~ x1 + x2 + x3']
+models = [linear_reg(), rand_forest(trees=100).set_mode('regression')]
+wf_set = WorkflowSet.from_cross(preproc=formulas, models=models)
+# 3 × 2 = 6 workflows
+
+# Fit all workflows on all groups (e.g., 6 workflows × 10 stores = 60 models)
+results = wf_set.fit_nested(train_data, group_col='store_id')
+
+# Rank workflows overall
+ranked = results.rank_results('rmse', by_group=False, split='test', n=5)
+print("Top 5 Workflows Overall:")
+print(ranked[['wflow_id', 'rmse_mean', 'rmse_std']])
+
+# Rank per group (find heterogeneous patterns)
+ranked_by_group = results.rank_results('rmse', by_group=True, n=1)
+print("\nBest Workflow Per Group:")
+print(ranked_by_group[['group', 'wflow_id', 'rmse']])
+
+# Check if groups prefer different workflows
+if ranked_by_group['wflow_id'].nunique() > 1:
+    print("⚠ Heterogeneous patterns detected!")
+    print("Different groups prefer different workflows.")
+else:
+    print("✓ Homogeneous patterns - all groups prefer same workflow.")
+
+# Extract best workflow overall
+best_wf_id = results.extract_best_workflow('rmse', by_group=False)
+
+# Fit best workflow on full training data
+best_wf = wf_set[best_wf_id]
+final_fit = best_wf.fit_nested(train_data, group_col='store_id')
+final_fit = final_fit.evaluate(test_data)
+
+# Get final outputs
+outputs, coeffs, stats = final_fit.extract_outputs()
+```
+
+### With Cross-Validation
+
+Combine WorkflowSet with group-aware CV:
+
+```python
+from py_rsample import time_series_nested_cv
+
+# Create per-group CV folds
+cv_folds = time_series_nested_cv(
+    train_data,
+    group_col='store_id',
+    date_column='date',
+    initial='3 years',
+    assess='6 months'
+)
+
+# Evaluate all workflows with CV
+cv_results = wf_set.fit_nested_resamples(
+    resamples=cv_folds,
+    group_col='store_id',
+    metrics=metric_set(rmse, mae, r_squared),
+    verbose=True
+)
+
+# Fit on full training data (for comparison)
+train_results = wf_set.fit_nested(train_data, group_col='store_id')
+_, _, train_stats = train_results.extract_outputs()
+
+# Detect overfitting
+comparison = cv_results.compare_train_cv(train_stats)
+
+# Find workflows that generalize well
+good_workflows = comparison[comparison['rmse_overfit_ratio'] < 1.1]
+print("Workflows that generalize well:")
+print(good_workflows[['workflow', 'group', 'rmse_cv', 'rmse_overfit_ratio']])
+
+# Select best generalizing workflow
+best_generalizing = (
+    comparison[comparison['rmse_overfit_ratio'] < 1.2]
+    .sort_values('rmse_cv')
+    .iloc[0]['workflow']
+)
+
+print(f"\nBest generalizing workflow: {best_generalizing}")
+```
+
+### Heterogeneous Pattern Detection
+
+Identify if different groups need different workflows:
+
+```python
+# Fit all workflows on all groups
+results = wf_set.fit_nested(train_data, group_col='store_id')
+
+# Get best workflow per group
+best_by_group = results.extract_best_workflow('rmse', by_group=True, split='test')
+
+# Check for heterogeneity
+unique_workflows = best_by_group['wflow_id'].unique()
+
+if len(unique_workflows) == 1:
+    print(f"✓ All groups prefer: {unique_workflows[0]}")
+    print("→ Use single workflow for all groups (homogeneous)")
+else:
+    print(f"⚠ {len(unique_workflows)} different workflows preferred")
+    print("→ Consider per-group model selection (heterogeneous)")
+
+    # Show which groups prefer which workflow
+    for wf_id in unique_workflows:
+        groups = best_by_group[best_by_group['wflow_id']==wf_id]['group'].tolist()
+        print(f"\n{wf_id}:")
+        print(f"  Preferred by: {', '.join(groups)}")
 ```
 
 ---
@@ -2358,12 +3539,67 @@ test_rmse = stats[
 
 ### Next Steps
 
-1. Try both approaches on your panel data
-2. Compare performance metrics
-3. Analyze coefficient variation across groups
-4. Choose based on decision framework
-5. Iterate with different models and features
+1. **Start simple** with ModelSpec API for formula-only modeling
+2. **Try both approaches** (nested vs global) on your panel data
+3. **Add preprocessing** with Workflow + Recipe if needed
+4. **Enable per-group prep** if groups have different distributions
+5. **Use WorkflowSet** to compare multiple models across all groups
+6. **Apply CV** with time_series_nested_cv() or time_series_global_cv()
+7. **Detect overfitting** with compare_train_cv() helper
+8. **Analyze results** using collect_metrics(), rank_results(), extract_best_workflow()
+9. **Deploy best model** based on CV performance and generalization
 
 ---
 
-**End of Guide**
+## Related Guides
+
+**Core References:**
+- [COMPLETE_MODEL_REFERENCE.md](./COMPLETE_MODEL_REFERENCE.md) - All 28 models with grouped modeling examples
+- [COMPLETE_WORKFLOW_REFERENCE.md](./COMPLETE_WORKFLOW_REFERENCE.md) - Workflow composition, per-group preprocessing
+- [COMPLETE_WORKFLOWSET_REFERENCE.md](./COMPLETE_WORKFLOWSET_REFERENCE.md) - Multi-model comparison framework
+- [COMPLETE_RECIPE_REFERENCE.md](./COMPLETE_RECIPE_REFERENCE.md) - 51 preprocessing steps for feature engineering
+
+**Advanced Topics:**
+- [FORECASTING_GROUPED_ANALYSIS.md](./FORECASTING_GROUPED_ANALYSIS.md) - Grouped time series forecasting workflows
+- [COMPLETE_TUNING_REFERENCE.md](./COMPLETE_TUNING_REFERENCE.md) - Hyperparameter tuning with grid search
+
+**Getting Started:**
+- [REFERENCE_DOCUMENTATION_SUMMARY.md](./REFERENCE_DOCUMENTATION_SUMMARY.md) - Documentation index and learning paths
+
+**Example Notebooks:**
+- `examples/13_panel_models_demo.ipynb` - Panel/grouped modeling demonstration
+- `_md/forecasting_workflowsets_grouped.ipynb` - WorkflowSet grouped comparison
+- `_md/forecasting_workflowsets_cv_grouped.ipynb` - CV with grouped data
+
+---
+
+## Summary Statistics
+
+**Library Coverage:**
+- ✅ 782+ tests passing (64 workflow tests including 13 panel model tests)
+- ✅ 28 production models (all support grouped modeling)
+- ✅ 51 recipe steps (with per-group preparation support)
+- ✅ 2 grouped modeling APIs (ModelSpec and Workflow)
+- ✅ 2 CV approaches (nested and global)
+- ✅ 5 WorkflowSetNestedResults methods
+- ✅ 4 WorkflowSetNestedResamples methods
+
+**Recent Features (2025-11-10 to 2025-11-15):**
+- ModelSpec.fit_nested() and fit_global() - Simplified 2-line API
+- Per-group preprocessing with min_group_size parameter
+- time_series_nested_cv() and time_series_global_cv()
+- WorkflowSet.fit_nested() and fit_global_resamples()
+- compare_train_cv() for overfitting detection
+- Heterogeneous pattern detection across groups
+
+**Code References:**
+- ModelSpec grouped API: `py_parsnip/model_spec.py:fit_nested()`, `fit_global()`
+- Workflow grouped API: `py_workflows/workflow.py:fit_nested()`, `fit_global()`
+- Per-group prep: `py_workflows/workflow.py:255-311` (fit_nested with per_group_prep)
+- Group-aware CV: `py_rsample/time_series_cv.py:time_series_nested_cv()`, `time_series_global_cv()`
+- WorkflowSet grouped: `py_workflowsets/workflowset.py:313-1058`
+- Overfitting detection: `py_workflowsets/workflowset.py:compare_train_cv()`
+
+---
+
+**End of Guide** | *Complete Panel/Grouped Modeling Reference* | py-tidymodels v2025.11
