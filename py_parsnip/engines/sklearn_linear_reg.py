@@ -472,6 +472,8 @@ class SklearnLinearEngine(Engine):
                 ci_upper = coef_values + t_crit * std_errors
 
                 # Calculate VIF for each predictor (skip intercept if present)
+                # Create new VIF list to match length of other arrays
+                vifs = [np.nan] * len(coef_names)
                 for i, col_name in enumerate(coef_names):
                     if col_name != "Intercept" and X_train.shape[1] > 1:
                         # VIF calculation (use original X_train without intercept)
@@ -488,6 +490,14 @@ class SklearnLinearEngine(Engine):
                                 vifs[i] = 1 / (1 - r_squared_i)
             except:
                 pass  # Keep NaN values if calculation fails
+
+        # Ensure all arrays are Python lists for DataFrame construction
+        # (must be outside try block to handle partial success)
+        std_errors = std_errors.tolist() if isinstance(std_errors, np.ndarray) else std_errors
+        t_stats = t_stats.tolist() if isinstance(t_stats, np.ndarray) else t_stats
+        p_values = p_values.tolist() if isinstance(p_values, np.ndarray) else p_values
+        ci_lower = ci_lower.tolist() if isinstance(ci_lower, np.ndarray) else ci_lower
+        ci_upper = ci_upper.tolist() if isinstance(ci_upper, np.ndarray) else ci_upper
 
         coefficients = pd.DataFrame({
             "variable": coef_names,
