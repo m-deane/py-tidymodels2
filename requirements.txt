@@ -194,3 +194,8 @@ zipp==3.23.0
 # pip install git+https://github.com/scikit-learn-contrib/py-earth.git
 # or conda install -c conda-forge py-earth
 pygam==0.9.1
+
+# Deep Learning Time Series (Phase 1 - 2025-11-16)
+# Optional dependencies for NHITS and NBEATS models
+neuralforecast>=1.6.0  # Neural time series forecasting (NHITS, NBEATS, TFT, etc.)
+torch>=1.13.0          # PyTorch backend for deep learning

@@ -34,3 +34,5 @@ from py_parsnip.engines import generic_hybrid  # noqa: F401
 from py_parsnip.engines import parsnip_manual_reg  # noqa: F401
 from py_parsnip.engines import imodels_rule_fit  # noqa: F401
 from py_parsnip.engines import parsnip_window_reg  # noqa: F401
+from py_parsnip.engines import neuralforecast_nhits  # noqa: F401
+from py_parsnip.engines import neuralforecast_nbeats  # noqa: F401

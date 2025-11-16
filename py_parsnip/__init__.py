@@ -41,6 +41,8 @@ from py_parsnip.models.hybrid_model import hybrid_model
 from py_parsnip.models.manual_reg import manual_reg
 from py_parsnip.models.rule_fit import rule_fit
 from py_parsnip.models.window_reg import window_reg
+from py_parsnip.models.nhits_reg import nhits_reg
+from py_parsnip.models.nbeats_reg import nbeats_reg
 
 # Import engines to trigger registration
 import py_parsnip.engines  # noqa: F401
@@ -74,5 +76,7 @@ __all__ = [
     "manual_reg",
     "rule_fit",
     "window_reg",
+    "nhits_reg",
+    "nbeats_reg",
 ]
 __version__ = "0.1.0"
